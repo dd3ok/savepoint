@@ -1,69 +1,112 @@
-# Handoff
+# Handoff Manifest
 
-## Goal
+## Recovery Contract
+
+- Handoff schema version: `1`
+- Handoff mode: `compact`
+- Safe for new session: `yes`
+- Trust order: disk/current working tree, then `HANDOFF.md`, then focused detail artifacts.
+- Do not implement until disk state is verified: yes
+- Secret redaction checked: `yes`
+- Blockers: `none`
+
+## Session Target
 
 - Original goal: Add CSV export for the project reports table.
-- Expected final result: Users can download the current filtered report list as `reports.csv`.
-- User-emphasized requirements: Keep the existing table UI unchanged and avoid adding new dependencies.
+- Current user requirements: Export only visible filtered rows as `reports.csv`; keep the table UI unchanged; do not add dependencies.
+- Current status: CSV helper and export button are implemented; tests still need to be added.
+- Done when: Focused report tests pass and clicking export downloads valid CSV for filtered rows only.
+- Out of scope: Custom filename support unless the user asks.
+- Smallest executable next step: Add tests for CSV escaping and filtered-row export.
 
-## Updated Requirements
+## Repo Snapshot
 
-- Changed requirements: Include only visible filtered rows, not every report in the database.
-- Requirements no longer applicable: Initial idea to export JSON was dropped.
-- Ambiguous or unverified conditions: Exact filename format beyond `reports.csv` is Unknown.
-
-## Current Repository State
-
+- Captured at: `2026-05-03T09:15:00Z`
 - Working directory: `/workspace/acme-dashboard`
 - Git root: `/workspace/acme-dashboard`
 - Branch: `feature/report-csv-export`
-- Git status: `M src/reports/ReportTable.tsx`, `A src/reports/exportCsv.ts`
-- Instruction files found: `AGENTS.md`
-- Files to inspect first: `src/reports/ReportTable.tsx`, `src/reports/exportCsv.ts`, `src/reports/ReportTable.test.tsx`
+- Short HEAD: `a1b2c3d`
+- `git status --short`: `M src/reports/ReportTable.tsx`; `A src/reports/exportCsv.ts`
+- `git diff --stat`: `src/reports/ReportTable.tsx | 18 ++++++++++++++++`; `src/reports/exportCsv.ts | 42 ++++++++++++++++++++++++++++++++++++++++++`
+- `git diff --name-status`: `M src/reports/ReportTable.tsx`; `A src/reports/exportCsv.ts`
+- `git diff --cached --stat`: none
+- Latest commit: `a1b2c3d Add report filtering tests`
+- Instruction files loaded: `AGENTS.md`
 
-## Work Completed So Far
+## Required Reading
 
-- Completed work: Added CSV serialization helper and wired a download button to the current filtered rows.
-- Files changed: `src/reports/ReportTable.tsx` wires the button; `src/reports/exportCsv.ts` contains escaping and serialization logic.
-- Files inspected without changes: `src/reports/useReports.ts`, `src/ui/Button.tsx`.
-- Files created/deleted/moved: Created `src/reports/exportCsv.ts`.
+Read in this order:
 
-## Decisions and Rationale
+1. Instruction files: `AGENTS.md`
+2. `HANDOFF.md` sections: all
+3. Focused detail artifacts: none
+4. Files to inspect first:
+   - `src/reports/exportCsv.ts` — CSV escaping helper
+   - `src/reports/ReportTable.tsx` — export button wiring
+   - `src/reports/ReportTable.test.tsx` — add focused tests here
+
+## Change Manifest
+
+- Changed:
+  - `src/reports/ReportTable.tsx` — wires a download button to current filtered rows.
+- Created:
+  - `src/reports/exportCsv.ts` — serializes report rows and escapes quotes, commas, and newlines.
+- Deleted: none
+- Moved: none
+- Staged: none
+- Inspected without change: `src/reports/useReports.ts`, `src/ui/Button.tsx`
+- Unknown or unverified: exact filename format beyond `reports.csv`
+
+## Decisions And Rationale
 
 - Decision: Implement CSV escaping locally instead of adding a package.
-  Rationale: The export shape is small and the user requested no new dependencies.
-  Alternatives considered: `papaparse`, rejected because it adds a dependency for a narrow task.
+  - Why: Export shape is small and user requested no new dependencies.
+  - Alternatives considered: `papaparse`, rejected as unnecessary dependency weight.
+  - Risk/tradeoff: Local helper must be tested for quotes, commas, and newlines.
 
-## Known Pitfalls
+## Risks / Pitfalls / Do Not Repeat
 
-- Failed or abandoned approaches: Exporting all server rows was rejected after the user clarified filtered rows only.
-- Do not repeat: Do not refactor the report filtering hook unless a test proves it is necessary.
-- Confusing files/functions/tests/edge cases: CSV cells containing quotes, commas, or newlines must be escaped.
-- Commands requiring explicit user approval: None known.
+- Failed approaches: Exporting all server rows was rejected after filtered-rows clarification.
+- Incorrect assumptions: Do not assume database rows equal visible rows.
+- Edge cases to preserve: CSV cells containing quotes, commas, or newlines.
+- Commands requiring explicit user approval: none known
+- Unresolved questions: filename customization is Unknown and out of scope.
+
+## Validation Manifest
+
+- Last command: `npm test -- ReportTable.test.tsx`
+- Result: failed because CSV export tests do not exist yet.
+- Key failure lines, if failed: no matching CSV export assertions
+- Checks not run and why: full test suite not run because focused tests are still missing.
+- Required next validation: `npm test -- ReportTable.test.tsx`, then `npm run lint` if available.
+- Observable completion criteria: CSV tests pass and export contains only filtered rows.
 
 ## Remaining Work
 
-1. Smallest next step: Add tests for CSV escaping and filtered-row export.
-2. Next implementation step: Verify the button uses the existing icon-button styling.
-3. Validation/cleanup: Run the focused report tests, then the project lint command if available.
-4. Optional later work: Add custom filename support if the user asks.
+1. Smallest next step: Add CSV escaping and filtered-row export tests.
+2. Next implementation step: Verify the button uses existing icon-button styling.
+3. Validation/cleanup: Run focused report tests and lint if available.
+4. Optional later work: Add custom filename support if requested.
 
-## Validation
+## Fresh Session Prompt
 
-- Last commands run: `npm test -- ReportTable.test.tsx`
-- Results: Failed because no CSV export tests exist yet.
-- Failures or skipped checks: Full test suite not run.
-- Commands to run next: `npm test -- ReportTable.test.tsx`, `npm run lint`
-- Observable completion criteria: Focused tests pass and clicking the export button downloads a CSV with only filtered rows.
-- If validation was not run, reason: Not applicable.
+```text
+Read /workspace/acme-dashboard/HANDOFF.md first. Verify cwd, Git root, branch, short HEAD, git status, and diff stat before editing. Inspect src/reports/exportCsv.ts, src/reports/ReportTable.tsx, and src/reports/ReportTable.test.tsx. If disk state differs from HANDOFF.md, trust disk and report the mismatch. Continue only with the smallest next step: add focused CSV export tests.
+```
 
-## Constraints
+## Automation Markers
 
-- Architecture/style/security/compatibility: Follow existing React component patterns and browser download helpers.
-- No new dependency, public API change, DB/schema change, destructive command, force push, or large deletion without user approval.
-
-## Done When
-
-- Required tests/checks: Focused report tests pass; lint passes or any lint failure is documented as pre-existing.
-- Required behavior: Filtered rows export as valid CSV.
-- Final summary expected: List changed files, validation commands, and any remaining caveats.
+```text
+HANDOFF_AUTOMATION_V1
+HANDOFF_READY: /workspace/acme-dashboard/HANDOFF.md
+HANDOFF_SCHEMA_VERSION: 1
+HANDOFF_MODE: compact
+DETAIL_ARTIFACTS_READY: not-needed
+NEW_SESSION_PROMPT_READY: yes
+DISK_STATE_RECORDED: yes
+VALIDATION_RECORDED: yes
+SECRET_REDACTION_CHECKED: yes
+SAFE_FOR_NEW_SESSION: yes
+BLOCKERS: none
+END_HANDOFF_AUTOMATION_V1
+```

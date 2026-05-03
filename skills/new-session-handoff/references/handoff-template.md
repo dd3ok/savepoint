@@ -1,45 +1,85 @@
-# Handoff
+# Handoff Manifest
 
-## Goal
+`HANDOFF.md` is the recoverable entry manifest. Keep it compact and scannable. If details are too large, link focused detail artifacts in the required reading order.
+
+## Recovery Contract
+
+- Handoff schema version: `1`
+- Handoff mode: `compact | expanded | prompt-only`
+- Safe for new session: `yes | no`
+- Trust order: disk/current working tree, then `HANDOFF.md`, then focused detail artifacts.
+- Do not implement until disk state is verified: yes
+- Secret redaction checked: `yes | no`
+- Blockers: `none | <short reason>`
+
+## Session Target
 
 - Original goal:
-- Expected final result:
-- User-emphasized requirements:
+- Current user requirements:
+- Current status:
+- Done when:
+- Out of scope:
+- Smallest executable next step:
 
-## Updated Requirements
+## Repo Snapshot
 
-- Changed requirements:
-- Requirements no longer applicable:
-- Ambiguous or unverified conditions:
-
-## Current Repository State
-
+- Captured at:
 - Working directory:
 - Git root:
 - Branch:
-- Git status:
-- Instruction files found:
-- Files to inspect first:
+- Short HEAD:
+- `git status --short`:
+- `git diff --stat`:
+- `git diff --name-status`:
+- `git diff --cached --stat`:
+- Latest commit:
+- Instruction files loaded:
 
-## Work Completed So Far
+## Required Reading
 
-- Completed work:
-- Files changed:
-- Files inspected without changes:
-- Files created/deleted/moved:
+Read in this order:
 
-## Decisions and Rationale
+1. Instruction files:
+2. `HANDOFF.md` sections:
+3. Focused detail artifacts, if any:
+   - `<path>` — purpose:
+4. Files to inspect first:
+   - `<path>` — purpose or symbol/anchor:
+
+## Change Manifest
+
+- Changed:
+  - `<path>` — semantic change:
+- Created:
+- Deleted:
+- Moved:
+- Staged:
+- Inspected without change:
+- Unknown or unverified:
+
+## Decisions And Rationale
 
 - Decision:
-  Rationale:
-  Alternatives considered:
+  - Why:
+  - Alternatives considered:
+  - Risk/tradeoff:
 
-## Known Pitfalls
+## Risks / Pitfalls / Do Not Repeat
 
-- Failed or abandoned approaches:
-- Do not repeat:
-- Confusing files/functions/tests/edge cases:
+- Failed approaches:
+- Incorrect assumptions:
+- Edge cases to preserve:
 - Commands requiring explicit user approval:
+- Unresolved questions:
+
+## Validation Manifest
+
+- Last command:
+- Result:
+- Key failure lines, if failed:
+- Checks not run and why:
+- Required next validation:
+- Observable completion criteria:
 
 ## Remaining Work
 
@@ -48,22 +88,25 @@
 3. Validation/cleanup:
 4. Optional later work:
 
-## Validation
+## Fresh Session Prompt
 
-- Last commands run:
-- Results:
-- Failures or skipped checks:
-- Commands to run next:
-- Observable completion criteria:
-- If validation was not run, reason:
+```text
+[Paste or reference the generated NEW_SESSION_PROMPT here. It must tell the next session to read this HANDOFF.md first, verify disk state, inspect required files, and stop if SAFE_FOR_NEW_SESSION is not yes.]
+```
 
-## Constraints
+## Automation Markers
 
-- Architecture/style/security/compatibility:
-- No new dependency, public API change, DB/schema change, destructive command, force push, or large deletion without user approval.
-
-## Done When
-
-- Required tests/checks:
-- Required behavior:
-- Final summary expected:
+```text
+HANDOFF_AUTOMATION_V1
+HANDOFF_READY: <absolute path or not-written>
+HANDOFF_SCHEMA_VERSION: 1
+HANDOFF_MODE: compact|expanded|prompt-only
+DETAIL_ARTIFACTS_READY: yes|no|not-needed
+NEW_SESSION_PROMPT_READY: yes|no
+DISK_STATE_RECORDED: yes|no
+VALIDATION_RECORDED: yes|no
+SECRET_REDACTION_CHECKED: yes|no
+SAFE_FOR_NEW_SESSION: yes|no
+BLOCKERS: none|<short reason>
+END_HANDOFF_AUTOMATION_V1
+```

@@ -1,0 +1,3 @@
+This task continues from a previous coding-agent session.
+
+Read `/workspace/app/HANDOFF.md` first. Confirm pwd, Git root, branch, short HEAD, `git status --short`, and `git diff --stat`. Inspect `src/auth/session.ts` and `tests/auth/session.test.ts`. If disk differs from the handoff, trust disk and report the mismatch. If safe, summarize the changed files and recorded validation results.

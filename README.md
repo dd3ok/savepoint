@@ -1,38 +1,153 @@
 # Agent Session Handoff Skill
 
-Portable handoff skill and templates for creating and resuming long coding-agent tasks in a fresh session.
+Portable skill and templates for handing long coding-agent work to a fresh session without relying on hidden chat history.
 
 This repository is source material for humans and other repositories. It does not install anything on the current machine by itself.
 
+## What It Is
+
+`new-session-handoff` creates or resumes a verified handoff for coding agents such as Codex, Claude Code, and Gemini.
+
+The central artifact is `HANDOFF.md`. It is not a transcript and not a forced 100-line full summary. It is a recoverable entry manifest: a fresh session reads it first, verifies the actual working tree, then continues from the smallest safe next step.
+
+For complex work, `HANDOFF.md` can point to focused detail artifacts such as architecture notes, changed-file ledgers, validation notes, or pitfalls. The manifest stays compact while important recovery context remains available.
+
 ## 한국어 설명
 
-이 저장소는 긴 코딩 에이전트 작업을 새 세션으로 안전하게 넘기고, 새 세션에서 `HANDOFF.md`를 읽어 이어서 작업하기 위한 `new-session-handoff` 스킬과 템플릿 모음입니다.
+이 저장소는 긴 코딩 에이전트 작업을 새 세션으로 안전하게 넘기기 위한 `new-session-handoff` 스킬과 템플릿 모음입니다.
 
-Codex, Claude Code, Gemini 같은 코딩 에이전트로 작업하다 보면 대화가 길어지거나 context가 압축되면서 원래 목표, 변경된 요구사항, 수정한 파일, 검증 명령, 남은 작업이 흐려질 수 있습니다. 이 스킬은 이전 세션의 숨은 맥락에 기대지 않고도 다음 세션이 이어서 작업할 수 있도록 `HANDOFF.md`를 기본으로 저장하고, 필요하면 새 세션용 복붙 프롬프트도 만들게 합니다.
+핵심 원칙은 `HANDOFF.md`를 모든 내용을 억지로 압축한 요약문이 아니라, 새 세션이 무엇을 확인하고 어디부터 읽어야 하는지 알려주는 복구 manifest로 사용하는 것입니다. 큰 아키텍처 변경이나 대규모 파일 수정은 `HANDOFF.md` 안에 전부 넣지 않고 focused detail artifact로 분리합니다.
 
-사용 목적:
+## Design Principles
 
-- 긴 작업을 새 Codex/Claude/Gemini 세션으로 넘길 때
-- 새 세션에서 `HANDOFF.md`를 읽고 이어서 작업할 때
-- context window가 거의 찼거나 compaction이 일어난 뒤 작업을 보존할 때
-- 외부 PTY 오케스트레이터가 안전하게 세션을 회전시키기 전에 handoff artifact를 요구할 때
-- 팀이나 여러 저장소에서 재사용 가능한 에이전트 작업 인계 포맷이 필요할 때
+1. Recoverability over completeness.
+2. Verified facts over inferred summaries.
+3. Disk state wins over handoff text.
+4. Manifest first, details only when needed.
+5. No session control inside the skill.
+6. One smallest next step before broad plans.
+7. Redact secrets before writing artifacts.
 
-이 저장소의 원본은 `skills/new-session-handoff/`입니다. `.agents/skills/...`와 `.claude/skills/...`는 각각 Codex 호환 환경과 Claude Code 환경에서 프로젝트 스킬로 자동 발견되도록 돕는 선택적 symlink entrypoint입니다. 필수 폴더는 아니며, 사용하는 에이전트 환경의 개인/프로젝트 스킬 경로에 `skills/new-session-handoff/`를 복사하거나 symlink해서 사용할 수 있습니다.
+## Handoff Modes
+
+- `compact`: normal bugs and features. One `HANDOFF.md` contains the manifest and essential details.
+- `expanded`: large architecture or multi-file work. `HANDOFF.md` is the entry manifest and links focused detail artifacts.
+- `prompt-only`: no files are written. The new-session prompt contains a self-contained handoff draft.
+
+## When To Use
+
+- Context is nearly full or compaction happened.
+- A long task needs to move to a new Codex, Claude, Gemini, or similar session.
+- A user asks for `HANDOFF.md`, `NEW_SESSION_PROMPT`, `핸드오프`, or `이어서 작업할 프롬프트`.
+- An external PTY orchestrator needs safe readiness markers before rotating a session.
+- A team needs a reusable handoff format across repositories.
+
+## When Not To Use
+
+- The user is starting an unrelated new task.
+- A tiny one-shot task has no session-transfer risk.
+- Current repository state cannot be inspected.
+- The necessary context contains secrets that cannot be safely redacted.
+- The user is asking the skill to run `/new`, `/status`, reset a PTY, or control an interactive agent session.
 
 ## Contents
 
-- `skills/new-session-handoff/`: a portable `SKILL.md` for creating handoff artifacts and resuming from `HANDOFF.md`.
+- `skills/new-session-handoff/`: canonical portable skill source.
 - `.agents/skills/new-session-handoff`: optional Codex-compatible project-skill entrypoint, symlinked to `skills/new-session-handoff/`.
 - `.claude/skills/new-session-handoff`: optional Claude Code project-skill entrypoint, symlinked to `skills/new-session-handoff/`.
+- `skills/new-session-handoff/references/`: handoff templates, quality checklist, marker semantics, and expanded artifact guidance.
 - `orchestrators/session-rotation.md`: guidance for PTY controllers such as Hermes or OpenClaw.
-- `examples/`: filled handoff and resume prompt examples.
+- `examples/`: compact, expanded, and unsafe handoff examples.
+- `evals/`: lightweight manual eval scenarios for maintaining the skill contract.
 
-## Intended Use
+## Quick Start: Create Handoff
+
+Ask your agent:
+
+```text
+Use $new-session-handoff to create HANDOFF.md and a new-session prompt.
+```
+
+The skill should inspect the real repo state first:
+
+- `pwd`
+- Git root, branch, short HEAD
+- `git status --short`
+- `git diff --stat`
+- `git diff --name-status`
+- staged diff state
+- changed or inspected files
+- relevant instruction files
+
+It should then write `HANDOFF.md`, produce `NEW_SESSION_PROMPT`, and end with one versioned marker block.
+
+## Quick Start: Resume
+
+In the fresh session:
+
+```text
+Use $new-session-handoff to read HANDOFF.md and continue.
+```
+
+The session must verify disk state before implementation. If `HANDOFF.md` conflicts with files on disk, the working tree wins and the mismatch must be reported.
+
+## Artifact Contract
+
+`HANDOFF.md` must include:
+
+- recovery contract and trust order
+- repo snapshot
+- required reading order
+- files to inspect first
+- changed, created, deleted, moved, staged, and inspected files
+- validation status
+- decisions, pitfalls, risks, and unresolved questions
+- one singular executable next step
+- automation markers
+
+Expanded detail artifacts must be focused. Each file answers one recovery question and is linked from `HANDOFF.md`.
+
+## Automation Markers
+
+The final response should contain exactly one marker block:
+
+```text
+HANDOFF_AUTOMATION_V1
+HANDOFF_READY: <absolute path or not-written>
+HANDOFF_SCHEMA_VERSION: 1
+HANDOFF_MODE: compact|expanded|prompt-only
+DETAIL_ARTIFACTS_READY: yes|no|not-needed
+NEW_SESSION_PROMPT_READY: yes|no
+DISK_STATE_RECORDED: yes|no
+VALIDATION_RECORDED: yes|no
+SECRET_REDACTION_CHECKED: yes|no
+SAFE_FOR_NEW_SESSION: yes|no
+BLOCKERS: none|<short reason>
+END_HANDOFF_AUTOMATION_V1
+```
+
+`SAFE_FOR_NEW_SESSION: yes` means the next session can reconstruct the state and continue. It does not mean the code is correct.
+
+## Safety And Security
+
+Do not copy secrets, API keys, cookies, credentials, private keys, full environment values, shell history, raw transcript dumps, or secret-bearing logs into handoff artifacts.
+
+Use `<REDACTED>` for values and record only the variable name or category when needed.
+
+## Boundary
+
+The skill prepares or consumes:
+
+- `HANDOFF.md`
+- `NEW_SESSION_PROMPT`
+- focused detail artifacts
+- readiness markers such as `SAFE_FOR_NEW_SESSION`
+
+The skill does not execute interactive reset commands. Hermes, OpenClaw, or another PTY controller should own status checks, context thresholds, session rotation, and PTY input such as `/new`.
+
+## Installation / Vendoring
 
 `skills/new-session-handoff/` is the canonical source. Copy, vendor, or symlink it into the skill location used by your agent environment.
-
-The `.agents/skills/...` and `.claude/skills/...` symlinks are not required for the repository to be useful. Keep them only when you want project-level automatic skill discovery in compatible tools.
 
 Common locations include:
 
@@ -41,16 +156,4 @@ Common locations include:
 - Claude personal skills: `$HOME/.claude/skills/new-session-handoff/`
 - Claude project skills: `<repo>/.claude/skills/new-session-handoff/`
 
-For Claude, Gemini, or other agents, keep the same core workflow and adjust only the agent-specific installation path and session-control commands. If your tool uses a different skill discovery path, use that tool's path and keep `skills/new-session-handoff/` as the source of truth.
-
-## Boundary
-
-The skill prepares or consumes:
-
-- `HANDOFF.md`
-- `NEW_SESSION_PROMPT`
-- readiness markers such as `SAFE_FOR_NEW_SESSION`
-
-When the user asks to create a handoff, `HANDOFF.md` is saved by default unless the user asks for a prompt only or gives another path.
-
-The skill does not execute interactive reset commands. Hermes, OpenClaw, or another PTY controller should own status checks, context thresholds, and session rotation.
+For Claude, Gemini, or other agents, keep the same core workflow and adjust only the agent-specific installation path and session-control commands.

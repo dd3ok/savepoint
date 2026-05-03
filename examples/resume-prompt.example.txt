@@ -1,20 +1,21 @@
 This task continues from a previous coding-agent session.
 
-Assume this session has no access to prior chat history, hidden reasoning, compacted context, or tool output. Use only this prompt, the repository, and `HANDOFF.md`.
+First, do not implement.
 
-First, do not implement. Establish context:
-
-1. Confirm the working directory and Git root.
-2. Read applicable instruction files and `HANDOFF.md`.
-3. Run `git status --short`.
-4. Inspect the files listed under "Files to inspect first".
-5. Compare the handoff with the actual working tree.
-6. If they conflict, prefer the files on disk and report the mismatch.
+1. Confirm pwd, Git root, branch, short HEAD, `git status --short`, and `git diff --stat`.
+2. Read applicable instruction files and `/workspace/acme-dashboard/HANDOFF.md`.
+3. Read only the detail artifacts required for the smallest next step, if HANDOFF.md lists any.
+4. Inspect the files listed under "Files to inspect first", "Required Reading", and "Change Manifest".
+5. Compare HANDOFF.md with the actual working tree.
+6. If they conflict, trust disk and report the mismatch.
+7. If SAFE_FOR_NEW_SESSION is not yes, stop after the report unless I explicitly instruct you how to proceed.
 
 Report:
 1. Loaded instructions:
 2. Repo state:
 3. Handoff consistency:
-4. First implementation step:
+4. Detail artifacts read:
+5. Missing or conflicting paths:
+6. First implementation step:
 
-Then continue from the smallest remaining task.
+Proceed only if I explicitly asked for implementation and the manifest/disk verification is safe.

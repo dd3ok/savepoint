@@ -4,18 +4,20 @@ Assume this session has no access to prior chat history, hidden reasoning, compa
 
 First, do not implement. Establish context in this order:
 
-1. Confirm the working directory and Git root.
-2. Read applicable instruction files such as AGENTS.md, AGENTS.override.md, PLANS.md, PLAN.md, CLAUDE.md, and GEMINI.md, plus HANDOFF.md if present.
-3. Run git status --short.
-4. Inspect the files listed under "Files to inspect first".
-5. Compare the handoff with the actual working tree.
-6. If the handoff conflicts with files on disk, prefer the files on disk and report the mismatch.
-7. If the state is consistent, continue from the smallest remaining task.
+1. Confirm the working directory, Git root, branch, short HEAD, `git status --short`, and `git diff --stat`.
+2. Read applicable instruction files such as AGENTS.md, AGENTS.override.md, PLANS.md, PLAN.md, CLAUDE.md, and GEMINI.md.
+3. Read HANDOFF.md if present.
+4. If HANDOFF.md lists a required reading order, read only the focused detail artifacts needed for the smallest next step.
+5. Inspect the files listed under "Files to inspect first", "Required Reading", and "Change Manifest".
+6. Compare HANDOFF.md with the actual working tree.
+7. If the handoff conflicts with files on disk, prefer the files on disk and report the mismatch.
+8. If `SAFE_FOR_NEW_SESSION` is not `yes`, stop after the report unless I explicitly instruct you how to proceed.
 
 Rules:
 - Keep changes minimal and aligned with nearby code.
 - Do not start a broad refactor.
-- Do not add dependencies, change public APIs, change DB/schema, run destructive commands, force push, or delete large areas without user approval.
+- Do not add dependencies, change public APIs, change DB/schema, run destructive commands, force push, or delete large areas without explicit approval.
+- Do not copy secrets, tokens, cookies, credentials, private keys, or full environment values into summaries or artifacts.
 - Run the narrowest relevant validation after changes.
 - If validation fails, summarize the command, the key failure lines, and the likely cause.
 
@@ -29,6 +31,8 @@ Report:
 1. Loaded instructions:
 2. Repo state:
 3. Handoff consistency:
-4. First implementation step:
+4. Detail artifacts read:
+5. Missing or conflicting paths:
+6. First implementation step:
 
-Then proceed with the first remaining task.
+Proceed only if I explicitly asked for implementation and the manifest/disk verification is safe. Otherwise stop after the report.

@@ -1,7 +1,7 @@
 interface:
   display_name: "New Session Handoff"
-  short_description: "Create or resume safe agent session handoffs"
-  default_prompt: "Use $new-session-handoff to create HANDOFF.md, provide a prompt-only handoff, or read HANDOFF.md and continue the work."
+  short_description: "Create or resume verified coding-agent handoffs"
+  default_prompt: "Use $new-session-handoff to create HANDOFF.md, create a prompt-only handoff, or resume from HANDOFF.md. Do not modify application code while creating a handoff."
 
 policy:
   allow_implicit_invocation: true
