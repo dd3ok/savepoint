@@ -13,3 +13,4 @@ All notable changes to this repository are documented here.
 - Clarify validation marker semantics and expanded artifact path conventions.
 - Expand the architecture handoff example with realistic boundary and changed-file detail.
 - Enrich expanded validation and pitfalls examples and expand README release documentation.
+- Quote skill frontmatter description and add a YAML frontmatter eval.

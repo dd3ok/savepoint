@@ -21,5 +21,6 @@ For each case:
 - Resume mode verifies disk state before implementation.
 - Disk state wins over handoff text.
 - Secrets are redacted.
+- `SKILL.md` frontmatter parses as valid YAML.
 - The final automation marker block is present and honest.
 - `VALIDATION_RECORDED: yes` means validation status is recorded, including passed, failed, or intentionally skipped validation with an explicit low-risk reason and next command.

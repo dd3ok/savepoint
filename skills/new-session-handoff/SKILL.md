@@ -1,6 +1,6 @@
 ---
 name: new-session-handoff
-description: Create or resume a verified HANDOFF.md for coding-agent session transfer when context is full, after compaction/session rotation, or when switching agents. Captures repo state, changed files, decisions, validation, pitfalls, risks, and the next safe step. Triggers: 핸드오프 만들어줘, 핸드오프 읽고 이어서.
+description: "Create or resume a verified HANDOFF.md for coding-agent session transfer when context is full, after compaction/session rotation, or when switching agents. Captures repo state, changed files, decisions, validation, pitfalls, risks, and the next safe step. Triggers: 핸드오프 만들어줘, 핸드오프 읽고 이어서."
 ---
 
 # New Session Handoff

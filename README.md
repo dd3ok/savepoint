@@ -359,6 +359,7 @@ Core eval expectations:
 Before tagging a release:
 
 - read `skills/new-session-handoff/SKILL.md` end to end,
+- parse `skills/new-session-handoff/SKILL.md` frontmatter as YAML,
 - check `references/handoff-template.md` and `references/new-session-prompt-template.txt` still match the skill,
 - check `references/marker-semantics.md` matches README marker descriptions,
 - verify examples use the current marker block,
