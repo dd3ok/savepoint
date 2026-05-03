@@ -50,6 +50,8 @@ It is not a Skill. The `new-session-handoff` skill prepares handoff artifacts; t
 
 ## Suggested Resume Prompt
 
+Use the canonical template at `skills/new-session-handoff/references/new-session-prompt-template.txt`. A short PTY-friendly version is:
+
 ```text
 This is a continuation after a session rotation.
 

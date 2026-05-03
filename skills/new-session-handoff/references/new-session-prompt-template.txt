@@ -1,0 +1,34 @@
+This task continues from a previous coding-agent session.
+
+Assume this session has no access to prior chat history, hidden reasoning, compacted context, or tool output. Use only this prompt, the repository, and any handoff files present.
+
+First, do not implement. Establish context in this order:
+
+1. Confirm the working directory and Git root.
+2. Read applicable instruction files such as AGENTS.md, AGENTS.override.md, PLANS.md, PLAN.md, HANDOFF.md, CLAUDE.md, and GEMINI.md.
+3. Run git status --short.
+4. Inspect the files listed under "Files to inspect first".
+5. Compare the handoff with the actual working tree.
+6. If the handoff conflicts with files on disk, prefer the files on disk and report the mismatch.
+7. If the state is consistent, continue from the smallest remaining task.
+
+Rules:
+- Keep changes minimal and aligned with nearby code.
+- Do not start a broad refactor.
+- Do not add dependencies, change public APIs, change DB/schema, run destructive commands, force push, or delete large areas without user approval.
+- Run the narrowest relevant validation after changes.
+- If validation fails, summarize the command, the key failure lines, and the likely cause.
+
+# Handoff
+
+[Paste the self-contained handoff here or instruct the session to read HANDOFF.md at an exact path.]
+
+# First response expected
+
+Report:
+1. Loaded instructions:
+2. Repo state:
+3. Handoff consistency:
+4. First implementation step:
+
+Then proceed with the first remaining task.

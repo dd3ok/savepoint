@@ -1,0 +1,20 @@
+This task continues from a previous coding-agent session.
+
+Assume this session has no access to prior chat history, hidden reasoning, compacted context, or tool output. Use only this prompt, the repository, and `HANDOFF.md`.
+
+First, do not implement. Establish context:
+
+1. Confirm the working directory and Git root.
+2. Read applicable instruction files and `HANDOFF.md`.
+3. Run `git status --short`.
+4. Inspect the files listed under "Files to inspect first".
+5. Compare the handoff with the actual working tree.
+6. If they conflict, prefer the files on disk and report the mismatch.
+
+Report:
+1. Loaded instructions:
+2. Repo state:
+3. Handoff consistency:
+4. First implementation step:
+
+Then continue from the smallest remaining task.
