@@ -29,6 +29,8 @@ It is not a Skill. The `new-session-handoff` skill prepares handoff artifacts; t
 
 4. Check the final marker block.
 
+   Marker schema:
+
    ```text
    HANDOFF_AUTOMATION_V1
    HANDOFF_READY: <absolute path or not-written>
@@ -39,14 +41,14 @@ It is not a Skill. The `new-session-handoff` skill prepares handoff artifacts; t
    DISK_STATE_RECORDED: yes|no
    VALIDATION_RECORDED: yes|no
    SECRET_REDACTION_CHECKED: yes|no
-   SAFE_FOR_NEW_SESSION: yes
-   BLOCKERS: none
+   SAFE_FOR_NEW_SESSION: yes|no
+   BLOCKERS: none|<short reason>
    END_HANDOFF_AUTOMATION_V1
    ```
 
    Parse only the final `HANDOFF_AUTOMATION_V1` block. Earlier drafts or quoted examples are not authoritative.
 
-   If `SAFE_FOR_NEW_SESSION` is not `yes`, do not send a session-reset command.
+   Rotate only when `SAFE_FOR_NEW_SESSION` is `yes` and `BLOCKERS` is `none`. If `SAFE_FOR_NEW_SESSION` is not `yes`, do not send a session-reset command.
 
 5. Rotate.
    - Send the agent-specific session-reset command to the CLI PTY.
@@ -84,7 +86,7 @@ Continue only if SAFE_FOR_NEW_SESSION is yes and the user asked for implementati
 - `HANDOFF.md` exists or the orchestrator captured `NEW_SESSION_PROMPT`.
 - cwd, Git root, branch, short HEAD, `git status --short`, and `git diff --stat` were recorded in the handoff.
 - Dirty and staged files were recorded.
-- Last validation command and result were recorded, or skipped validation has an explicit reason and next validation command.
+- Last validation command and result were recorded, or skipped validation has an explicit low-risk reason and next validation command.
 - Secret redaction was checked.
 - If expanded mode is used, every referenced detail artifact exists.
 - No command is running.

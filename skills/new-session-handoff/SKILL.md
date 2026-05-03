@@ -21,7 +21,9 @@ Recoverability first. Compactness second.
 
 `HANDOFF.md` is always the recoverable entry manifest. For small or medium tasks, it may contain all details. For large tasks, it must remain the landing page and required reading order for focused detail artifacts.
 
-For large tasks, use `HANDOFF.md` as an entry manifest plus focused detail artifacts, for example `handoffs/architecture.md`, `handoffs/changed-files.md`, `handoffs/validation.md`, `handoffs/pitfalls.md`, or another user-requested path.
+For large tasks, use `HANDOFF.md` as an entry manifest plus focused detail artifacts. By default, place artifacts in a `details/` directory beside `HANDOFF.md`, for example `details/architecture.md`, `details/changed-files.md`, `details/validation.md`, and `details/pitfalls.md`.
+
+Detail artifact paths listed in `HANDOFF.md` are relative to the directory containing `HANDOFF.md` unless the user explicitly requests another layout.
 
 Default size policy:
 
@@ -127,6 +129,7 @@ Use this mode when the user asks to continue from a handoff, read `HANDOFF.md`, 
    - Confirm `pwd`, Git root, branch, short HEAD, `git status --short`, and `git diff --stat`.
    - Read applicable instruction files and `HANDOFF.md`.
    - If `HANDOFF.md` contains a required reading order, read only the focused detail artifacts needed for the smallest next step.
+   - Resolve relative detail artifact paths against the directory containing `HANDOFF.md`.
    - Inspect files listed under `Files to inspect first`, `Required Reading`, and `Change Manifest`.
    - Verify that referenced paths exist or report missing paths before editing.
 

@@ -46,6 +46,8 @@ Read in this order:
 4. Files to inspect first:
    - `<path>` — purpose or symbol/anchor:
 
+Relative detail artifact paths are resolved against the directory containing this `HANDOFF.md`.
+
 ## Change Manifest
 
 - Changed:

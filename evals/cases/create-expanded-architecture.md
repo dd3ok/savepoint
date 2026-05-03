@@ -7,7 +7,7 @@ The user asks for a handoff after a multi-file architecture change. The rational
 ## Expected
 
 - Writes `HANDOFF.md` as the entry manifest.
-- Creates focused detail artifacts, such as `handoffs/architecture.md`, `handoffs/changed-files.md`, `handoffs/validation.md`, and `handoffs/pitfalls.md`.
+- Creates focused detail artifacts, by default `details/architecture.md`, `details/changed-files.md`, `details/validation.md`, and `details/pitfalls.md` relative to `HANDOFF.md`.
 - Lists each detail artifact in the required reading order with a short purpose.
 - Keeps raw transcripts, long logs, and full diffs out of artifacts.
 - Sets `HANDOFF_MODE: expanded`.

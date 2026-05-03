@@ -105,7 +105,7 @@ The session must verify disk state before implementation. If `HANDOFF.md` confli
 - one singular executable next step
 - automation markers
 
-Expanded detail artifacts must be focused. Each file answers one recovery question and is linked from `HANDOFF.md`.
+Expanded detail artifacts must be focused. Each file answers one recovery question and is linked from `HANDOFF.md`. By default, detail artifact paths such as `details/architecture.md` are relative to the directory containing `HANDOFF.md`.
 
 ## Automation Markers
 

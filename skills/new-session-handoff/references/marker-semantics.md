@@ -27,7 +27,7 @@ END_HANDOFF_AUTOMATION_V1
 - `DETAIL_ARTIFACTS_READY`: `not-needed` for compact/prompt-only, otherwise `yes` only when every referenced artifact exists.
 - `NEW_SESSION_PROMPT_READY`: `yes` when a copy-paste prompt was produced.
 - `DISK_STATE_RECORDED`: `yes` only when cwd, Git root, branch, short HEAD, status, and diff stat were recorded.
-- `VALIDATION_RECORDED`: `yes` when the last validation result is recorded; `no` when validation was skipped or not available.
+- `VALIDATION_RECORDED`: `yes` when validation status is recorded. This includes a passed command, failed command, or intentionally skipped validation with an explicit low-risk reason and next validation command. Use `no` only when validation status is missing or unclear.
 - `SECRET_REDACTION_CHECKED`: `yes` only after checking that secrets were not copied into artifacts.
 - `SAFE_FOR_NEW_SESSION`: `yes` only when the quality checklist passes.
 - `BLOCKERS`: `none` or a short reason that prevents safe rotation.
