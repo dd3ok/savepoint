@@ -44,14 +44,16 @@ README is a map. The contract files above are the source of truth for marker sem
 │       │   ├── new-session-prompt-template.txt
 │       │   └── detail-*-template.md
 │       ├── schemas/handoff-automation-v1.schema.json
-│       └── scripts/validate_handoff.py
+│       └── scripts/
+│           ├── handoff_contract.py
+│           └── validate_handoff.py
 ├── examples/
 ├── evals/
 ├── orchestrators/
 └── scripts/
 ```
 
-`skills/new-session-handoff/` is the portable skill package. The root-level `examples/`, `evals/`, `orchestrators/`, and `scripts/validate-repo.py` are maintainer assets.
+`skills/new-session-handoff/` is the portable skill package. The root-level `examples/`, `evals/`, `orchestrators/`, and `scripts/validate-repo.py` are maintainer assets. The root `scripts/validate_handoff.py` is a compatibility wrapper around the portable validator.
 
 ## Installation / Vendoring
 
@@ -101,6 +103,7 @@ Before committing changes, run:
 ```bash
 python3 scripts/check-frontmatter.py
 python3 scripts/check-marker-block.py
+python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
 ```

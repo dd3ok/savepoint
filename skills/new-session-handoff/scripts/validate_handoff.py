@@ -12,7 +12,12 @@ import re
 import sys
 from pathlib import Path
 
-from handoff_contract import extract_marker_values, marker_allowed_values, marker_field_order
+from handoff_contract import (
+    extract_marker_values,
+    marker_allowed_values,
+    marker_field_order,
+    validate_marker_semantics,
+)
 
 
 MARKER_ENUMS = marker_allowed_values()
@@ -42,25 +47,18 @@ def validate_handoff(path: Path) -> list[str]:
         if value is not None and value not in allowed:
             errors.append(f"{path}: marker {field} has invalid value {value!r}")
 
-    if values.get("SAFE_FOR_NEW_SESSION") == "yes":
-        for field in ["DISK_STATE_RECORDED", "VALIDATION_RECORDED", "SECRET_REDACTION_CHECKED"]:
-            if values.get(field) != "yes":
-                errors.append(f"{path}: SAFE_FOR_NEW_SESSION=yes requires {field}=yes")
-        if values.get("BLOCKERS") != "none":
-            errors.append(f"{path}: SAFE_FOR_NEW_SESSION=yes requires BLOCKERS=none")
+    for error in validate_marker_semantics(values):
+        errors.append(f"{path}: {error}")
     if values.get("SECRET_REDACTION_CHECKED") == "yes" and "Secret redaction check:" not in text:
         errors.append(f"{path}: SECRET_REDACTION_CHECKED=yes requires a Secret redaction check entry")
 
-    mode = values.get("HANDOFF_MODE")
     details = values.get("DETAIL_ARTIFACTS_READY")
-    if mode == "expanded":
-        if details != "yes":
-            errors.append(f"{path}: expanded mode requires DETAIL_ARTIFACTS_READY=yes")
+    if values.get("HANDOFF_MODE") == "expanded" and (
+        details == "yes" or values.get("SAFE_FOR_NEW_SESSION") == "yes"
+    ):
         for rel in sorted(set(re.findall(r"`(details/[^`]+\.md)`", text))):
             if not (path.parent / rel).exists():
                 errors.append(f"{path}: referenced detail artifact is missing: {rel}")
-    elif mode in {"compact", "prompt-only"} and details != "not-needed":
-        errors.append(f"{path}: {mode} mode requires DETAIL_ARTIFACTS_READY=not-needed")
 
     for field in ["- Goal:", "- Current state:", "- Next action:", "- Blocker:"]:
         if text.count(field) != 1:

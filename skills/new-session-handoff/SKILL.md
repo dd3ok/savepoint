@@ -29,7 +29,13 @@ Read `references/handoff-template.md` when drafting `HANDOFF.md`.
 
 Read `references/new-session-prompt-template.txt` when drafting `NEW_SESSION_PROMPT.txt`.
 
-Use `references/detail-*-template.md` only when expanded mode needs focused detail artifacts.
+Use detail templates only when expanded mode needs focused detail artifacts:
+
+- `references/detail-architecture-template.md` for `details/architecture.md`
+- `references/detail-changed-files-template.md` for `details/changed-files.md`
+- `references/detail-validation-template.md` for `details/validation.md`
+- `references/detail-pitfalls-template.md` for `details/pitfalls.md`
+- `references/detail-open-questions-template.md` for `details/open-questions.md`
 
 ## Create Handoff
 

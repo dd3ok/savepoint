@@ -80,3 +80,28 @@ def extract_marker_values(path: Path, text: str) -> tuple[dict[str, str], list[s
         seen.add(key)
         values[key] = value.strip()
     return values, errors
+
+
+def validate_marker_semantics(values: dict[str, str]) -> list[str]:
+    """Validate cross-field marker rules that are not expressible as JSON schema enums."""
+    errors: list[str] = []
+    mode = values.get("HANDOFF_MODE")
+    detail_state = values.get("DETAIL_ARTIFACTS_READY")
+    safe = values.get("SAFE_FOR_NEW_SESSION")
+
+    if safe == "yes":
+        for field in ["DISK_STATE_RECORDED", "VALIDATION_RECORDED", "SECRET_REDACTION_CHECKED"]:
+            if values.get(field) != "yes":
+                errors.append(f"SAFE_FOR_NEW_SESSION=yes requires {field}=yes")
+        if values.get("BLOCKERS") != "none":
+            errors.append("SAFE_FOR_NEW_SESSION=yes requires BLOCKERS=none")
+
+    if mode == "expanded":
+        if detail_state not in {"yes", "no"}:
+            errors.append("expanded mode requires DETAIL_ARTIFACTS_READY=yes or no")
+        elif safe == "yes" and detail_state != "yes":
+            errors.append("SAFE_FOR_NEW_SESSION=yes expanded handoff requires DETAIL_ARTIFACTS_READY=yes")
+    elif mode in {"compact", "prompt-only"} and detail_state != "not-needed":
+        errors.append(f"{mode} mode requires DETAIL_ARTIFACTS_READY=not-needed")
+
+    return errors

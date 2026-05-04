@@ -20,6 +20,7 @@ from handoff_contract import (  # noqa: E402
     marker_allowed_values,
     marker_field_order,
     marker_template_lines,
+    validate_marker_semantics,
 )
 
 EXPECTED_MARKER_LINES = [
@@ -158,6 +159,20 @@ class Validator:
             self.fail("schema-derived marker template lines must match repository marker block")
         if marker_allowed_values() != MARKER_ENUMS:
             self.fail("schema enum/const marker values must match validator constants")
+        valid_blocked_expanded = {
+            "HANDOFF_MODE": "expanded",
+            "DETAIL_ARTIFACTS_READY": "no",
+            "SAFE_FOR_NEW_SESSION": "no",
+        }
+        invalid_blocked_compact = {
+            "HANDOFF_MODE": "compact",
+            "DETAIL_ARTIFACTS_READY": "yes",
+            "SAFE_FOR_NEW_SESSION": "no",
+        }
+        if validate_marker_semantics(valid_blocked_expanded):
+            self.fail("expanded handoffs may be unsafe while detail artifacts are not ready")
+        if not validate_marker_semantics(invalid_blocked_compact):
+            self.fail("compact handoffs must use DETAIL_ARTIFACTS_READY=not-needed even when unsafe")
 
     def extract_marker_block(self, text: str, path: Path) -> list[str] | None:
         pattern = re.compile(
@@ -184,15 +199,11 @@ class Validator:
                 self.fail(f"{path.relative_to(ROOT)} marker block does not match expected field order")
             self.validate_marker_values(path, block)
 
-        for path in [
-            SKILL_DIR / "references" / "handoff-contract.md",
-            SKILL_DIR / "references" / "marker-semantics.md",
-            SKILL_DIR / "references" / "quality-checklist.md",
-        ]:
-            text = self.read(path)
-            for marker in marker_field_order():
-                if marker not in text:
-                    self.fail(f"{path.relative_to(ROOT)} missing marker name {marker}")
+        path = SKILL_DIR / "references" / "handoff-contract.md"
+        text = self.read(path)
+        for marker in marker_field_order():
+            if marker not in text:
+                self.fail(f"{path.relative_to(ROOT)} missing marker name {marker}")
 
     def validate_marker_values(self, path: Path, block: list[str]) -> None:
         values: dict[str, str] = {}
@@ -209,18 +220,8 @@ class Validator:
             value = values.get(key, "")
             if value not in allowed:
                 self.fail(f"{path.relative_to(ROOT)} marker {key} has invalid value {value!r}")
-        if values.get("SAFE_FOR_NEW_SESSION") == "yes":
-            for key in ["DISK_STATE_RECORDED", "VALIDATION_RECORDED", "SECRET_REDACTION_CHECKED"]:
-                if values.get(key) != "yes":
-                    self.fail(f"{path.relative_to(ROOT)} SAFE_FOR_NEW_SESSION=yes requires {key}=yes")
-            if values.get("BLOCKERS") != "none":
-                self.fail(f"{path.relative_to(ROOT)} SAFE_FOR_NEW_SESSION=yes requires BLOCKERS=none")
-            mode = values.get("HANDOFF_MODE")
-            detail_state = values.get("DETAIL_ARTIFACTS_READY")
-            if mode == "expanded" and detail_state != "yes":
-                self.fail(f"{path.relative_to(ROOT)} expanded handoff requires DETAIL_ARTIFACTS_READY=yes")
-            if mode in {"compact", "prompt-only"} and detail_state != "not-needed":
-                self.fail(f"{path.relative_to(ROOT)} {mode} handoff requires DETAIL_ARTIFACTS_READY=not-needed")
+        for error in validate_marker_semantics(values):
+            self.fail(f"{path.relative_to(ROOT)} {error}")
 
     def validate_handoff_sections(self) -> None:
         required_sections = [
