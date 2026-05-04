@@ -56,7 +56,13 @@ def validate_handoff(path: Path) -> list[str]:
     if values.get("HANDOFF_MODE") == "expanded" and (
         details == "yes" or values.get("SAFE_FOR_NEW_SESSION") == "yes"
     ):
-        for rel in sorted(set(re.findall(r"`(details/[^`]+\.md)`", text))):
+        detail_refs = sorted(set(re.findall(r"`(details/[^`]+\.md)`", text)))
+        if details == "yes" and not detail_refs:
+            errors.append(
+                f"{path}: expanded mode with DETAIL_ARTIFACTS_READY=yes "
+                "requires at least one detail artifact reference"
+            )
+        for rel in detail_refs:
             if not (path.parent / rel).exists():
                 errors.append(f"{path}: referenced detail artifact is missing: {rel}")
 

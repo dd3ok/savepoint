@@ -23,6 +23,7 @@ Before committing changes to this repository, run:
 ```bash
 python3 scripts/check-frontmatter.py
 python3 scripts/check-marker-block.py
+python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
 ```

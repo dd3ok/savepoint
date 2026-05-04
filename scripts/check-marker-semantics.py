@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Validate cross-field automation marker semantics."""
 
+from __future__ import annotations
+
 from pathlib import Path
 import sys
+import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -10,10 +13,12 @@ SKILL_SCRIPTS = ROOT / "skills" / "new-session-handoff" / "scripts"
 sys.path.insert(0, str(SKILL_SCRIPTS))
 
 from handoff_contract import validate_marker_semantics  # noqa: E402
+from validate_handoff import validate_handoff  # noqa: E402
 
 
 BASE_VALUES = {
     "HANDOFF_MODE": "compact",
+    "HANDOFF_READY": "/tmp/HANDOFF.md",
     "DETAIL_ARTIFACTS_READY": "not-needed",
     "DISK_STATE_RECORDED": "yes",
     "VALIDATION_RECORDED": "yes",
@@ -26,7 +31,8 @@ BASE_VALUES = {
 def expect(name: str, values: dict[str, str], should_pass: bool) -> list[str]:
     merged = {**BASE_VALUES, **values}
     errors = validate_marker_semantics(merged)
-    if bool(errors) == should_pass:
+    passed = not errors
+    if passed != should_pass:
         return [f"{name}: expected pass={should_pass}, got errors={errors}"]
     return []
 
@@ -72,11 +78,30 @@ def main() -> int:
     )
     errors.extend(
         expect(
+            "prompt-only requires not-written handoff path",
+            {
+                "HANDOFF_MODE": "prompt-only",
+                "HANDOFF_READY": "/tmp/HANDOFF.md",
+                "SAFE_FOR_NEW_SESSION": "no",
+            },
+            False,
+        )
+    )
+    errors.extend(
+        expect(
+            "compact requires written handoff path",
+            {"HANDOFF_READY": "not-written", "SAFE_FOR_NEW_SESSION": "no"},
+            False,
+        )
+    )
+    errors.extend(
+        expect(
             "safe requires no blockers",
             {"BLOCKERS": "waiting-for-user"},
             False,
         )
     )
+    errors.extend(check_expanded_details_reference_required())
 
     if errors:
         for error in errors:
@@ -84,6 +109,63 @@ def main() -> int:
         return 1
     print("ok: marker semantics")
     return 0
+
+
+def marker_block(**overrides: str) -> str:
+    values = {
+        "HANDOFF_READY": "/tmp/HANDOFF.md",
+        "HANDOFF_SCHEMA_VERSION": "1",
+        "HANDOFF_MODE": "expanded",
+        "DETAIL_ARTIFACTS_READY": "yes",
+        "NEW_SESSION_PROMPT_READY": "yes",
+        "DISK_STATE_RECORDED": "yes",
+        "VALIDATION_RECORDED": "yes",
+        "SECRET_REDACTION_CHECKED": "yes",
+        "SAFE_FOR_NEW_SESSION": "yes",
+        "BLOCKERS": "none",
+    }
+    values.update(overrides)
+    lines = ["HANDOFF_AUTOMATION_V1"]
+    lines.extend(f"{key}: {value}" for key, value in values.items())
+    lines.append("END_HANDOFF_AUTOMATION_V1")
+    return "\n".join(lines)
+
+
+def minimal_handoff(block: str, detail_reference: str = "") -> str:
+    return f"""# Test Handoff
+
+## TL;DR / Operational Summary
+
+- Goal:
+- Current state:
+- Next action:
+- Blocker:
+
+## Required Reading
+
+{detail_reference}
+
+## Validation Manifest
+
+- Secret redaction check: manual
+
+```text
+{block}
+```
+"""
+
+
+def check_expanded_details_reference_required() -> list[str]:
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "HANDOFF.md"
+        path.write_text(minimal_handoff(marker_block()), encoding="utf-8")
+        errors = validate_handoff(path)
+    if not any("requires at least one detail artifact reference" in error for error in errors):
+        return [
+            "expanded details-ready handoff without detail references should fail, "
+            f"got errors={errors}"
+        ]
+    return []
 
 
 if __name__ == "__main__":

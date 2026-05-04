@@ -86,6 +86,7 @@ def validate_marker_semantics(values: dict[str, str]) -> list[str]:
     """Validate cross-field marker rules that are not expressible as JSON schema enums."""
     errors: list[str] = []
     mode = values.get("HANDOFF_MODE")
+    handoff_ready = values.get("HANDOFF_READY")
     detail_state = values.get("DETAIL_ARTIFACTS_READY")
     safe = values.get("SAFE_FOR_NEW_SESSION")
 
@@ -103,5 +104,10 @@ def validate_marker_semantics(values: dict[str, str]) -> list[str]:
             errors.append("SAFE_FOR_NEW_SESSION=yes expanded handoff requires DETAIL_ARTIFACTS_READY=yes")
     elif mode in {"compact", "prompt-only"} and detail_state != "not-needed":
         errors.append(f"{mode} mode requires DETAIL_ARTIFACTS_READY=not-needed")
+
+    if mode == "prompt-only" and handoff_ready != "not-written":
+        errors.append("prompt-only mode requires HANDOFF_READY=not-written")
+    elif mode in {"compact", "expanded"} and handoff_ready == "not-written":
+        errors.append(f"{mode} mode requires HANDOFF_READY to point to HANDOFF.md")
 
     return errors

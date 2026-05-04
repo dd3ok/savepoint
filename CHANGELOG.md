@@ -4,6 +4,8 @@ All notable changes to this repository are documented here.
 
 ## Unreleased
 
+- Remove legacy marker/checklist/expanded reference stubs and centralize marker semantics in `handoff-contract.md`.
+- Add shared marker cross-field validation used by portable and repository validators.
 - Add repository validation scripts, detail artifact templates, staleness rules, and MIT license files.
 - Add a four-line `TL;DR / Operational Summary` requirement to handoff manifests.
 - Reframe `HANDOFF.md` as a recoverable entry manifest rather than a forced full summary.
