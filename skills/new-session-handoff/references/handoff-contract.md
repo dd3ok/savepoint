@@ -142,6 +142,7 @@ Set `SAFE_FOR_NEW_SESSION: yes` only when all are true:
 - dirty, staged, changed, created, deleted, moved, and inspected files are listed or explicitly marked `none`.
 - `HANDOFF.md` exists, or prompt-only mode intentionally records `HANDOFF_READY: not-written`.
 - every referenced detail artifact exists, or details are `not-needed`.
+- an embedded or file-based resume prompt exists, and `NEW_SESSION_PROMPT_READY: yes`.
 - disk-state conflict handling is stated.
 - validation command and result are recorded, or skipped validation has a reason and next command.
 - secret redaction was checked.

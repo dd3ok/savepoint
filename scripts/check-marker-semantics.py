@@ -23,6 +23,7 @@ BASE_VALUES = {
     "DISK_STATE_RECORDED": "yes",
     "VALIDATION_RECORDED": "yes",
     "SECRET_REDACTION_CHECKED": "yes",
+    "NEW_SESSION_PROMPT_READY": "yes",
     "SAFE_FOR_NEW_SESSION": "yes",
     "BLOCKERS": "none",
 }
@@ -115,8 +116,17 @@ def main() -> int:
             False,
         )
     )
+    errors.extend(
+        expect(
+            "safe requires prompt ready",
+            {"NEW_SESSION_PROMPT_READY": "no"},
+            False,
+        )
+    )
     errors.extend(check_expanded_details_reference_required())
     errors.extend(check_compact_details_reference_rejected())
+    errors.extend(check_prompt_ready_requires_prompt_evidence())
+    errors.extend(check_external_prompt_note_satisfies_prompt_ready())
 
     if errors:
         for error in errors:
@@ -201,6 +211,54 @@ def check_compact_details_reference_rejected() -> list[str]:
     if not any("compact mode must not reference detail artifacts" in error for error in errors):
         return [
             "compact handoff with detail references should fail, "
+            f"got errors={errors}"
+        ]
+    return []
+
+
+def check_prompt_ready_requires_prompt_evidence() -> list[str]:
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "HANDOFF.md"
+        path.write_text(
+            minimal_handoff(
+                marker_block(
+                    HANDOFF_MODE="compact",
+                    DETAIL_ARTIFACTS_READY="not-needed",
+                    HANDOFF_READY="/tmp/HANDOFF.md",
+                )
+            ),
+            encoding="utf-8",
+        )
+        errors = validate_handoff(path)
+    if not any("NEW_SESSION_PROMPT_READY=yes requires" in error for error in errors):
+        return [
+            "prompt-ready handoff without prompt evidence should fail, "
+            f"got errors={errors}"
+        ]
+    return []
+
+
+def check_external_prompt_note_satisfies_prompt_ready() -> list[str]:
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "HANDOFF.md"
+        path.write_text(
+            minimal_handoff(
+                marker_block(
+                    HANDOFF_MODE="compact",
+                    DETAIL_ARTIFACTS_READY="not-needed",
+                    HANDOFF_READY="/tmp/HANDOFF.md",
+                ),
+                detail_reference="- New session prompt file: NEW_SESSION_PROMPT.txt",
+            ),
+            encoding="utf-8",
+        )
+        errors = validate_handoff(path)
+    prompt_errors = [
+        error for error in errors if "NEW_SESSION_PROMPT_READY=yes requires" in error
+    ]
+    if prompt_errors:
+        return [
+            "external prompt file note should satisfy prompt-ready evidence, "
             f"got errors={errors}"
         ]
     return []

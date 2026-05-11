@@ -41,13 +41,13 @@ Use when the user asks to read a handoff, continue from a handoff, or says `í•¸ë
 
 1. Confirm current cwd, Git root, branch, short HEAD, `git status --short`, and `git diff --stat`.
 2. Read applicable instruction files.
-3. Read the user-provided path, then `.new-session-handoff/HANDOFF.md`, then legacy `HANDOFF.md`.
+3. If the user provided a handoff path, read that path as the selected handoff. Otherwise, look for `.new-session-handoff/HANDOFF.md`, then legacy `HANDOFF.md`, and use the first existing handoff.
 4. Compare handoff claims with the working tree. If they conflict, trust disk state and report the mismatch.
 5. Report loaded instructions, repo state, handoff consistency, missing or conflicting paths, and the first implementation step.
 6. If `SAFE_FOR_NEW_SESSION` is not `yes`, stop after the report unless the user explicitly instructs how to proceed.
-7. After a verified safe resume, delete only untracked generated handoff artifacts unless the user asked to keep them.
+7. After reporting a verified safe resume, delete only untracked generated handoff artifacts unless the user asked to keep them.
 
-If the user asked only to inspect or resume context, stop after the report. If they explicitly asked to continue implementation and the handoff is safe, proceed with only the smallest remaining task under the repository instructions.
+If the user asked only to inspect or resume context, stop after the report and any eligible cleanup. Do not implement. If they explicitly asked to continue implementation and the handoff is safe, proceed with only the smallest remaining task under the repository instructions.
 
 ## Safety Rules
 

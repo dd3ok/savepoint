@@ -94,6 +94,8 @@ def validate_marker_semantics(values: dict[str, str]) -> list[str]:
         for field in ["DISK_STATE_RECORDED", "VALIDATION_RECORDED", "SECRET_REDACTION_CHECKED"]:
             if values.get(field) != "yes":
                 errors.append(f"SAFE_FOR_NEW_SESSION=yes requires {field}=yes")
+        if values.get("NEW_SESSION_PROMPT_READY") != "yes":
+            errors.append("SAFE_FOR_NEW_SESSION=yes requires NEW_SESSION_PROMPT_READY=yes")
         if values.get("BLOCKERS") != "none":
             errors.append("SAFE_FOR_NEW_SESSION=yes requires BLOCKERS=none")
 

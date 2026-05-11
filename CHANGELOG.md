@@ -4,6 +4,8 @@ All notable changes to this repository are documented here.
 
 ## Unreleased
 
+- Require prompt-ready handoffs to include embedded or external resume prompt evidence.
+- Clarify resume lookup and cleanup ordering in `SKILL.md`.
 - Default generated handoffs to `.new-session-handoff/HANDOFF.md` with an embedded `## Resume Prompt`.
 - Stop treating `NEW_SESSION_PROMPT.txt` and detail templates as default skill-package artifacts.
 - Add verified-resume cleanup policy for deleting only untracked generated handoff artifacts.

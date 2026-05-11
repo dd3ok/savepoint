@@ -51,6 +51,11 @@ def validate_handoff(path: Path) -> list[str]:
         errors.append(f"{path}: {error}")
     if values.get("SECRET_REDACTION_CHECKED") == "yes" and "Secret redaction check:" not in text:
         errors.append(f"{path}: SECRET_REDACTION_CHECKED=yes requires a Secret redaction check entry")
+    if values.get("NEW_SESSION_PROMPT_READY") == "yes" and not has_resume_prompt_evidence(text):
+        errors.append(
+            f"{path}: NEW_SESSION_PROMPT_READY=yes requires "
+            "an embedded ## Resume Prompt or an external prompt file path"
+        )
 
     details = values.get("DETAIL_ARTIFACTS_READY")
     detail_refs = sorted(set(re.findall(r"`(details/[^`]+\.md)`", text)))
@@ -75,6 +80,19 @@ def validate_handoff(path: Path) -> list[str]:
         if re.search(pattern, text):
             errors.append(f"{path}: possible unredacted secret matching {pattern}")
     return errors
+
+
+def has_resume_prompt_evidence(text: str) -> bool:
+    if "## Resume Prompt" in text:
+        return True
+    match = re.search(
+        r"(?im)^\s*-?\s*New session prompt (?:file|path):\s*`?([^`\n]+)`?\s*$",
+        text,
+    )
+    if not match:
+        return False
+    value = match.group(1).strip().strip("`").strip().lower()
+    return bool(value) and value not in {"not-written", "none", "no"}
 
 
 def main() -> int:
