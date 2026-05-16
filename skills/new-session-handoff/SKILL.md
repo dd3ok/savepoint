@@ -34,7 +34,7 @@ Use when the user asks to create a handoff, preserve context for a fresh session
 5. Include one narrow next action and an embedded `## Resume Prompt`.
 6. Include exactly one final `HANDOFF_AUTOMATION_V1` marker block.
 7. Check generated artifacts for secrets before marking them safe.
-8. If `skills/new-session-handoff/scripts/validate_handoff.py` or `scripts/validate_handoff.py` is available, run it on the generated `HANDOFF.md`. Record the command, result, key failure lines, or skipped reason in the Validation Manifest.
+8. If the bundled `scripts/validate_handoff.py` from this skill package or a repository-level `scripts/validate_handoff.py` is available, run it on the generated `HANDOFF.md`. Record the command, result, key failure lines, or skipped reason in the Validation Manifest.
 
 Read `references/handoff-template.md` when drafting `HANDOFF.md`. Read `references/handoff-contract.md` only when marker semantics, safe/unsafe criteria, cleanup, or validation rules are ambiguous.
 

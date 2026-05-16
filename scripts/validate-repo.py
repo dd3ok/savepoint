@@ -170,6 +170,30 @@ class Validator:
             if phrase not in contract_text:
                 self.fail(f"handoff-contract.md missing lightweight policy: {phrase}")
 
+        eval_requirements = {
+            ROOT / "evals" / "trigger-cases.md": [
+                "## Should Trigger",
+                "## Should Not Trigger",
+            ],
+            ROOT / "evals" / "cleanup-policy.md": [
+                "## Should Delete",
+                "## Should Not Delete: Inspect-Only",
+                "## Should Not Delete: Unsafe",
+                "## Should Not Delete: Stale Or Mismatch",
+                "## Should Not Delete: Tracked",
+                "## Should Not Delete: External User Path",
+            ],
+            ROOT / "evals" / "baseline-matrix.md": [
+                "## Metrics",
+                "## Cases",
+            ],
+        }
+        for path, headings in eval_requirements.items():
+            text = self.read(path)
+            for heading in headings:
+                if heading not in text:
+                    self.fail(f"{path.relative_to(ROOT)} missing eval heading: {heading}")
+
         template_text = self.read(SKILL_DIR / "references" / "handoff-template.md")
         if "## Resume Prompt" not in template_text:
             self.fail("handoff-template.md must embed a Resume Prompt section")

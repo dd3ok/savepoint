@@ -4,6 +4,13 @@ These are lightweight manual evals for the `new-session-handoff` skill. They def
 
 Use them when changing `SKILL.md`, handoff templates, automation markers, examples, or orchestrator guidance.
 
+## Eval Files
+
+- `trigger-cases.md`: skill routing should/should-not trigger cases.
+- `cleanup-policy.md`: adopted cleanup and preservation cases.
+- `baseline-matrix.md`: with-skill vs without-skill comparison matrix.
+- `cases/resume-cleanup.md`: focused resume cleanup scenario.
+
 ## Review Method
 
 For each case:
