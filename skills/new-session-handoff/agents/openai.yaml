@@ -1,4 +1,4 @@
 interface:
   display_name: "New Session Handoff"
-  short_description: "Create or resume lightweight coding-agent handoffs"
-  default_prompt: "Use $new-session-handoff to create or resume .new-session-handoff/HANDOFF.md for a fresh coding-agent session. Do not run /new, control PTYs, or modify application code while creating a handoff."
+  short_description: "Create or resume verified coding-session handoffs"
+  default_prompt: "Use $new-session-handoff to create, inspect, or resume .new-session-handoff/HANDOFF.md for a fresh coding-agent session. Include verified disk/Git state, relevant instruction/state files, validation status, and one narrow next action. Do not run /new, /status, control PTYs, rotate sessions, or modify application code while creating a handoff."

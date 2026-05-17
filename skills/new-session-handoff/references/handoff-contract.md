@@ -31,6 +31,7 @@ Each detail artifact must answer one recovery question. Do not write raw transcr
 - recovery contract with schema version, mode, safety state, blockers, trust order, and disk-verification requirement.
 - session target, done criteria, out-of-scope notes, and smallest executable next step.
 - repo snapshot: captured time, cwd, Git root, branch, short HEAD, status, diff stat, name-status, staged state, latest commit, loaded instruction files, and expected drift.
+- context/state source manifest: relevant instruction files and durable state files read or intentionally skipped, including `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `PROJECT_STATE.md`, `TASKS.md`, `DECISIONS.md`, `PLAN.md`, and `PLANS.md` when present and relevant.
 - required reading order and files to inspect first.
 - change manifest for changed, created, deleted, moved, staged, inspected, and unknown files.
 - decisions, rationale, risks, pitfalls, failed approaches, and unresolved questions.
@@ -44,7 +45,7 @@ On resume, trust sources in this order:
 
 1. Current explicit user instruction in this session.
 2. Current working tree and Git state.
-3. Repository instruction files such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `PLAN.md`, and `PLANS.md`.
+3. Repository instruction files and durable state files such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `PROJECT_STATE.md`, `TASKS.md`, `DECISIONS.md`, `PLAN.md`, and `PLANS.md`.
 4. `HANDOFF.md`.
 5. Focused detail artifacts referenced by `HANDOFF.md`.
 6. Prior chat history only if explicitly provided by the user.
@@ -66,9 +67,17 @@ Before writing a handoff, inspect and record:
 - latest commit
 - relevant instruction files
 
-Read only enough files to verify recovery state. Prefer instruction files, existing handoff artifacts, changed files, and files needed for the smallest next step. Do not recursively read private agent config directories or secret-bearing files by default.
+Read only enough files to verify recovery state. Prefer instruction files, relevant durable state files, existing handoff artifacts, changed files, and files needed for the smallest next step. Do not recursively read private agent config directories, unrelated project history, or secret-bearing files by default.
 
 Summarize only verified facts. Use `Unknown` or `확인 필요` for unverified details.
+
+## Context Source Handling
+
+A handoff may reference durable state files, but it must not become a duplicate state store.
+
+When a relevant state file exists, record its path and purpose in `Required Reading` or `Repo Snapshot`. If a state file was not read, mark it `not-read` with a reason. If a state file conflicts with the current working tree or Git state, report the conflict and trust disk state before editing.
+
+Use `references/context-packaging.md` for mode selection, state-file boundaries, and compression rules.
 
 ## Resume Contract
 
@@ -140,6 +149,7 @@ Set `SAFE_FOR_NEW_SESSION: yes` only when all are true:
 - no command, build, test, dev server, approval prompt, or session-control action is still running.
 - repo snapshot is recorded.
 - dirty, staged, changed, created, deleted, moved, and inspected files are listed or explicitly marked `none`.
+- relevant instruction and durable state files are listed or explicitly marked `none` or `not-read` with a reason.
 - `HANDOFF.md` exists, or prompt-only mode intentionally records `HANDOFF_READY: not-written`.
 - every referenced detail artifact exists, or details are `not-needed`.
 - an embedded or file-based resume prompt exists, and `NEW_SESSION_PROMPT_READY: yes`.

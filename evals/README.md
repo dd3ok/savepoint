@@ -4,6 +4,8 @@ These are lightweight manual evals for the `new-session-handoff` skill. They def
 
 Use them when changing `SKILL.md`, handoff templates, automation markers, examples, or orchestrator guidance.
 
+`trigger-queries.json` records realistic should-trigger and should-not-trigger prompts for checking the skill description boundary. It is validated by `python3 scripts/validate-repo.py --check trigger-evals`.
+
 ## Review Method
 
 For each case:
@@ -24,6 +26,7 @@ For each case:
 - Verified safe resume deletes only untracked generated handoff artifacts.
 - Disk state wins over handoff text.
 - Stale branch, HEAD, status, required-file, detail-artifact, or validation drift is reported before implementation.
+- Relevant durable state files are listed by path and purpose instead of copied wholesale into `HANDOFF.md`.
 - Secrets are redacted.
 - `SKILL.md` frontmatter parses as valid YAML.
 - The final automation marker block is present and honest.

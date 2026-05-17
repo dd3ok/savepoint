@@ -1,8 +1,8 @@
-"""# New Session Handoff Skill
+# New Session Handoff Skill
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/github/license/dd3ok/new-session-handoff-skill)](https://github.com/dd3ok/new-session-handoff-skill/blob/main/LICENSE)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/dd3ok/new-session-handoff-skill/ci.yml?branch=main)](https://github.com/dd3ok/new-session-handoff-skill/actions/workflows/ci.yml)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/dd3ok/new-session-handoff-skill/validate.yml?branch=main)](https://github.com/dd3ok/new-session-handoff-skill/actions/workflows/validate.yml)
 
 `new-session-handoff-skill`은 **AI 코딩 에이전트(AI Coding Agent)**가 새로운 세션에서 이전 작업을 원활하게 이어갈 수 있도록 검증된 `HANDOFF.md`를 생성하는 경량 스킬입니다. 이 스킬은 이전 채팅 기록에 의존하지 않고도 작업 컨텍스트를 안전하게 전달하여, **에이전트 세션 연속성(Agent Session Continuity)**과 **컨텍스트 관리(Context Management)**를 최적화합니다. `new-session-handoff`는 `/new`를 실행하거나, PTY를 제어하거나, 세션을 로테이션하거나, 핸드오프 생성 중에 애플리케이션 코드를 편집하지 않습니다. 대신 복구 가능한 핸드오프 아티팩트와 기계가 읽을 수 있는 준비 마커만 작성합니다.
 
@@ -33,6 +33,7 @@ AI 에이전트에게 다음과 같은 프롬프트를 사용하여 `new-session
 - 스킬 라우터: `skills/new-session-handoff/SKILL.md`
 - 아티팩트 계약: `skills/new-session-handoff/references/handoff-contract.md`
 - 핸드오프 스켈레톤: `skills/new-session-handoff/references/handoff-template.md`
+- 컨텍스트 패키징 원칙: `skills/new-session-handoff/references/context-packaging.md`
 - 마커 스키마: `skills/new-session-handoff/schemas/handoff-automation-v1.schema.json`
 - 휴대용 유효성 검사기: `skills/new-session-handoff/scripts/validate_handoff.py`
 
@@ -52,6 +53,7 @@ README는 맵입니다. 위의 계약 파일은 마커 의미론, `SAFE_FOR_NEW_
 │       ├── LICENSE.txt
 │       ├── agents/openai.yaml
 │       ├── references/
+│       │   ├── context-packaging.md
 │       │   ├── handoff-contract.md
 │       │   └── handoff-template.md
 │       ├── schemas/handoff-automation-v1.schema.json
@@ -97,6 +99,10 @@ ln -s ../../skills/new-session-handoff .claude/skills/new-session-handoff
 ## Evals
 
 `evals/`에는 스킬 계약을 유지하기 위한 경량 수동 시나리오가 포함되어 있습니다. `SKILL.md`, 템플릿, 마커 의미론, 예시, 유효성 검사기 또는 오케스트레이터 지침을 변경할 때 사용하세요.
+
+- `evals/trigger-queries.json`: 스킬이 언제 trigger되어야 하고 언제 trigger되지 않아야 하는지 검증하는 query set.
+- `evals/cases/context-state-bridge.md`: durable state file과 `HANDOFF.md`의 역할 분리를 검증합니다.
+- `evals/cases/trigger-boundaries.md`: ordinary summary, docs, instruction-file authoring, session-control, code-fix 요청에서 skill이 과잉 trigger되지 않는지 검증합니다.
 
 핵심 기대치:
 
@@ -145,4 +151,3 @@ HANDOFF_SCHEMA_VERSION: 1
 ```
 
 마커 이름, 필수 섹션, 마커 의미 또는 세부 경로 해결에 대한 호환되지 않는 변경 사항은 스키마 버전을 증가시키고 예시, 평가, README, 유효성 검사기 및 오케스트레이터 지침을 함께 업데이트해야 합니다.
-"""
