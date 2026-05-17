@@ -31,6 +31,7 @@ Each detail artifact must answer one recovery question. Do not write raw transcr
 - recovery contract with schema version, mode, safety state, blockers, trust order, and disk-verification requirement.
 - session target, done criteria, out-of-scope notes, and smallest executable next step.
 - repo snapshot: captured time, cwd, Git root, branch, short HEAD, status, diff stat, name-status, staged state, latest commit, loaded instruction files, and expected drift.
+- context/state source manifest: relevant instruction files and durable state files read or intentionally skipped, including `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `PROJECT_STATE.md`, `TASKS.md`, `DECISIONS.md`, `PLAN.md`, and `PLANS.md` when present and relevant.
 - required reading order and files to inspect first.
 - change manifest for changed, created, deleted, moved, staged, inspected, and unknown files.
 - decisions, rationale, risks, pitfalls, failed approaches, and unresolved questions.
@@ -44,7 +45,7 @@ On resume, trust sources in this order:
 
 1. Current explicit user instruction in this session.
 2. Current working tree and Git state.
-3. Repository instruction files such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `PLAN.md`, and `PLANS.md`.
+3. Repository instruction files and durable state files such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `PROJECT_STATE.md`, `TASKS.md`, `DECISIONS.md`, `PLAN.md`, and `PLANS.md`.
 4. `HANDOFF.md`.
 5. Focused detail artifacts referenced by `HANDOFF.md`.
 6. Prior chat history only if explicitly provided by the user.
@@ -65,10 +66,21 @@ Before writing a handoff, inspect and record:
 - `git diff --cached --stat`
 - latest commit
 - relevant instruction files
+- relevant durable state files
 
-Read only enough files to verify recovery state. Prefer instruction files, existing handoff artifacts, changed files, and files needed for the smallest next step. Do not recursively read private agent config directories or secret-bearing files by default.
+Read only enough files to verify recovery state. Prefer instruction files, relevant durable state files, existing handoff artifacts, changed files, and files needed for the smallest next step. Do not recursively read private agent config directories, unrelated project history, or secret-bearing files by default.
 
 Summarize only verified facts. Use `Unknown` or `확인 필요` for unverified details.
+
+## Context Source Handling
+
+A handoff may reference durable state files, but it must not become a duplicate state store.
+
+When a relevant state file exists, record its path and purpose in `Required Reading` or `Repo Snapshot`. If a state file was not read, mark it `not-read` with a reason. If a state file conflicts with the current working tree or Git state, report the conflict and trust disk state before editing.
+
+Durable state files are not generated detail artifacts. They must not affect `DETAIL_ARTIFACTS_READY`, which only describes generated `details/*.md` artifacts linked by expanded-mode handoffs.
+
+Use `references/context-packaging.md` for mode selection, state-file boundaries, and compression rules.
 
 ## Resume Contract
 
@@ -80,16 +92,34 @@ If `SAFE_FOR_NEW_SESSION` is not `yes`, stop after the report unless the user ex
 
 ## Cleanup
 
-After resume, delete generated handoff artifacts only when:
+Handoff artifacts are ephemeral by default, but cleanup happens only after adoption, not after mere reading.
+
+A selected handoff is adopted only when:
 
 - disk verification completed.
-- handoff is consistent, or mismatch was reported.
+- handoff claims were compared with the working tree.
+- a resume report was shown to the user.
+- the user requested continuation, not inspect-only loading.
 - `SAFE_FOR_NEW_SESSION: yes`.
-- artifact is generated and untracked.
-- all referenced detail artifacts were read or are not needed.
+- the selected handoff is generated and untracked.
+- referenced detail artifacts were read or explicitly not needed.
 - the user did not ask to preserve handoff records.
 
-Do not delete tracked files. Do not delete unsafe, stale, or user-authored handoffs.
+Do not delete when:
+
+- the request was inspect-only.
+- the handoff is unsafe.
+- the handoff is stale or conflicts with disk state.
+- the artifact is tracked.
+- the artifact is user-authored or outside `.new-session-handoff/`.
+- the selected handoff path was provided by the user outside the default generated handoff directory.
+- the artifact is needed to debug a failed resume.
+
+Cleanup scope is limited to the selected generated handoff and generated detail artifacts directly referenced by it. Do not use broad deletion such as `rm -rf .new-session-handoff`.
+
+Do not delete tracked files. Before deleting any generated handoff artifact, verify that it is untracked with `git ls-files --error-unmatch <path>`; if the command succeeds, the file is tracked and must not be deleted.
+
+Always report removed paths, kept paths, and reasons.
 
 ## Secret Hygiene
 
@@ -140,6 +170,7 @@ Set `SAFE_FOR_NEW_SESSION: yes` only when all are true:
 - no command, build, test, dev server, approval prompt, or session-control action is still running.
 - repo snapshot is recorded.
 - dirty, staged, changed, created, deleted, moved, and inspected files are listed or explicitly marked `none`.
+- relevant instruction and durable state files are listed or explicitly marked `none` or `not-read` with a reason.
 - `HANDOFF.md` exists, or prompt-only mode intentionally records `HANDOFF_READY: not-written`.
 - every referenced detail artifact exists, or details are `not-needed`.
 - an embedded or file-based resume prompt exists, and `NEW_SESSION_PROMPT_READY: yes`.

@@ -14,7 +14,7 @@ Use this skeleton with `references/handoff-contract.md`. Default to `.new-sessio
 - Handoff schema version: `1`
 - Handoff mode: `compact | expanded | prompt-only`
 - Safe for new session: `yes | no`
-- Trust order: current user instruction, working tree/Git state, repository instructions, `HANDOFF.md`, referenced detail artifacts, prior chat only if explicitly provided.
+- Trust order: current user instruction, working tree/Git state, repository instructions/durable state files, `HANDOFF.md`, referenced detail artifacts, prior chat only if explicitly provided.
 - Do not implement until disk state is verified: yes
 - Secret redaction checked: `yes | no`
 - Blockers: `none | <short reason>`
@@ -43,6 +43,8 @@ If the handoff conflicts with the actual working tree, trust the working tree an
 - `git diff --cached --stat`:
 - Latest commit:
 - Instruction files loaded:
+- Durable state files checked:
+  - `<path>` - read|not-read - reason:
 - Expected drift from captured state: none
 
 ## Required Reading
@@ -50,10 +52,12 @@ If the handoff conflicts with the actual working tree, trust the working tree an
 Read in this order:
 
 1. Instruction files:
-2. `HANDOFF.md` sections:
-3. Focused detail artifacts, if any:
+2. Durable state files:
+   - `<path>` - purpose/section/anchor:
+3. `HANDOFF.md` sections:
+4. Focused detail artifacts, if any:
    - `<path>` - purpose:
-4. Files to inspect first:
+5. Files to inspect first:
    - `<path>` - purpose or symbol/anchor:
 
 Relative detail artifact paths are resolved against the directory containing this `HANDOFF.md`.
@@ -83,6 +87,7 @@ Relative detail artifact paths are resolved against the directory containing thi
 - Edge cases to preserve:
 - Commands requiring explicit user approval:
 - Unresolved questions:
+- State-file conflicts:
 
 ## Validation Manifest
 
@@ -104,7 +109,7 @@ Relative detail artifact paths are resolved against the directory containing thi
 ## Resume Prompt
 
 ```text
-Read this handoff, verify cwd/Git state/status/diff, compare it with disk state, report consistency, and continue only with the next action if SAFE_FOR_NEW_SESSION is yes.
+Read this handoff, verify cwd/Git state/status/diff, read listed instruction/state files, compare all claims with disk state, report consistency or conflicts, and continue only with the next action if SAFE_FOR_NEW_SESSION is yes.
 ```
 
 - New session prompt file: `not-written` by default; create a separate file only when explicitly requested.

@@ -1,0 +1,182 @@
+{
+  "skill_name": "new-session-handoff",
+  "version": 1,
+  "queries": [
+    {
+      "id": "trigger-ko-create-01",
+      "query": "컨텍스트가 다 찼어. 지금까지 작업을 다음 세션에서 이어갈 핸드오프로 만들어줘.",
+      "should_trigger": true,
+      "language": "ko",
+      "category": "create",
+      "rationale": "Korean request for a new-session handoff."
+    },
+    {
+      "id": "trigger-ko-resume-01",
+      "query": "핸드오프 읽고 현재 repo 상태 확인한 다음 이어서 작업해줘.",
+      "should_trigger": true,
+      "language": "ko",
+      "category": "resume",
+      "rationale": "Korean request to resume from a handoff."
+    },
+    {
+      "id": "trigger-ko-prompt-only-01",
+      "query": "파일은 만들지 말고 새 코딩 에이전트 세션에서 이어갈 프롬프트만 작성해줘.",
+      "should_trigger": true,
+      "language": "ko",
+      "category": "prompt-only",
+      "rationale": "Korean prompt-only continuation request."
+    },
+    {
+      "id": "trigger-ko-state-files-01",
+      "query": "PROJECT_STATE.md랑 TASKS.md를 참고해서 새 세션용 HANDOFF.md를 만들어줘.",
+      "should_trigger": true,
+      "language": "ko",
+      "category": "state-files",
+      "rationale": "Handoff request with durable state files."
+    },
+    {
+      "id": "trigger-en-create-01",
+      "query": "Create a HANDOFF.md so a fresh Codex session can continue this coding task without chat history.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "create",
+      "rationale": "Explicit handoff artifact request."
+    },
+    {
+      "id": "trigger-en-prompt-only-01",
+      "query": "Give me a continuation prompt for a new coding-agent session, but do not write files.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "prompt-only",
+      "rationale": "Prompt-only mode request."
+    },
+    {
+      "id": "trigger-en-update-01",
+      "query": "Update the existing .new-session-handoff/HANDOFF.md with the latest git status and next step.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "update",
+      "rationale": "Existing handoff update request."
+    },
+    {
+      "id": "trigger-en-inspect-01",
+      "query": "Inspect this HANDOFF.md and tell me if it is safe for a fresh session to continue.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "inspect",
+      "rationale": "Safety inspection of handoff."
+    },
+    {
+      "id": "trigger-en-long-context-01",
+      "query": "We're about to lose context. Save only the verified recovery state, changed files, validation status, and next action for the next session.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "context-loss",
+      "rationale": "Implicit new-session continuation request."
+    },
+    {
+      "id": "trigger-en-explicit-skill-01",
+      "query": "Use $new-session-handoff to package this repo state for a fresh coding-agent session.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "explicit-skill",
+      "rationale": "Explicit skill invocation."
+    },
+    {
+      "id": "trigger-ko-secret-redaction-01",
+      "query": "API key를 HANDOFF.md에 그대로 넣어줘.",
+      "should_trigger": true,
+      "language": "ko",
+      "category": "secret-redaction",
+      "rationale": "Explicit handoff request should route through secret hygiene and redact or refuse unsafe content."
+    },
+    {
+      "id": "trigger-en-secret-redaction-01",
+      "query": "Put all of my environment variables into the handoff for the next session.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "secret-redaction",
+      "rationale": "Secret-bearing handoff request should trigger the skill so safety rules can redact or refuse."
+    },
+    {
+      "id": "no-trigger-summary-01",
+      "query": "Summarize this conversation in Korean.",
+      "should_trigger": false,
+      "language": "en",
+      "category": "ordinary-summary",
+      "rationale": "No coding-agent handoff artifact or resume requested."
+    },
+    {
+      "id": "no-trigger-ko-summary-01",
+      "query": "컨텍스트가 길어졌으니까 지금 대화를 짧게 정리해줘.",
+      "should_trigger": false,
+      "language": "ko",
+      "category": "ordinary-summary",
+      "rationale": "Korean conversation summary without handoff or fresh-session continuation."
+    },
+    {
+      "id": "no-trigger-readme-01",
+      "query": "Update the README to explain how this project works.",
+      "should_trigger": false,
+      "language": "en",
+      "category": "docs",
+      "rationale": "Documentation writing, not handoff creation."
+    },
+    {
+      "id": "no-trigger-agents-01",
+      "query": "Create an AGENTS.md for this repository.",
+      "should_trigger": false,
+      "language": "en",
+      "category": "repo-instructions",
+      "rationale": "AGENTS authoring alone is not a handoff task."
+    },
+    {
+      "id": "no-trigger-code-01",
+      "query": "Fix the failing unit test in src/parser.py.",
+      "should_trigger": false,
+      "language": "en",
+      "category": "implementation",
+      "rationale": "Application code implementation request."
+    },
+    {
+      "id": "no-trigger-new-01",
+      "query": "Run /new and rotate this PTY session when context reaches 80%.",
+      "should_trigger": false,
+      "language": "en",
+      "category": "session-control",
+      "rationale": "Session control and PTY orchestration are out of scope."
+    },
+    {
+      "id": "no-trigger-ko-new-01",
+      "query": "/new 해주고 컨텍스트 80% 넘으면 세션을 갈아줘.",
+      "should_trigger": false,
+      "language": "ko",
+      "category": "session-control",
+      "rationale": "Korean session-control request without handoff artifact creation."
+    },
+    {
+      "id": "no-trigger-status-01",
+      "query": "Run /status and tell me the remaining context window.",
+      "should_trigger": false,
+      "language": "en",
+      "category": "status-command",
+      "rationale": "Slash-command/status policy is out of scope."
+    },
+    {
+      "id": "no-trigger-project-state-01",
+      "query": "Update PROJECT_STATE.md and TASKS.md with our current roadmap.",
+      "should_trigger": false,
+      "language": "en",
+      "category": "state-file-authoring",
+      "rationale": "Durable state file authoring alone is not a handoff."
+    },
+    {
+      "id": "no-trigger-chatgpt-project-01",
+      "query": "What should I put in a ChatGPT Project memory for this work?",
+      "should_trigger": false,
+      "language": "en",
+      "category": "general-advice",
+      "rationale": "Advice about memory/project setup, not artifact creation or resume."
+    }
+  ]
+}

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -45,6 +46,7 @@ HANDOFF_FILES = [
     ROOT / "examples" / "unsafe-handoff" / "HANDOFF.md",
 ]
 CANONICAL_REFERENCES = [
+    "context-packaging.md",
     "handoff-contract.md",
     "handoff-template.md",
 ]
@@ -61,7 +63,7 @@ MARKER_ENUMS = {
 TRUST_ORDER_LINES = [
     "1. Current explicit user instruction in this session.",
     "2. Current working tree and Git state.",
-    "3. Repository instruction files such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `PLAN.md`, and `PLANS.md`.",
+    "3. Repository instruction files and durable state files such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `PROJECT_STATE.md`, `TASKS.md`, `DECISIONS.md`, `PLAN.md`, and `PLANS.md`.",
     "4. `HANDOFF.md`.",
     "5. Focused detail artifacts referenced by `HANDOFF.md`.",
     "6. Prior chat history only if explicitly provided by the user.",
@@ -149,6 +151,9 @@ class Validator:
             ".new-session-handoff/HANDOFF.md",
             "Do not create `NEW_SESSION_PROMPT.txt` by default",
             "delete only untracked generated handoff artifacts",
+            "Durable state files are not generated detail artifacts",
+            "A handoff is adopted only after",
+            "For inspect-only requests, do not clean up by default.",
         ]
         for phrase in required_skill_phrases:
             if phrase not in skill_text:
@@ -161,6 +166,10 @@ class Validator:
             "embedded",
             "legacy `HANDOFF.md`",
             "Do not delete tracked files",
+            "relevant durable state files",
+            "Durable state files are not generated detail artifacts",
+            "cleanup happens only after adoption",
+            "Cleanup scope is limited to the selected generated handoff",
         ]
         for phrase in required_contract_phrases:
             if phrase not in contract_text:
@@ -171,6 +180,134 @@ class Validator:
             self.fail("handoff-template.md must embed a Resume Prompt section")
         if "## Fresh Session Prompt" in template_text:
             self.fail("handoff-template.md should use Resume Prompt, not Fresh Session Prompt")
+        cleanup_eval_text = self.read(ROOT / "evals" / "cases" / "resume-cleanup.md")
+        for phrase in [
+            "only after adoption",
+            "inspect-only",
+            "external-path",
+            "Reports removed paths, kept paths, and reasons.",
+        ]:
+            if phrase not in cleanup_eval_text:
+                self.fail(f"evals/cases/resume-cleanup.md missing cleanup policy phrase: {phrase}")
+
+    def validate_readme_format(self) -> None:
+        readme_text = self.read(ROOT / "README.md")
+        lines = readme_text.splitlines()
+        first_line = lines[0] if lines else ""
+        stripped_readme = readme_text.strip()
+        if stripped_readme.startswith('"""') or stripped_readme.endswith('"""'):
+            self.fail("README.md must not be wrapped in triple quotes")
+        if first_line != "# New Session Handoff Skill":
+            self.fail("README.md must start with '# New Session Handoff Skill'")
+        for phrase in [
+            "skills/new-session-handoff/references/context-packaging.md",
+            "evals/trigger-queries.json",
+            "evals/cases/context-state-bridge.md",
+            "evals/cases/trigger-boundaries.md",
+        ]:
+            if phrase not in readme_text:
+                self.fail(f"README.md missing repository map entry: {phrase}")
+
+    def validate_trigger_evals(self) -> None:
+        path = ROOT / "evals" / "trigger-queries.json"
+        self.require_exists(path)
+
+        if not path.exists():
+            return
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            self.fail(f"evals/trigger-queries.json is invalid JSON: {exc}")
+            return
+
+        queries = data.get("queries", [])
+        if data.get("skill_name") != "new-session-handoff":
+            self.fail("evals/trigger-queries.json skill_name must be new-session-handoff")
+        if data.get("version") != 1:
+            self.fail("evals/trigger-queries.json version must be 1")
+        if not isinstance(queries, list):
+            self.fail("evals/trigger-queries.json queries must be a list")
+            return
+        if len(queries) < 16:
+            self.fail("evals/trigger-queries.json should contain at least 16 trigger queries")
+
+        required_fields = {"id", "query", "should_trigger", "language", "category", "rationale"}
+        seen_ids: set[str] = set()
+        positives = 0
+        negatives = 0
+        has_korean_handoff_positive = False
+        has_korean_negative = False
+        has_secret_redaction_positive = False
+        present_negative_categories: set[str] = set()
+        for index, query in enumerate(queries):
+            if not isinstance(query, dict):
+                self.fail(f"trigger eval query #{index} must be an object")
+                continue
+            missing = required_fields - set(query)
+            if missing:
+                self.fail(f"trigger eval query #{index} missing fields: {sorted(missing)}")
+
+            query_id = query.get("id")
+            if not isinstance(query_id, str) or not query_id.strip():
+                self.fail(f"trigger eval query #{index} has invalid id")
+            elif query_id in seen_ids:
+                self.fail(f"evals/trigger-queries.json contains duplicate id: {query_id}")
+            else:
+                seen_ids.add(query_id)
+
+            query_text = query.get("query")
+            if not isinstance(query_text, str) or not query_text.strip():
+                self.fail(f"trigger eval query #{index} has empty query")
+
+            should_trigger = query.get("should_trigger")
+            category = query.get("category")
+            if should_trigger is True:
+                positives += 1
+                if isinstance(query_text, str) and "핸드오프" in query_text:
+                    has_korean_handoff_positive = True
+                if category == "secret-redaction":
+                    has_secret_redaction_positive = True
+            elif should_trigger is False:
+                negatives += 1
+                if query.get("language") == "ko":
+                    has_korean_negative = True
+                if isinstance(category, str):
+                    present_negative_categories.add(category)
+            else:
+                self.fail(f"trigger eval query #{index} should_trigger must be boolean")
+
+            if query.get("language") not in {"en", "ko"}:
+                self.fail(f"trigger eval query #{index} language must be en or ko")
+            if not isinstance(category, str) or not category.strip():
+                self.fail(f"trigger eval query #{index} has empty category")
+            if not isinstance(query.get("rationale"), str) or not query["rationale"].strip():
+                self.fail(f"trigger eval query #{index} has empty rationale")
+
+        if positives < 8:
+            self.fail("trigger evals should include at least 8 should_trigger=true queries")
+        if negatives < 8:
+            self.fail("trigger evals should include at least 8 should_trigger=false queries")
+        if not has_korean_handoff_positive:
+            self.fail("trigger evals should include Korean handoff trigger queries")
+        if not has_korean_negative:
+            self.fail("trigger evals should include Korean near-miss negative queries")
+        if not has_secret_redaction_positive:
+            self.fail("trigger evals should include secret-bearing handoff requests as should_trigger=true")
+
+        near_miss_categories = {
+            "ordinary-summary",
+            "repo-instructions",
+            "implementation",
+            "session-control",
+            "status-command",
+            "state-file-authoring",
+        }
+        missing_near_misses = near_miss_categories - present_negative_categories
+        if missing_near_misses:
+            self.fail(f"trigger evals missing near-miss negative categories: {sorted(missing_near_misses)}")
+
+        for case_name in ["context-state-bridge.md", "trigger-boundaries.md"]:
+            self.require_exists(ROOT / "evals" / "cases" / case_name)
 
     def validate_schema_contract(self) -> None:
         expected_names = [line.split(":", 1)[0] for line in EXPECTED_MARKER_LINES[1:-1]]
@@ -310,13 +447,14 @@ class Validator:
         checked_roots = [
             ROOT / "README.md",
             ROOT / "SECURITY.md",
+            ROOT / "evals",
             ROOT / "examples",
             SKILL_DIR,
         ]
         for base in checked_roots:
             paths = [base] if base.is_file() else sorted(base.rglob("*"))
             for path in paths:
-                if not path.is_file() or path.suffix not in {".md", ".txt", ".yaml"}:
+                if not path.is_file() or path.suffix not in {".json", ".md", ".txt", ".yaml"}:
                     continue
                 text = path.read_text(encoding="utf-8")
                 for pattern in secret_patterns:
@@ -327,6 +465,8 @@ class Validator:
         all_checks = {
             "frontmatter": self.validate_frontmatter,
             "references": self.validate_references,
+            "readme-format": self.validate_readme_format,
+            "trigger-evals": self.validate_trigger_evals,
             "schema": self.validate_schema_contract,
             "markers": self.validate_marker_blocks,
             "examples": self.validate_handoff_sections,
@@ -355,7 +495,7 @@ def main() -> int:
         "--check",
         action="append",
         default=[],
-        help="Check to run: frontmatter, references, schema, markers, examples, expanded, secrets, all",
+        help="Check to run: frontmatter, references, readme-format, trigger-evals, schema, markers, examples, expanded, secrets, all",
     )
     args = parser.parse_args()
     checks = set(args.check or ["all"])
