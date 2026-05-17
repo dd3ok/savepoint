@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -432,6 +433,12 @@ class Validator:
 
     def validate_no_legacy_prompt_file_reference(self) -> None:
         legacy_prompt_file = "NEW_SESSION_PROMPT" + ".txt"
+        for dirpath, dirnames, filenames in os.walk(ROOT):
+            dirnames[:] = [dirname for dirname in dirnames if dirname != ".git"]
+            if legacy_prompt_file in filenames:
+                path = Path(dirpath) / legacy_prompt_file
+                self.fail(f"{path.relative_to(ROOT)} must not exist")
+
         forbidden_paths = [
             ROOT / "examples" / ("resume-prompt" + ".example.txt"),
         ]

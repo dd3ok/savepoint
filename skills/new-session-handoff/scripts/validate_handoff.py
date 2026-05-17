@@ -83,7 +83,7 @@ def validate_handoff(path: Path) -> list[str]:
 
 
 def has_resume_prompt_evidence(text: str) -> bool:
-    return "## Resume Prompt" in text
+    return re.search(r"(?m)^## Resume Prompt\s*$", text) is not None
 
 
 def main() -> int:
