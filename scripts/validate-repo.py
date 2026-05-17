@@ -173,6 +173,7 @@ class Validator:
         eval_requirements = {
             ROOT / "evals" / "trigger-cases.md": [
                 "## Should Trigger",
+                "## Should Trigger But Refuse Or Redact",
                 "## Should Not Trigger",
             ],
             ROOT / "evals" / "cleanup-policy.md": [
