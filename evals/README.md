@@ -20,7 +20,7 @@ For each case:
 - Create mode is read-mostly and does not edit application code.
 - Default create mode writes `.new-session-handoff/HANDOFF.md`.
 - `HANDOFF.md` is an entry manifest, not a transcript dump.
-- `HANDOFF.md` embeds a `## Resume Prompt`; `NEW_SESSION_PROMPT.txt` is not created by default.
+- `HANDOFF.md` embeds a `## Resume Prompt`.
 - Large work uses focused detail artifacts instead of forced 100-line compression.
 - Resume mode verifies disk state before implementation.
 - Verified safe adopted resume deletes only selected untracked generated handoff artifacts.

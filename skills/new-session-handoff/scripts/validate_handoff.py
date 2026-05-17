@@ -54,7 +54,7 @@ def validate_handoff(path: Path) -> list[str]:
     if values.get("NEW_SESSION_PROMPT_READY") == "yes" and not has_resume_prompt_evidence(text):
         errors.append(
             f"{path}: NEW_SESSION_PROMPT_READY=yes requires "
-            "an embedded ## Resume Prompt or an external prompt file path"
+            "an embedded ## Resume Prompt"
         )
 
     details = values.get("DETAIL_ARTIFACTS_READY")
@@ -83,16 +83,7 @@ def validate_handoff(path: Path) -> list[str]:
 
 
 def has_resume_prompt_evidence(text: str) -> bool:
-    if "## Resume Prompt" in text:
-        return True
-    match = re.search(
-        r"(?im)^\s*-?\s*New session prompt (?:file|path):\s*`?([^`\n]+)`?\s*$",
-        text,
-    )
-    if not match:
-        return False
-    value = match.group(1).strip().strip("`").strip().lower()
-    return bool(value) and value not in {"not-written", "none", "no"}
+    return "## Resume Prompt" in text
 
 
 def main() -> int:

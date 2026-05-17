@@ -106,8 +106,6 @@
 Read /workspace/app/.new-session-handoff/HANDOFF.md, verify disk state, inspect src/auth/session.ts and tests/auth/session.test.ts, then summarize the changed files and recorded validation results.
 ```
 
-- New session prompt file: not-written
-
 ## Automation Markers
 
 ```text

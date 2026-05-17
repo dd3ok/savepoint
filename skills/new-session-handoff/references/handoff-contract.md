@@ -6,7 +6,6 @@
 
 - Default artifact: `.new-session-handoff/HANDOFF.md`.
 - Default prompt: an embedded `## Resume Prompt` section inside `HANDOFF.md`.
-- Do not create `NEW_SESSION_PROMPT.txt` by default. Create it only when the user explicitly asks for a separate prompt file or an external orchestrator requires one.
 - Create `details/*.md` only in expanded mode.
 
 Resume lookup order:
@@ -36,8 +35,10 @@ Each detail artifact must answer one recovery question. Do not write raw transcr
 - change manifest for changed, created, deleted, moved, staged, inspected, and unknown files.
 - decisions, rationale, risks, pitfalls, failed approaches, and unresolved questions.
 - validation manifest with command, result, key failure lines, skipped checks, next validation, secret redaction check, and observable completion criteria.
-- embedded resume prompt or an explicitly requested external prompt file path.
+- embedded resume prompt.
 - exactly one automation marker block.
+
+`HANDOFF.md` is the only default file artifact. The continuation prompt lives in the embedded `## Resume Prompt` section. This skill does not define or advertise a separate named prompt file artifact.
 
 ## Trust Order
 
@@ -123,7 +124,7 @@ Always report removed paths, kept paths, and reasons.
 
 ## Secret Hygiene
 
-Never copy secrets, tokens, API keys, cookies, credentials, private keys, full environment variable values, shell history, or secret-bearing logs into `HANDOFF.md`, `NEW_SESSION_PROMPT.txt`, or detail artifacts.
+Never copy secrets, tokens, API keys, cookies, credentials, private keys, full environment variable values, shell history, or secret-bearing logs into generated handoff artifacts.
 
 Redact required mentions as `<REDACTED>` and record only the variable name, file category, or secret category when needed.
 
@@ -154,7 +155,7 @@ Field meanings:
 - `HANDOFF_SCHEMA_VERSION`: currently `1`.
 - `HANDOFF_MODE`: `compact`, `expanded`, or `prompt-only`.
 - `DETAIL_ARTIFACTS_READY`: `yes` for verified expanded artifacts, `not-needed` for compact or prompt-only, otherwise `no`.
-- `NEW_SESSION_PROMPT_READY`: `yes` when an embedded or file-based continuation prompt exists or was provided.
+- `NEW_SESSION_PROMPT_READY`: legacy schema-v1 field; `yes` when `HANDOFF.md` contains an embedded `## Resume Prompt`, or prompt-only mode provided a continuation prompt in the response. It does not imply a separate file.
 - `DISK_STATE_RECORDED`: `yes` only when the required repo snapshot was recorded.
 - `VALIDATION_RECORDED`: `yes` when validation status is recorded, including passed, failed, or intentionally skipped validation with reason and next command.
 - `SECRET_REDACTION_CHECKED`: `yes` only after checking generated artifacts for secrets.
@@ -173,7 +174,7 @@ Set `SAFE_FOR_NEW_SESSION: yes` only when all are true:
 - relevant instruction and durable state files are listed or explicitly marked `none` or `not-read` with a reason.
 - `HANDOFF.md` exists, or prompt-only mode intentionally records `HANDOFF_READY: not-written`.
 - every referenced detail artifact exists, or details are `not-needed`.
-- an embedded or file-based resume prompt exists, and `NEW_SESSION_PROMPT_READY: yes`.
+- an embedded resume prompt exists for file-artifact modes, or prompt-only mode provided a continuation prompt in the response; `NEW_SESSION_PROMPT_READY: yes`.
 - disk-state conflict handling is stated.
 - validation command and result are recorded, or skipped validation has a reason and next command.
 - secret redaction was checked.

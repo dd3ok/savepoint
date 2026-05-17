@@ -126,7 +126,7 @@ def main() -> int:
     errors.extend(check_expanded_details_reference_required())
     errors.extend(check_compact_details_reference_rejected())
     errors.extend(check_prompt_ready_requires_prompt_evidence())
-    errors.extend(check_external_prompt_note_satisfies_prompt_ready())
+    errors.extend(check_embedded_resume_prompt_satisfies_prompt_ready())
 
     if errors:
         for error in errors:
@@ -156,7 +156,18 @@ def marker_block(**overrides: str) -> str:
     return "\n".join(lines)
 
 
-def minimal_handoff(block: str, detail_reference: str = "") -> str:
+def minimal_handoff(block: str, detail_reference: str = "", resume_prompt: bool = False) -> str:
+    prompt_section = (
+        """
+## Resume Prompt
+
+```text
+Continue from this handoff after verifying disk state.
+```
+"""
+        if resume_prompt
+        else ""
+    )
     return f"""# Test Handoff
 
 ## TL;DR / Operational Summary
@@ -169,6 +180,7 @@ def minimal_handoff(block: str, detail_reference: str = "") -> str:
 ## Required Reading
 
 {detail_reference}
+{prompt_section}
 
 ## Validation Manifest
 
@@ -204,6 +216,7 @@ def check_compact_details_reference_rejected() -> list[str]:
                     HANDOFF_READY="/tmp/HANDOFF.md",
                 ),
                 detail_reference="- `details/changed-files.md` - should not be here",
+                resume_prompt=True,
             ),
             encoding="utf-8",
         )
@@ -238,7 +251,7 @@ def check_prompt_ready_requires_prompt_evidence() -> list[str]:
     return []
 
 
-def check_external_prompt_note_satisfies_prompt_ready() -> list[str]:
+def check_embedded_resume_prompt_satisfies_prompt_ready() -> list[str]:
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "HANDOFF.md"
         path.write_text(
@@ -248,7 +261,7 @@ def check_external_prompt_note_satisfies_prompt_ready() -> list[str]:
                     DETAIL_ARTIFACTS_READY="not-needed",
                     HANDOFF_READY="/tmp/HANDOFF.md",
                 ),
-                detail_reference="- New session prompt file: NEW_SESSION_PROMPT.txt",
+                resume_prompt=True,
             ),
             encoding="utf-8",
         )
@@ -258,7 +271,7 @@ def check_external_prompt_note_satisfies_prompt_ready() -> list[str]:
     ]
     if prompt_errors:
         return [
-            "external prompt file note should satisfy prompt-ready evidence, "
+            "embedded Resume Prompt should satisfy prompt-ready evidence, "
             f"got errors={errors}"
         ]
     return []

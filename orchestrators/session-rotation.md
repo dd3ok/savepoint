@@ -6,7 +6,7 @@ It is not a Skill. The `new-session-handoff` skill prepares handoff artifacts; t
 
 ## Responsibilities
 
-- Skill `new-session-handoff`: inspect repository state, create `.new-session-handoff/HANDOFF.md` by default, optionally create focused detail artifacts or a separate prompt file when requested, and print readiness markers.
+- Skill `new-session-handoff`: inspect repository state, create `.new-session-handoff/HANDOFF.md` by default, optionally create focused detail artifacts in expanded mode, and print readiness markers.
 - External orchestrator: inspect the agent's status command, detect near-full context or compact events, wait for work completion, request handoff generation, send the agent-specific session-reset command, and inject the resume prompt.
 
 ## Rotation Flow

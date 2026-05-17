@@ -12,7 +12,7 @@
 .new-session-handoff/HANDOFF.md
 ```
 
-기본 핸드오프에는 `## Resume Prompt` 섹션이 포함됩니다. `NEW_SESSION_PROMPT.txt`는 사용자가 별도의 프롬프트 파일을 명시적으로 요청하거나 외부 오케스트레이터가 필요로 하는 경우에만 생성됩니다.
+기본 핸드오프에는 `## Resume Prompt` 섹션이 포함됩니다.
 
 다음 세션이 핸드오프를 읽고 현재 디스크/Git 상태와 비교한 뒤, `SAFE_FOR_NEW_SESSION: yes`인 핸드오프를 실제 resume/continue에 채택한 경우에만 선택된 추적되지 않는 generated handoff artifact를 삭제할 수 있습니다. inspect-only, tracked, stale, unsafe, external-path, user-authored artifact는 보존합니다.
 
@@ -92,7 +92,6 @@ ln -s ../../skills/new-session-handoff .claude/skills/new-session-handoff
 - `examples/compact-bugfix/`: 작은 버그 수정을 위한 컴팩트 핸드오프.
 - `examples/expanded-architecture/`: 집중된 세부 아티팩트가 포함된 확장된 핸드오프.
 - `examples/unsafe-handoff/`: `SAFE_FOR_NEW_SESSION: no`가 중요한 이유를 보여주는 의도적으로 안전하지 않은 핸드오프.
-- `examples/resume-prompt.example.txt`: 임베디드 프롬프트를 읽을 수 없는 오케스트레이터를 위한 선택적 외부 프롬프트 텍스트.
 
 예시는 유지보수자/데모 자료입니다. 분산 스킬 패키지에는 필요하지 않습니다.
 
@@ -109,7 +108,7 @@ ln -s ../../skills/new-session-handoff .claude/skills/new-session-handoff
 - 생성 모드는 애플리케이션 코드를 수정하지 않습니다.
 - 생성된 아티팩트에는 검증된 사실 또는 명시적인 미확인 정보가 포함됩니다.
 - 기본 생성 모드는 `.new-session-handoff/HANDOFF.md`를 작성합니다.
-- 기본 생성 모드는 `NEW_SESSION_PROMPT.txt`를 작성하는 대신 재개 프롬프트를 임베드합니다.
+- 기본 생성 모드는 `HANDOFF.md` 안에 `## Resume Prompt`를 임베드합니다.
 - 재개 모드는 코딩 전에 디스크 상태를 확인합니다.
 - 확장 모드는 컨텍스트 덤프 대신 집중된 세부 아티팩트를 사용합니다.
 - 안전하지 않은 상태는 `SAFE_FOR_NEW_SESSION: yes`를 내보내지 않습니다.

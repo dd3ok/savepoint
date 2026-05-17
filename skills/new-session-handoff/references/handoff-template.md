@@ -112,8 +112,6 @@ Relative detail artifact paths are resolved against the directory containing thi
 Read this handoff, verify cwd/Git state/status/diff, read listed instruction/state files, compare all claims with disk state, report consistency or conflicts, and continue only with the next action if SAFE_FOR_NEW_SESSION is yes.
 ```
 
-- New session prompt file: `not-written` by default; create a separate file only when explicitly requested.
-
 ## Automation Markers
 
 ```text

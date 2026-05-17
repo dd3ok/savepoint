@@ -149,7 +149,7 @@ class Validator:
             self.fail("agents/openai.yaml must not use unvalidated allow_implicit_invocation policy")
         required_skill_phrases = [
             ".new-session-handoff/HANDOFF.md",
-            "Do not create `NEW_SESSION_PROMPT.txt` by default",
+            "Embed the resume prompt inside `HANDOFF.md`",
             "delete only untracked generated handoff artifacts",
             "Durable state files are not generated detail artifacts",
             "A handoff is adopted only after",
@@ -425,12 +425,42 @@ class Validator:
                 )
                 if "references/handoff-template.md" not in path.as_posix() and ".new-session-handoff/HANDOFF.md" not in marker_line:
                     self.fail(f"{path.relative_to(ROOT)} should demonstrate the default .new-session-handoff/HANDOFF.md path")
-            if "NEW_SESSION_PROMPT.txt" in text and "external prompt file" not in text:
-                self.fail(f"{path.relative_to(ROOT)} should embed the resume prompt by default")
         template = self.read(SKILL_DIR / "references" / "handoff-contract.md")
         for line in TRUST_ORDER_LINES:
             if line not in template:
                 self.fail(f"handoff-contract.md missing trust order line: {line}")
+
+    def validate_no_legacy_prompt_file_reference(self) -> None:
+        legacy_prompt_file = "NEW_SESSION_PROMPT" + ".txt"
+        forbidden_paths = [
+            ROOT / "examples" / ("resume-prompt" + ".example.txt"),
+        ]
+        for path in forbidden_paths:
+            if path.exists():
+                self.fail(f"{path.relative_to(ROOT)} must not exist")
+
+        checked_roots = [
+            ROOT / "README.md",
+            ROOT / "AGENTS.md",
+            ROOT / "SECURITY.md",
+            ROOT / "CHANGELOG.md",
+            ROOT / "examples",
+            ROOT / "evals",
+            ROOT / "orchestrators",
+            ROOT / "scripts",
+            SKILL_DIR,
+        ]
+        allowed_suffixes = {".json", ".md", ".py", ".txt", ".yaml", ".yml"}
+        for base in checked_roots:
+            paths = [base] if base.is_file() else sorted(base.rglob("*"))
+            for path in paths:
+                if not path.is_file() or path.suffix not in allowed_suffixes:
+                    continue
+                text = path.read_text(encoding="utf-8")
+                if legacy_prompt_file in text:
+                    self.fail(
+                        f"{path.relative_to(ROOT)} must not reference legacy prompt sidecar"
+                    )
 
     def validate_expanded_artifacts(self) -> None:
         handoff = ROOT / "examples" / "expanded-architecture" / "HANDOFF.md"
@@ -471,6 +501,7 @@ class Validator:
             "markers": self.validate_marker_blocks,
             "examples": self.validate_handoff_sections,
             "expanded": self.validate_expanded_artifacts,
+            "legacy-prompt-file": self.validate_no_legacy_prompt_file_reference,
             "secrets": self.validate_secret_hygiene,
         }
         selected = all_checks if "all" in checks else {k: v for k, v in all_checks.items() if k in checks}
@@ -495,7 +526,7 @@ def main() -> int:
         "--check",
         action="append",
         default=[],
-        help="Check to run: frontmatter, references, readme-format, trigger-evals, schema, markers, examples, expanded, secrets, all",
+        help="Check to run: frontmatter, references, readme-format, trigger-evals, schema, markers, examples, expanded, legacy-prompt-file, secrets, all",
     )
     args = parser.parse_args()
     checks = set(args.check or ["all"])

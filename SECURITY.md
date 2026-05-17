@@ -4,7 +4,7 @@ This repository contains a handoff skill that summarizes local repository state.
 
 ## Secret Redaction
 
-Do not write these values into `HANDOFF.md`, optional `NEW_SESSION_PROMPT.txt`, or focused detail artifacts:
+Do not write these values into generated handoff artifacts such as `HANDOFF.md` or focused detail artifacts:
 
 - API keys, tokens, cookies, credentials, private keys, or passwords
 - full `.env` values or secret-bearing config

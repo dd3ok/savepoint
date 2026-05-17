@@ -109,8 +109,6 @@ Read in this order:
 Read /workspace/acme-dashboard/.new-session-handoff/HANDOFF.md first. Verify cwd, Git root, branch, short HEAD, git status, and diff stat before editing. Inspect src/reports/exportCsv.ts, src/reports/ReportTable.tsx, and src/reports/ReportTable.test.tsx. If disk state differs from HANDOFF.md, trust disk and report the mismatch. Continue only with the smallest next step: add focused CSV export tests.
 ```
 
-- New session prompt file: not-written
-
 ## Automation Markers
 
 ```text

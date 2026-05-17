@@ -17,7 +17,7 @@ Create one lightweight file unless the user asks otherwise:
 .new-session-handoff/HANDOFF.md
 ```
 
-Do not create `NEW_SESSION_PROMPT.txt` by default. Embed the resume prompt inside `HANDOFF.md`.
+Embed the resume prompt inside `HANDOFF.md`.
 
 Create `details/*.md` only when expanded mode is needed because `HANDOFF.md` cannot stay both compact and recoverable.
 

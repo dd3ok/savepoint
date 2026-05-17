@@ -89,8 +89,6 @@
 Read /workspace/shop/.new-session-handoff/HANDOFF.md and verify disk state, but do not rotate or implement yet. SAFE_FOR_NEW_SESSION is no because npm test -- checkout is still running. Wait for the running command result to be recorded before continuing.
 ```
 
-- New session prompt file: not-written
-
 ## Automation Markers
 
 ```text

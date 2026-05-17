@@ -108,8 +108,6 @@
 Read /workspace/billing-app/.new-session-handoff/HANDOFF.md first, then read only the listed detail artifacts needed to fix timestamp formatting. Verify disk state before editing. If safe, inspect src/billing/invoiceService.ts and tests/billing/invoice.integration.test.ts, fix the smallest timestamp issue, and rerun npm test -- tests/billing/invoice.integration.test.ts.
 ```
 
-- New session prompt file: not-written
-
 ## Automation Markers
 
 ```text
