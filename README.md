@@ -6,6 +6,8 @@
 
 `new-session-handoff-skill`은 **AI 코딩 에이전트(AI Coding Agent)**가 새로운 세션에서 이전 작업을 원활하게 이어갈 수 있도록 검증된 `HANDOFF.md`를 생성하는 경량 스킬입니다. 이 스킬은 이전 채팅 기록에 의존하지 않고도 작업 컨텍스트를 안전하게 전달하여, **에이전트 세션 연속성(Agent Session Continuity)**과 **컨텍스트 관리(Context Management)**를 최적화합니다. `new-session-handoff`는 `/new`를 실행하거나, PTY를 제어하거나, 세션을 로테이션하거나, 핸드오프 생성 중에 애플리케이션 코드를 편집하지 않습니다. 대신 복구 가능한 핸드오프 아티팩트와 기계가 읽을 수 있는 준비 마커만 작성합니다.
 
+This skill is not a generic conversation summarizer. It is a compact, verified recovery manifest for coding-agent session transfer.
+
 기본 아티팩트:
 
 ```text
@@ -98,6 +100,7 @@ ln -s ../../skills/new-session-handoff .claude/skills/new-session-handoff
 
 - `examples/compact-bugfix/`: 작은 버그 수정을 위한 컴팩트 핸드오프.
 - `examples/expanded-architecture/`: 집중된 세부 아티팩트가 포함된 확장된 핸드오프.
+- `examples/prompt-only/`: 파일을 쓰지 않는 self-contained continuation prompt 예시.
 - `examples/unsafe-handoff/`: `SAFE_FOR_NEW_SESSION: no`가 중요한 이유를 보여주는 의도적으로 안전하지 않은 핸드오프.
 
 예시는 유지보수자/데모 자료입니다. 분산 스킬 패키지에는 필요하지 않습니다.
