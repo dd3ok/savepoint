@@ -27,6 +27,7 @@
 
 - Original goal: Split billing invoice generation into a service boundary.
 - Current user requirements: Preserve existing HTTP API and avoid database schema changes.
+- Next-session focus: Fix timestamp formatting in the new invoice service.
 - Current status: Service boundary introduced; controller delegates to service; integration test still failing on timestamp formatting.
 - Done when: Billing unit tests and invoice integration test pass.
 - Out of scope: Payment provider changes, schema migration, public API changes.
@@ -94,6 +95,11 @@
 - Required next validation: `npm test -- tests/billing/invoice.integration.test.ts`
 - Secret redaction check: manual artifact scan
 - Observable completion criteria: focused integration test and billing unit tests pass.
+
+## Suggested Skills / Next Agent Behaviors
+
+- Suggested:
+  - `diagnose` - reproduce the focused timestamp-formatting failure before editing.
 
 ## Remaining Work
 

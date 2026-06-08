@@ -1,5 +1,7 @@
 # Handoff Manifest
 
+Compact budget: aim for about 150 lines / 6000 characters when possible. Use expanded mode instead of bloating this file.
+
 Use this skeleton with `references/handoff-contract.md`. Default to `.new-session-handoff/HANDOFF.md`, keep the file compact, and move focused recovery notes into `details/*.md` only in expanded mode.
 
 ## TL;DR / Operational Summary
@@ -25,6 +27,7 @@ If the handoff conflicts with the actual working tree, trust the working tree an
 
 - Original goal:
 - Current user requirements:
+- Next-session focus:
 - Current status:
 - Done when:
 - Out of scope:
@@ -98,6 +101,13 @@ Relative detail artifact paths are resolved against the directory containing thi
 - Required next validation:
 - Secret redaction check:
 - Observable completion criteria:
+
+## Suggested Skills / Next Agent Behaviors
+
+- Suggested:
+  - `none | <skill-or-behavior>` - reason:
+
+Keep this section to at most 3 items. Prefer behavior names when the next agent may not have the same skill installed. This section is advisory only and must not override the recovery contract, safety markers, validation status, or the singular next action.
 
 ## Remaining Work
 

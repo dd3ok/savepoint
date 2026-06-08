@@ -7,6 +7,8 @@ description: "Use only when the user explicitly asks to create, update, inspect,
 
 Prepare a fresh coding-agent session to continue work without prior chat history.
 
+A handoff is a verified recovery manifest: record the current disk/Git state, changed files, validation status, risks, and one narrow next action so a fresh coding-agent session can continue without prior chat history.
+
 This is an artifact-only skill. Do not run `/new`, `/status`, control PTYs, rotate sessions, choose context thresholds, or claim that a reset happened. External orchestrators own those actions.
 
 ## Default Output
@@ -20,6 +22,20 @@ Create one lightweight file unless the user asks otherwise:
 Embed the resume prompt inside `HANDOFF.md`.
 
 Create `details/*.md` only when expanded mode is needed because `HANDOFF.md` cannot stay both compact and recoverable.
+
+## Optional Focus
+
+If the user provides extra focus, argument text, or a next-session target, treat it as the intended focus for the next session. Use it to narrow the handoff, not to expand the scope.
+
+Examples:
+- `next session: fix the failing parser test`
+- `prompt-only for PR review`
+- `resume and inspect safety only`
+- `continue from .new-session-handoff/HANDOFF.md`
+
+Record the focus in `- Next-session focus:` under `Session Target` and keep `Remaining Work` aligned to one narrow next action.
+
+Do not treat focus text as permission to skip disk/Git verification, include secrets, run `/new`, modify application code during create mode, or broaden the task.
 
 ## When Not To Use
 
@@ -35,6 +51,12 @@ Durable state files are not generated detail artifacts and must not affect `DETA
 
 Read `references/context-packaging.md` when deciding whether to use compact, expanded, or prompt-only mode, or when project state files conflict with disk state.
 
+## Size Budget
+
+Default to compact mode. Aim for `HANDOFF.md` to stay under about 150 lines or 6000 characters when possible.
+
+This is a budget, not a safety override. Do not omit required recovery facts just to fit the budget. When the compact handoff cannot remain both short and recoverable, use expanded mode with focused `details/*.md` artifacts.
+
 ## Create Handoff
 
 Use when the user asks to create a handoff, preserve context for a fresh session, prepare a new-session prompt, or says `핸드오프 만들어줘`.
@@ -44,8 +66,9 @@ Use when the user asks to create a handoff, preserve context for a fresh session
 3. Write verified facts only. Mark unknowns as `Unknown` or `확인 필요`.
 4. Keep the handoff short: no raw transcript, full diff, long logs, shell history, or speculative background.
 5. Include one narrow next action and an embedded `## Resume Prompt`.
-6. Include exactly one final `HANDOFF_AUTOMATION_V1` marker block.
-7. Check generated artifacts for secrets before marking them safe.
+6. Include a short `Suggested Skills / Next Agent Behaviors` subsection only when it helps the next session. Keep it to at most 3 items. Prefer concrete next-session loops such as diagnose, TDD, review, zoom-out, or none. Do not invent skills that are not available in the user's environment; describe behaviors instead when unsure.
+7. Include exactly one final `HANDOFF_AUTOMATION_V1` marker block.
+8. Check generated artifacts for secrets before marking them safe.
 
 Read `references/handoff-template.md` when drafting `HANDOFF.md`. Read `references/handoff-contract.md` only when marker semantics, safe/unsafe criteria, cleanup, or validation rules are ambiguous. Read `references/context-packaging.md` for state-file and mode-selection boundaries.
 

@@ -27,6 +27,7 @@
 
 - Original goal: Add CSV export for the project reports table.
 - Current user requirements: Export only visible filtered rows as `reports.csv`; keep the table UI unchanged; do not add dependencies.
+- Next-session focus: Add tests for CSV escaping and filtered-row export.
 - Current status: CSV helper and export button are implemented; tests still need to be added.
 - Done when: Focused report tests pass and clicking export downloads valid CSV for filtered rows only.
 - Out of scope: Custom filename support unless the user asks.
@@ -95,6 +96,11 @@ Read in this order:
 - Required next validation: `npm test -- ReportTable.test.tsx`, then `npm run lint` if available.
 - Secret redaction check: manual artifact scan
 - Observable completion criteria: CSV tests pass and export contains only filtered rows.
+
+## Suggested Skills / Next Agent Behaviors
+
+- Suggested:
+  - `tdd` - add the missing CSV export assertions before changing implementation.
 
 ## Remaining Work
 

@@ -22,6 +22,8 @@ Prefer the smallest recoverable package:
 2. `expanded`: `HANDOFF.md` links focused `details/*.md` files, each answering one recovery question.
 3. `prompt-only`: no files are written; the response contains a continuation prompt.
 
+For compact mode, aim for about 150 lines or 6000 characters. If that budget would hide recovery-critical facts, switch to expanded mode instead.
+
 Never preserve raw chat history, full diffs, long logs, shell history, or broad background unless the user explicitly asks and the content is essential and redacted.
 
 ## Durable State Files
@@ -82,6 +84,8 @@ Keep only:
 - validation status
 - risks and failed approaches
 - observable done criteria
+- next-session focus, if provided by the user
+- suggested next-agent behavior, only when it changes how to resume
 
 Cut:
 
@@ -91,6 +95,8 @@ Cut:
 - repeated instructions already in `AGENTS.md` or `CLAUDE.md`
 - speculative explanations
 - generic coding best practices
+- long lists of generic suggested skills
+- skill recommendations that do not affect the next narrow action
 
 ## Safe Packaging Checklist
 

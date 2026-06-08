@@ -14,6 +14,10 @@
 
 기본 핸드오프에는 `## Resume Prompt` 섹션이 포함됩니다.
 
+Compact handoffs should stay short enough for a fresh session to load quickly. The default target is about 150 lines / 6000 characters. If that would hide recovery-critical facts, use expanded mode with focused `details/*.md` files.
+
+Generated handoffs may include a short `Suggested Skills / Next Agent Behaviors` section. This is advisory only and must not override the recovery contract, validation state, or `SAFE_FOR_NEW_SESSION` marker.
+
 다음 세션이 핸드오프를 읽고 현재 디스크/Git 상태와 비교한 뒤, `SAFE_FOR_NEW_SESSION: yes`인 핸드오프를 실제 resume/continue에 채택한 경우에만 선택된 추적되지 않는 generated handoff artifact를 삭제할 수 있습니다. inspect-only, tracked, stale, unsafe, external-path, user-authored artifact는 보존합니다.
 
 ## 한국어 사용 예시 (Usage Examples in Korean)
@@ -25,6 +29,9 @@ AI 에이전트에게 다음과 같은 프롬프트를 사용하여 `new-session
 
 *   **사용자**: `핸드오프를 읽고 이어서 작업해줘.`
 *   **에이전트**: `HANDOFF.md를 읽고 현재 디스크/Git 상태와 비교합니다. 불일치하는 부분이 있으면 보고하고, SAFE_FOR_NEW_SESSION: yes 상태이며 구현 계속을 요청하시면 다음 작업을 진행합니다.`
+
+*   **사용자**: `다음 세션은 failing test 수정에만 집중하도록 핸드오프 만들어줘.`
+*   **에이전트**: `현재 disk/Git 상태를 확인하고, Next-session focus를 failing test 수정으로 기록한 compact handoff를 생성합니다.`
 
 ## Canonical Contract
 

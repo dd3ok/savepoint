@@ -22,6 +22,14 @@ Resume lookup order:
 
 Each detail artifact must answer one recovery question. Do not write raw transcripts, full diffs, long logs, shell history, or chat history unless the user explicitly asks and the content is essential and redacted.
 
+## Size Budget
+
+Compact mode should aim to keep `HANDOFF.md` under about 150 lines or 6000 characters when possible.
+
+The budget is subordinate to recoverability. Do not omit required disk/Git state, changed files, validation status, blockers, secret-redaction status, or the narrow next action to satisfy the budget.
+
+Use expanded mode when compact mode cannot stay both short and recoverable.
+
 ## Required `HANDOFF.md` Shape
 
 `HANDOFF.md` must include:
@@ -39,6 +47,8 @@ Each detail artifact must answer one recovery question. Do not write raw transcr
 - exactly one automation marker block.
 
 `HANDOFF.md` is the only default file artifact. The continuation prompt lives in the embedded `## Resume Prompt` section. This skill does not define or advertise a separate named prompt file artifact.
+
+`HANDOFF.md` may include a `Suggested Skills / Next Agent Behaviors` section. It is advisory only, must contain at most 3 items, and must not override the recovery contract, trust order, safety markers, validation requirements, or the singular next action.
 
 ## Trust Order
 
@@ -68,6 +78,8 @@ Before writing a handoff, inspect and record:
 - latest commit
 - relevant instruction files
 - relevant durable state files
+
+If the user provides extra argument text or a next-session focus, record it as `Next-session focus` in `Session Target`. Use it to narrow the handoff and select the smallest next action. It must not override current user instructions, disk/Git verification, secret hygiene, validation requirements, or safety rules.
 
 Read only enough files to verify recovery state. Prefer instruction files, relevant durable state files, existing handoff artifacts, changed files, and files needed for the smallest next step. Do not recursively read private agent config directories, unrelated project history, or secret-bearing files by default.
 
