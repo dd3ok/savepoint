@@ -27,6 +27,7 @@
 
 - Original goal: Fix a null-token crash in login.
 - Current user requirements: Preserve existing auth API and avoid new dependencies.
+- Next-session focus: Summarize the completed null-token guard and validation results.
 - Current status: Guard added; focused regression test and lint pass.
 - Done when: Auth focused test and lint pass.
 - Out of scope: Session storage redesign.
@@ -92,6 +93,11 @@
 - Required next validation: none
 - Secret redaction check: manual artifact scan
 - Observable completion criteria: focused test and lint pass.
+
+## Suggested Skills / Next Agent Behaviors
+
+- Suggested:
+  - `none` - no extra skill or behavior is required beyond verifying disk state and taking the smallest next step.
 
 ## Remaining Work
 

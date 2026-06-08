@@ -27,6 +27,7 @@
 
 - Original goal: Debug flaky checkout test.
 - Current user requirements: Do not rotate while test runner is active.
+- Next-session focus: Wait for the active checkout test command to finish and record its result.
 - Current status: `npm test -- checkout` is still running.
 - Done when: test run finishes and result is recorded.
 - Out of scope: changing checkout code before the running command completes.
@@ -75,6 +76,11 @@
 - Required next validation: wait for `npm test -- checkout` result.
 - Secret redaction check: manual artifact scan
 - Observable completion criteria: test result recorded.
+
+## Suggested Skills / Next Agent Behaviors
+
+- Suggested:
+  - `none` - do not start a new loop until the running validation result is recorded.
 
 ## Remaining Work
 
