@@ -46,6 +46,7 @@ HANDOFF_FILES = [
     ROOT / "examples" / "expanded-architecture" / "HANDOFF.md",
     ROOT / "examples" / "unsafe-handoff" / "HANDOFF.md",
 ]
+PROMPT_ONLY_EXAMPLE = ROOT / "examples" / "prompt-only" / "RESPONSE.md"
 CANONICAL_REFERENCES = [
     "context-packaging.md",
     "handoff-contract.md",
@@ -214,6 +215,7 @@ class Validator:
         if first_line != "# New Session Handoff Skill":
             self.fail("README.md must start with '# New Session Handoff Skill'")
         for phrase in [
+            "This skill is not a generic conversation summarizer. It is a compact, verified recovery manifest for coding-agent session transfer.",
             "skills/new-session-handoff/references/context-packaging.md",
             "evals/trigger-queries.json",
             "evals/cases/context-state-bridge.md",
@@ -457,6 +459,27 @@ class Validator:
             if line not in template:
                 self.fail(f"handoff-contract.md missing trust order line: {line}")
 
+    def validate_prompt_only_example(self) -> None:
+        path = PROMPT_ONLY_EXAMPLE
+        text = self.read(path)
+        for phrase in [
+            "# Prompt-Only Handoff Response",
+            "No files were written.",
+            "## Continuation Prompt",
+            "HANDOFF_READY: not-written",
+            "HANDOFF_MODE: prompt-only",
+            "DETAIL_ARTIFACTS_READY: not-needed",
+            "NEW_SESSION_PROMPT_READY: yes",
+        ]:
+            if phrase not in text:
+                self.fail(f"{path.relative_to(ROOT)} missing prompt-only example phrase: {phrase}")
+        if ".new-session-handoff/HANDOFF.md" in text:
+            self.fail(f"{path.relative_to(ROOT)} prompt-only example must not point to a missing default handoff file")
+        block = self.extract_marker_block(text, path)
+        if block is None:
+            return
+        self.validate_marker_values(path, block)
+
     def validate_no_legacy_prompt_file_reference(self) -> None:
         legacy_prompt_file = "NEW_SESSION_PROMPT" + ".txt"
         for dirpath, dirnames, filenames in os.walk(ROOT):
@@ -533,6 +556,7 @@ class Validator:
             "schema": self.validate_schema_contract,
             "markers": self.validate_marker_blocks,
             "examples": self.validate_handoff_sections,
+            "prompt-only-example": self.validate_prompt_only_example,
             "expanded": self.validate_expanded_artifacts,
             "legacy-prompt-file": self.validate_no_legacy_prompt_file_reference,
             "secrets": self.validate_secret_hygiene,
@@ -559,7 +583,7 @@ def main() -> int:
         "--check",
         action="append",
         default=[],
-        help="Check to run: frontmatter, references, readme-format, trigger-evals, schema, markers, examples, expanded, legacy-prompt-file, secrets, all",
+        help="Check to run: frontmatter, references, readme-format, trigger-evals, schema, markers, examples, prompt-only-example, expanded, legacy-prompt-file, secrets, all",
     )
     args = parser.parse_args()
     checks = set(args.check or ["all"])
