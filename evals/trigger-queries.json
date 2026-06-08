@@ -99,6 +99,22 @@
       "rationale": "Secret-bearing handoff request should trigger the skill so safety rules can redact or refuse."
     },
     {
+      "id": "trigger-en-focus-argument-01",
+      "query": "Create a handoff for the next session focused only on fixing the failing parser test.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "focus-argument",
+      "rationale": "Explicit handoff request with next-session focus."
+    },
+    {
+      "id": "trigger-ko-focus-argument-01",
+      "query": "다음 세션에서는 PR 리뷰만 하도록 핸드오프 만들어줘.",
+      "should_trigger": true,
+      "language": "ko",
+      "category": "focus-argument",
+      "rationale": "Korean handoff request with a narrow next-session focus."
+    },
+    {
       "id": "no-trigger-summary-01",
       "query": "Summarize this conversation in Korean.",
       "should_trigger": false,
@@ -177,6 +193,22 @@
       "language": "en",
       "category": "general-advice",
       "rationale": "Advice about memory/project setup, not artifact creation or resume."
+    },
+    {
+      "id": "no-trigger-suggested-skills-01",
+      "query": "Which skills should I use for TDD and debugging?",
+      "should_trigger": false,
+      "language": "en",
+      "category": "general-advice",
+      "rationale": "Advice about skills without handoff artifact creation or resume."
+    },
+    {
+      "id": "no-trigger-ko-next-session-generic-01",
+      "query": "다음 세션에서는 뭘 하면 좋을지 조언해줘.",
+      "should_trigger": false,
+      "language": "ko",
+      "category": "general-advice",
+      "rationale": "Generic next-session advice without handoff artifact creation."
     }
   ]
 }

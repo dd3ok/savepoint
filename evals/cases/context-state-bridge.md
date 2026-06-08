@@ -18,6 +18,9 @@ A repository contains:
 - Handoff lists `AGENTS.md`, `PROJECT_STATE.md`, and `TASKS.md` as relevant durable state files with purpose.
 - Handoff does not paste entire state files.
 - Handoff includes one narrow next action.
+- If the user provides a next-session focus, the handoff records it under `Next-session focus`.
+- The focus narrows `Remaining Work` to one executable next step.
+- The focus does not override disk/Git state, durable state files, validation, or blockers.
 - `SAFE_FOR_NEW_SESSION: yes` only if validation status, secret check, changed files, and blockers are honestly recorded.
 
 ## Failure Conditions
@@ -26,3 +29,6 @@ A repository contains:
 - Treats state files as higher priority than current disk/Git state.
 - Omits dirty files.
 - Sets `SAFE_FOR_NEW_SESSION: yes` with vague next action.
+- Omits the provided next-session focus.
+- Expands suggested skills into a long generic checklist.
+- Lets suggested skills override the smallest executable next step.
