@@ -48,7 +48,7 @@ Use expanded mode when compact mode cannot stay both short and recoverable.
 
 `HANDOFF.md` is the only default file artifact. The continuation prompt lives in the embedded `## Resume Prompt` section. This skill does not define or advertise a separate named prompt file artifact.
 
-`HANDOFF.md` may include a `Suggested Skills / Next Agent Behaviors` section. It is advisory only, must stay under 0-3 items, and must not override the recovery contract, trust order, safety markers, validation requirements, or the singular next action.
+`HANDOFF.md` may include a `Suggested Skills / Next Agent Behaviors` section. It is advisory only, must contain at most 3 items, and must not override the recovery contract, trust order, safety markers, validation requirements, or the singular next action.
 
 ## Trust Order
 

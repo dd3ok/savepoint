@@ -107,7 +107,7 @@ Relative detail artifact paths are resolved against the directory containing thi
 - Suggested:
   - `none | <skill-or-behavior>` - reason:
 
-Keep this section to 0-3 items. Prefer behavior names when the next agent may not have the same skill installed. This section is advisory only and must not override the recovery contract, safety markers, validation status, or the singular next action.
+Keep this section to at most 3 items. Prefer behavior names when the next agent may not have the same skill installed. This section is advisory only and must not override the recovery contract, safety markers, validation status, or the singular next action.
 
 ## Remaining Work
 

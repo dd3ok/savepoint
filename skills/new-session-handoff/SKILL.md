@@ -33,7 +33,7 @@ Examples:
 - `resume and inspect safety only`
 - `continue from .new-session-handoff/HANDOFF.md`
 
-Record the focus in `Session Target` and keep `Remaining Work` aligned to one narrow next action.
+Record the focus in `- Next-session focus:` under `Session Target` and keep `Remaining Work` aligned to one narrow next action.
 
 Do not treat focus text as permission to skip disk/Git verification, include secrets, run `/new`, modify application code during create mode, or broaden the task.
 
@@ -66,7 +66,7 @@ Use when the user asks to create a handoff, preserve context for a fresh session
 3. Write verified facts only. Mark unknowns as `Unknown` or `확인 필요`.
 4. Keep the handoff short: no raw transcript, full diff, long logs, shell history, or speculative background.
 5. Include one narrow next action and an embedded `## Resume Prompt`.
-6. Include a short `Suggested Skills / Next Agent Behaviors` subsection only when it helps the next session. Keep it to 0-3 items. Prefer concrete next-session loops such as diagnose, TDD, review, zoom-out, or none. Do not invent skills that are not available in the user's environment; describe behaviors instead when unsure.
+6. Include a short `Suggested Skills / Next Agent Behaviors` subsection only when it helps the next session. Keep it to at most 3 items. Prefer concrete next-session loops such as diagnose, TDD, review, zoom-out, or none. Do not invent skills that are not available in the user's environment; describe behaviors instead when unsure.
 7. Include exactly one final `HANDOFF_AUTOMATION_V1` marker block.
 8. Check generated artifacts for secrets before marking them safe.
 
