@@ -151,6 +151,10 @@ class Validator:
         required_skill_phrases = [
             ".new-session-handoff/HANDOFF.md",
             "Embed the resume prompt inside `HANDOFF.md`",
+            "verified recovery manifest",
+            "Optional Focus",
+            "Size Budget",
+            "Suggested Skills / Next Agent Behaviors",
             "delete only untracked generated handoff artifacts",
             "Durable state files are not generated detail artifacts",
             "A handoff is adopted only after",
@@ -163,6 +167,9 @@ class Validator:
         contract_text = self.read(SKILL_DIR / "references" / "handoff-contract.md")
         required_contract_phrases = [
             ".new-session-handoff/HANDOFF.md",
+            "Next-session focus",
+            "Suggested Skills / Next Agent Behaviors",
+            "150 lines or 6000 characters",
             "NEW_SESSION_PROMPT_READY",
             "embedded",
             "legacy `HANDOFF.md`",
@@ -179,6 +186,12 @@ class Validator:
         template_text = self.read(SKILL_DIR / "references" / "handoff-template.md")
         if "## Resume Prompt" not in template_text:
             self.fail("handoff-template.md must embed a Resume Prompt section")
+        if "- Next-session focus:" not in template_text:
+            self.fail("handoff-template.md missing next-session focus field")
+        if "## Suggested Skills / Next Agent Behaviors" not in template_text:
+            self.fail("handoff-template.md missing suggested next-agent behavior section")
+        if "150 lines / 6000 characters" not in template_text:
+            self.fail("handoff-template.md missing compact budget guidance")
         if "## Fresh Session Prompt" in template_text:
             self.fail("handoff-template.md should use Resume Prompt, not Fresh Session Prompt")
         cleanup_eval_text = self.read(ROOT / "evals" / "cases" / "resume-cleanup.md")
@@ -239,6 +252,8 @@ class Validator:
         has_korean_handoff_positive = False
         has_korean_negative = False
         has_secret_redaction_positive = False
+        has_focus_argument_positive = False
+        has_suggested_skills_negative = False
         present_negative_categories: set[str] = set()
         for index, query in enumerate(queries):
             if not isinstance(query, dict):
@@ -268,12 +283,16 @@ class Validator:
                     has_korean_handoff_positive = True
                 if category == "secret-redaction":
                     has_secret_redaction_positive = True
+                if category == "focus-argument":
+                    has_focus_argument_positive = True
             elif should_trigger is False:
                 negatives += 1
                 if query.get("language") == "ko":
                     has_korean_negative = True
                 if isinstance(category, str):
                     present_negative_categories.add(category)
+                if query_id == "no-trigger-suggested-skills-01":
+                    has_suggested_skills_negative = True
             else:
                 self.fail(f"trigger eval query #{index} should_trigger must be boolean")
 
@@ -294,6 +313,10 @@ class Validator:
             self.fail("trigger evals should include Korean near-miss negative queries")
         if not has_secret_redaction_positive:
             self.fail("trigger evals should include secret-bearing handoff requests as should_trigger=true")
+        if not has_focus_argument_positive:
+            self.fail("trigger evals should include next-session focus handoff requests as should_trigger=true")
+        if not has_suggested_skills_negative:
+            self.fail("trigger evals should include suggested-skill advice as should_trigger=false")
 
         near_miss_categories = {
             "ordinary-summary",
@@ -391,6 +414,7 @@ class Validator:
             "## Required Reading",
             "## Change Manifest",
             "## Validation Manifest",
+            "## Suggested Skills / Next Agent Behaviors",
             "## Remaining Work",
             "## Resume Prompt",
             "## Automation Markers",
@@ -406,6 +430,8 @@ class Validator:
                     self.fail(f"{path.relative_to(ROOT)} must contain exactly one TL;DR field {field}")
             if "Expected drift from captured state:" not in text:
                 self.fail(f"{path.relative_to(ROOT)} missing expected drift field")
+            if "- Next-session focus:" not in text:
+                self.fail(f"{path.relative_to(ROOT)} missing next-session focus field")
             if (
                 "If disk state differs" not in text
                 and "If the handoff conflicts" not in text
