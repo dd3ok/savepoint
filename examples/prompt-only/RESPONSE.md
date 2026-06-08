@@ -19,6 +19,7 @@ Branch: docs/prompt-only
 Short HEAD: abc1234
 git status --short: none
 git diff --stat: none
+git diff --name-status: none
 git diff --cached --stat: none
 Latest commit: abc1234 Add prompt-only handoff example
 Instruction files checked: AGENTS.md - no extra instructions for this example

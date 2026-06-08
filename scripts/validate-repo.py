@@ -473,6 +473,7 @@ class Validator:
             "Short HEAD:",
             "git status --short:",
             "git diff --stat:",
+            "git diff --name-status:",
             "git diff --cached --stat:",
             "Latest commit:",
             "Instruction files checked:",
