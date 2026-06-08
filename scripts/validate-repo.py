@@ -466,6 +466,19 @@ class Validator:
             "# Prompt-Only Handoff Response",
             "No files were written.",
             "## Continuation Prompt",
+            "Captured at:",
+            "Working directory:",
+            "Git root:",
+            "Branch:",
+            "Short HEAD:",
+            "git status --short:",
+            "git diff --stat:",
+            "git diff --cached --stat:",
+            "Latest commit:",
+            "Instruction files checked:",
+            "Durable state files checked:",
+            "Changed files at capture time:",
+            "Secret redaction check:",
             "HANDOFF_READY: not-written",
             "HANDOFF_MODE: prompt-only",
             "DETAIL_ARTIFACTS_READY: not-needed",
@@ -478,6 +491,10 @@ class Validator:
         block = self.extract_marker_block(text, path)
         if block is None:
             return
+        actual_names = [line.split(":", 1)[0] for line in block]
+        expected_names = [MARKER_BLOCK_START, *marker_field_order(), MARKER_BLOCK_END]
+        if actual_names != expected_names:
+            self.fail(f"{path.relative_to(ROOT)} marker block does not match expected field order")
         self.validate_marker_values(path, block)
 
     def validate_no_legacy_prompt_file_reference(self) -> None:
