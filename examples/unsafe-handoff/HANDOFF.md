@@ -69,9 +69,12 @@
 
 ## Validation Manifest
 
-- Last command: `npm test -- checkout`
-- Result: still running
-- Key failure lines, if failed: Unknown
+- Handoff artifact validation command: `python3 scripts/validate_handoff.py .new-session-handoff/HANDOFF.md`
+- Handoff artifact validation result: passed
+- Handoff artifact validation failure lines, if failed: none
+- Project/work validation command: `npm test -- checkout`
+- Project/work validation result: still running
+- Project/work validation failure lines, if failed: Unknown
 - Checks not run and why: current check has not completed.
 - Required next validation: wait for `npm test -- checkout` result.
 - Secret redaction check: manual artifact scan

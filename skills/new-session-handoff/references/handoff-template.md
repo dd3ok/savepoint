@@ -94,9 +94,12 @@ Relative detail artifact paths are resolved against the directory containing thi
 
 ## Validation Manifest
 
-- Last command:
-- Result:
-- Key failure lines, if failed:
+- Handoff artifact validation command:
+- Handoff artifact validation result:
+- Handoff artifact validation failure lines, if failed:
+- Project/work validation command:
+- Project/work validation result:
+- Project/work validation failure lines, if failed:
 - Checks not run and why:
 - Required next validation:
 - Secret redaction check:

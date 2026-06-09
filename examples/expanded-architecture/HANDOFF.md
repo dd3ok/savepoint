@@ -88,9 +88,12 @@
 
 ## Validation Manifest
 
-- Last command: `npm test -- tests/billing/invoice.integration.test.ts`
-- Result: failed on timestamp formatting; see `details/validation.md`
-- Key failure lines, if failed: see `details/validation.md`
+- Handoff artifact validation command: `python3 scripts/validate_handoff.py .new-session-handoff/HANDOFF.md`
+- Handoff artifact validation result: passed
+- Handoff artifact validation failure lines, if failed: none
+- Project/work validation command: `npm test -- tests/billing/invoice.integration.test.ts`
+- Project/work validation result: failed on timestamp formatting; see `details/validation.md`
+- Project/work validation failure lines, if failed: see `details/validation.md`
 - Checks not run and why: full test suite not run while focused integration test is red.
 - Required next validation: `npm test -- tests/billing/invoice.integration.test.ts`
 - Secret redaction check: manual artifact scan
