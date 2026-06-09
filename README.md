@@ -35,6 +35,8 @@ AI 에이전트에게 다음과 같은 프롬프트를 사용하여 `new-session
 *   **사용자**: `다음 세션은 failing test 수정에만 집중하도록 핸드오프 만들어줘.`
 *   **에이전트**: `현재 disk/Git 상태를 확인하고, Next-session focus를 failing test 수정으로 기록한 compact handoff를 생성합니다.`
 
+한국어 프롬프트와 필드 값은 사용할 수 있지만, 생성되는 handoff의 섹션 제목, 파일명, automation marker, schema value는 validator와 orchestrator 호환성을 위해 영어 원문을 유지합니다. 예를 들어 `HANDOFF_AUTOMATION_V1`, `SAFE_FOR_NEW_SESSION`, `HANDOFF_READY`, `yes`, `no`, `not-needed`, `compact`, `expanded`, `prompt-only`, `none`, `## Resume Prompt`는 번역하지 않습니다.
+
 ## Canonical Contract
 
 런타임 동작은 분산 스킬에 집중되어 있습니다:

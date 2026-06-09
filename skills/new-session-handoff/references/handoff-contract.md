@@ -194,6 +194,8 @@ Set `SAFE_FOR_NEW_SESSION: yes` only when all are true:
 - the next step is singular, executable, and narrow.
 - `BLOCKERS: none`.
 
+When file artifacts are written, attempt the bundled handoff validator after final artifact edits when it is available. If the validator cannot run, record the skipped reason and next validation command. Prompt-only mode self-checks the response and marker block instead of running a file validator. Do not claim validation passed unless the command actually ran and passed.
+
 A skipped validation can still be safe only when the reason is narrow and explicit, such as docs-only handoff work, no applicable test harness, or user-requested prompt-only output. Record the next validation command whenever one exists.
 
 A failed validation command does not automatically force `SAFE_FOR_NEW_SESSION: no`. It may still be safe when the command has finished, key failure lines are recorded, the next step is narrow, and continuing cannot overwrite unknown state.
