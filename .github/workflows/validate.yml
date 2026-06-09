@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
@@ -19,4 +21,13 @@ jobs:
       - run: python3 scripts/validate-repo.py
       - run: python3 scripts/check-install-helper.py
       - run: python3 scripts/validate_handoff.py examples/HANDOFF.filled.example.md examples/compact-bugfix/HANDOFF.md examples/expanded-architecture/HANDOFF.md examples/unsafe-handoff/HANDOFF.md
-      - run: git diff --check
+      - name: Check committed whitespace
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git diff --check "${{ github.event.pull_request.base.sha }}...HEAD"
+          elif [[ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
+            git diff --check "${{ github.event.before }}..HEAD"
+          else
+            git diff --check --root HEAD
+          fi
