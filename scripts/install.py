@@ -52,6 +52,15 @@ def validate_source(source: Path) -> None:
         raise ValueError(f"Skill source is missing SKILL.md: {source}")
 
 
+def validate_repo_root(repo_root: Path) -> None:
+    if not repo_root.exists() or not repo_root.is_dir():
+        raise ValueError(f"repo root does not exist: {repo_root}")
+
+
+def destination_is_occupied(destination: Path) -> bool:
+    return destination.exists() or destination.is_symlink()
+
+
 def append_gitignore(repo_root: Path) -> bool:
     gitignore = repo_root / ".gitignore"
     if gitignore.exists():
@@ -99,12 +108,14 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         validate_source(source)
+        if args.scope == "repo":
+            validate_repo_root(repo_root)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
     destination = resolve_destination(args.target, args.scope, repo_root=repo_root, home=home)
-    if destination.exists():
+    if destination_is_occupied(destination):
         print("error: Destination already exists. Delete it manually before installing.", file=sys.stderr)
         print(f"Destination: {destination}", file=sys.stderr)
         return 1

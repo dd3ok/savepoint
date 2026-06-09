@@ -122,6 +122,8 @@ python3 scripts/install.py --target codex --scope repo --apply --add-gitignore
 
 `--add-gitignore`는 repo scope에서만 사용할 수 있으며, `--apply`가 있을 때만 `.new-session-handoff/`를 `.gitignore`에 추가합니다.
 
+Repo scope는 기존 repository root만 대상으로 하며, 잘못 입력한 `--repo-root` 경로를 새로 만들지 않습니다.
+
 ## Examples
 
 - `examples/compact-bugfix/`: 작은 버그 수정을 위한 컴팩트 핸드오프.

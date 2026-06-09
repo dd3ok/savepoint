@@ -45,6 +45,18 @@ def require(condition: bool, message: str) -> None:
         fail(message)
 
 
+class FakeDestination:
+    def __init__(self, *, exists: bool, is_symlink: bool) -> None:
+        self._exists = exists
+        self._is_symlink = is_symlink
+
+    def exists(self) -> bool:
+        return self._exists
+
+    def is_symlink(self) -> bool:
+        return self._is_symlink
+
+
 def test_resolve_destinations() -> None:
     installer = load_installer()
     with tempfile.TemporaryDirectory() as tmp:
@@ -71,6 +83,14 @@ def test_resolve_destinations() -> None:
             == repo / ".claude" / "skills" / "new-session-handoff",
             "claude repo destination is wrong",
         )
+
+
+def test_destination_occupancy_includes_broken_symlink() -> None:
+    installer = load_installer()
+    require(
+        installer.destination_is_occupied(FakeDestination(exists=False, is_symlink=True)),
+        "broken symlink destination is not treated as occupied",
+    )
 
 
 def test_dry_run_writes_nothing() -> None:
@@ -108,6 +128,32 @@ def test_existing_destination_refused() -> None:
         result = run_installer("--target", "codex", "--scope", "repo", "--repo-root", str(repo), "--apply")
         require(result.returncode != 0, "existing destination was not refused")
         require("Destination already exists" in result.stderr, "missing existing destination error")
+
+
+def test_broken_symlink_destination_refused() -> str | None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        missing_target = Path(tmp) / "missing-skill"
+        destination = repo / ".agents" / "skills" / "new-session-handoff"
+        destination.parent.mkdir(parents=True)
+        try:
+            destination.symlink_to(missing_target, target_is_directory=True)
+        except OSError as exc:
+            return str(exc)
+
+        result = run_installer("--target", "codex", "--scope", "repo", "--repo-root", str(repo), "--apply")
+        require(result.returncode != 0, "broken symlink destination was not refused")
+        require("Destination already exists" in result.stderr, "missing existing destination error")
+    return None
+
+
+def test_missing_repo_root_refused() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo-typo"
+        result = run_installer("--target", "codex", "--scope", "repo", "--repo-root", str(repo), "--apply")
+        require(result.returncode != 0, "missing repo root was not refused")
+        require("repo root does not exist" in result.stderr, "missing repo root error")
+        require(not repo.exists(), "missing repo root was created")
 
 
 def test_gitignore_is_explicit_and_apply_only() -> None:
@@ -173,15 +219,21 @@ def test_invalid_argument_combinations() -> None:
 def main() -> int:
     tests = [
         test_resolve_destinations,
+        test_destination_occupancy_includes_broken_symlink,
         test_dry_run_writes_nothing,
         test_apply_copies_skill,
         test_existing_destination_refused,
+        test_broken_symlink_destination_refused,
+        test_missing_repo_root_refused,
         test_gitignore_is_explicit_and_apply_only,
         test_invalid_argument_combinations,
     ]
     for test in tests:
-        test()
-        print(f"ok: {test.__name__}")
+        result = test()
+        if result:
+            print(f"skip: {test.__name__} ({result})")
+        else:
+            print(f"ok: {test.__name__}")
     return 0
 
 
