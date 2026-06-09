@@ -86,9 +86,12 @@
 
 ## Validation Manifest
 
-- Last command: `npm run lint`
-- Result: passed
-- Key failure lines, if failed: not applicable
+- Handoff artifact validation command: `python3 scripts/validate_handoff.py .new-session-handoff/HANDOFF.md`
+- Handoff artifact validation result: passed
+- Handoff artifact validation failure lines, if failed: none
+- Project/work validation command: `npm run lint`
+- Project/work validation result: passed
+- Project/work validation failure lines, if failed: not applicable
 - Checks not run and why: none
 - Required next validation: none
 - Secret redaction check: manual artifact scan

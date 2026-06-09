@@ -69,6 +69,7 @@ Use when the user asks to create a handoff, preserve context for a fresh session
 6. Include a short `Suggested Skills / Next Agent Behaviors` subsection only when it helps the next session. Keep it to at most 3 items. Prefer concrete next-session loops such as diagnose, TDD, review, zoom-out, or none. Do not invent skills that are not available in the user's environment; describe behaviors instead when unsure.
 7. Include exactly one final `HANDOFF_AUTOMATION_V1` marker block.
 8. Check generated artifacts for secrets before marking them safe.
+9. Before reporting completion for file-artifact modes, attempt to validate the generated `HANDOFF.md` with the bundled `validate_handoff.py` (typically at `skills/new-session-handoff/scripts/validate_handoff.py` or `scripts/validate_handoff.py`) when available. If the handoff validator reports errors, correct them and rerun it before completing; do not set `SAFE_FOR_NEW_SESSION: yes` until the corrected handoff validation passes. If validation cannot run, record the skipped reason and next validation command. For prompt-only mode, self-check the response and marker block instead of running a file validator. Never claim validation passed unless it actually ran and passed.
 
 Read `references/handoff-template.md` when drafting `HANDOFF.md`. Read `references/handoff-contract.md` only when marker semantics, safe/unsafe criteria, cleanup, or validation rules are ambiguous. Read `references/context-packaging.md` for state-file and mode-selection boundaries.
 

@@ -89,9 +89,12 @@ Read in this order:
 
 ## Validation Manifest
 
-- Last command: `npm test -- ReportTable.test.tsx`
-- Result: failed because CSV export tests do not exist yet.
-- Key failure lines, if failed: no matching CSV export assertions
+- Handoff artifact validation command: `python3 scripts/validate_handoff.py .new-session-handoff/HANDOFF.md`
+- Handoff artifact validation result: passed
+- Handoff artifact validation failure lines, if failed: none
+- Project/work validation command: `npm test -- ReportTable.test.tsx`
+- Project/work validation result: failed because CSV export tests do not exist yet.
+- Project/work validation failure lines, if failed: no matching CSV export assertions
 - Checks not run and why: full test suite not run because focused tests are still missing.
 - Required next validation: `npm test -- ReportTable.test.tsx`, then `npm run lint` if available.
 - Secret redaction check: manual artifact scan
