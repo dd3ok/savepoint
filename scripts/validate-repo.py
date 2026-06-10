@@ -311,6 +311,8 @@ class Validator:
         has_secret_positive = False
         has_focus_positive = False
         has_short_file_positive = False
+        has_korean_load_positive = False
+        has_english_load_positive = False
         has_sql_negative = False
         negative_categories: set[str] = set()
         for index, query in enumerate(queries):
@@ -342,6 +344,10 @@ class Validator:
                     has_focus_positive = True
                 if isinstance(query_text, str) and category == "create" and "3000" in query_text:
                     has_short_file_positive = True
+                if category == "load" and query.get("language") == "ko":
+                    has_korean_load_positive = True
+                if category == "load" and query.get("language") == "en":
+                    has_english_load_positive = True
             elif should_trigger is False:
                 negatives += 1
                 if query.get("language") == "ko":
@@ -373,6 +379,10 @@ class Validator:
             self.fail("trigger evals should include next-session focus savepoint requests")
         if not has_short_file_positive:
             self.fail("trigger evals should include short generic savepoint requests that still default to file")
+        if not has_korean_load_positive:
+            self.fail("trigger evals should include Korean load-only savepoint requests")
+        if not has_english_load_positive:
+            self.fail("trigger evals should include English load-only savepoint requests")
         if not has_sql_negative:
             self.fail("trigger evals should include database/SQL SAVEPOINT negative queries")
 

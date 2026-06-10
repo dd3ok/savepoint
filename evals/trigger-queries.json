@@ -19,6 +19,14 @@
       "rationale": "Korean request to resume from a savepoint artifact."
     },
     {
+      "id": "trigger-ko-load-01",
+      "query": "세이브포인트 로드해줘.",
+      "should_trigger": true,
+      "language": "ko",
+      "category": "load",
+      "rationale": "Korean Load Savepoint request should verify and report state without continuing unless requested and safe."
+    },
+    {
       "id": "trigger-ko-text-01",
       "query": "복붙용 세이브포인트 만들어줘. 다음 세션은 PR 리뷰만 하면 돼. 3000자 이내로.",
       "should_trigger": true,
@@ -73,6 +81,14 @@
       "language": "en",
       "category": "inspect",
       "rationale": "Safety inspection of a savepoint."
+    },
+    {
+      "id": "trigger-en-load-01",
+      "query": "Load the savepoint.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "load",
+      "rationale": "Load-only request should inspect the savepoint and report before any continuation."
     },
     {
       "id": "trigger-en-long-context-01",

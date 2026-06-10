@@ -94,7 +94,7 @@ Read only enough files to verify recovery state. Prefer instruction files, relev
 
 ## Text Contract
 
-Use text output only when the user explicitly asks for copy-paste, text, no-file, clipboard, in-response, or similar transfer. It may summarize current conversation/work context, but it must not claim repo recovery.
+Use text output only when the user explicitly asks for copy-paste, text, no-file, in-response, or similar transfer. It may summarize current conversation/work context, but it must not claim repo recovery.
 
 Omit markers by default. If the user asks for machine-readable text output, set `SAVEPOINT_MODE: text`, `SAVEPOINT_PATH: not-written`, and `RESUME_READY: no`.
 
