@@ -65,22 +65,22 @@ def test_resolve_destinations() -> None:
         repo = base / "repo"
         require(
             installer.resolve_destination("codex", "user", repo_root=repo, home=home)
-            == home / ".agents" / "skills" / "new-session-handoff",
+            == home / ".agents" / "skills" / "savepoint",
             "codex user destination is wrong",
         )
         require(
             installer.resolve_destination("codex", "repo", repo_root=repo, home=home)
-            == repo / ".agents" / "skills" / "new-session-handoff",
+            == repo / ".agents" / "skills" / "savepoint",
             "codex repo destination is wrong",
         )
         require(
             installer.resolve_destination("claude", "user", repo_root=repo, home=home)
-            == home / ".claude" / "skills" / "new-session-handoff",
+            == home / ".claude" / "skills" / "savepoint",
             "claude user destination is wrong",
         )
         require(
             installer.resolve_destination("claude", "repo", repo_root=repo, home=home)
-            == repo / ".claude" / "skills" / "new-session-handoff",
+            == repo / ".claude" / "skills" / "savepoint",
             "claude repo destination is wrong",
         )
 
@@ -98,7 +98,7 @@ def test_dry_run_writes_nothing() -> None:
         repo = Path(tmp) / "repo"
         repo.mkdir()
         result = run_installer("--target", "codex", "--scope", "repo", "--repo-root", str(repo))
-        destination = repo / ".agents" / "skills" / "new-session-handoff"
+        destination = repo / ".agents" / "skills" / "savepoint"
         require(result.returncode == 0, result.stderr or result.stdout)
         require("Dry run: yes" in result.stdout, "dry run output missing")
         require("No files changed" in result.stdout, "dry run no-change message missing")
@@ -111,19 +111,19 @@ def test_apply_copies_skill() -> None:
         repo = Path(tmp) / "repo"
         repo.mkdir()
         result = run_installer("--target", "codex", "--scope", "repo", "--repo-root", str(repo), "--apply")
-        destination = repo / ".agents" / "skills" / "new-session-handoff"
+        destination = repo / ".agents" / "skills" / "savepoint"
         require(result.returncode == 0, result.stderr or result.stdout)
         require((destination / "SKILL.md").exists(), "SKILL.md was not copied")
-        require((destination / "references" / "handoff-template.md").exists(), "references were not copied")
-        require((destination / "scripts" / "validate_handoff.py").exists(), "scripts were not copied")
-        require((destination / "schemas" / "handoff-automation-v1.schema.json").exists(), "schemas were not copied")
+        require((destination / "references" / "savepoint-template.md").exists(), "references were not copied")
+        require((destination / "scripts" / "validate_savepoint.py").exists(), "scripts were not copied")
+        require((destination / "schemas" / "savepoint-v1.schema.json").exists(), "schemas were not copied")
         require(not list(destination.rglob("__pycache__")), "__pycache__ directories were copied")
 
 
 def test_existing_destination_refused() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp) / "repo"
-        destination = repo / ".agents" / "skills" / "new-session-handoff"
+        destination = repo / ".agents" / "skills" / "savepoint"
         destination.mkdir(parents=True)
         result = run_installer("--target", "codex", "--scope", "repo", "--repo-root", str(repo), "--apply")
         require(result.returncode != 0, "existing destination was not refused")
@@ -134,7 +134,7 @@ def test_broken_symlink_destination_refused() -> str | None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp) / "repo"
         missing_target = Path(tmp) / "missing-skill"
-        destination = repo / ".agents" / "skills" / "new-session-handoff"
+        destination = repo / ".agents" / "skills" / "savepoint"
         destination.parent.mkdir(parents=True)
         try:
             destination.symlink_to(missing_target, target_is_directory=True)
@@ -189,7 +189,7 @@ def test_gitignore_is_explicit_and_apply_only() -> None:
         )
         require(applied.returncode == 0, applied.stderr or applied.stdout)
         gitignore = (repo / ".gitignore").read_text(encoding="utf-8", newline="")
-        require(gitignore == f"{existing}.new-session-handoff/\r\n", ".gitignore content was not preserved")
+        require(gitignore == f"{existing}.savepoint/\r\n", ".gitignore content was not preserved")
 
         repeat = run_installer(
             "--target",
@@ -203,7 +203,7 @@ def test_gitignore_is_explicit_and_apply_only() -> None:
         )
         require(repeat.returncode == 0, repeat.stderr or repeat.stdout)
         gitignore = (repo / ".gitignore").read_text(encoding="utf-8", newline="")
-        require(gitignore.count(".new-session-handoff/") == 1, ".gitignore entry was duplicated")
+        require(gitignore.count(".savepoint/") == 1, ".gitignore entry was duplicated")
 
 
 def test_invalid_argument_combinations() -> None:

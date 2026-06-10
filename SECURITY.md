@@ -1,10 +1,10 @@
 # Security Policy
 
-This repository contains a handoff skill that summarizes local repository state. Handoff artifacts can accidentally capture sensitive data if agents copy raw logs or environment output.
+This repository contains a savepoint skill that summarizes local repository state. Savepoint artifacts can accidentally capture sensitive data if agents copy raw logs or environment output.
 
 ## Secret Redaction
 
-Do not write these values into generated handoff artifacts such as `HANDOFF.md` or focused detail artifacts:
+Do not write these values into generated savepoint artifacts such as `SAVEPOINT.md` or focused detail artifacts:
 
 - API keys, tokens, cookies, credentials, private keys, or passwords
 - full `.env` values or secret-bearing config
@@ -14,14 +14,14 @@ Do not write these values into generated handoff artifacts such as `HANDOFF.md` 
 
 Use `<REDACTED>` for secret values and record only the variable name or category when needed.
 
-## Safe Handoff Practice
+## Safe Savepoint Practice
 
 - Prefer concise command results over raw logs.
 - Prefer file paths, symbols, and short failure snippets over transcript dumps.
 - Do not read `.env*`, secret manager files, private keys, shell history, or credential stores unless explicitly requested and necessary.
-- Scan generated handoff artifacts by default, not the whole repository.
-- Set `SECRET_REDACTION_CHECKED: no` and `SAFE_FOR_NEW_SESSION: no` if redaction cannot be verified.
-- Do not publish generated handoff artifacts without reviewing them for secrets.
+- Scan generated savepoint artifacts by default, not the whole repository.
+- Set `REDACTION_CHECKED: no` and `RESUME_READY: no` if redaction cannot be verified.
+- Do not publish generated savepoint artifacts without reviewing them for secrets.
 
 ## Reporting
 

@@ -4,13 +4,13 @@ This repository contains session-continuity assets for coding agents such as Cod
 
 ## Structure
 
-- `skills/new-session-handoff/`: portable skill that creates handoff artifacts.
+- `skills/savepoint/`: portable skill that creates savepoint artifacts.
 - `orchestrators/`: External PTY-controller guidance for Hermes/OpenClaw style agents.
 - `examples/`: Minimal examples and prompt templates.
 
 ## Rules
 
-- Keep the skill focused on session handoff artifacts and safe continuation from `HANDOFF.md`.
+- Keep the skill focused on session savepoint artifacts and safe continuation from `SAVEPOINT.md`.
 - Keep `/status`, `/new`, PTY control, and context-threshold policy outside the skill.
 - Do not claim a skill can execute interactive slash commands.
 - Use exact command names, exact markers, and conservative safety checks.
@@ -18,7 +18,7 @@ This repository contains session-continuity assets for coding agents such as Cod
 
 ## Mandatory Skill Usage
 
-- Use `$new-session-handoff` when the user asks to create, update, inspect, or resume `.new-session-handoff/HANDOFF.md`, a new-session continuation prompt, or Korean equivalents such as `핸드오프 만들어줘` / `핸드오프 읽고 이어서 해줘`.
+- Use `$savepoint` when the user asks to create, update, inspect, or resume `.savepoint/SAVEPOINT.md`, a lightweight transfer note, or Korean equivalents such as `세이브포인트 만들어줘` / `세이브포인트 읽고 이어서 해줘`.
 - Do not use this skill for ordinary summaries, README writing, AGENTS.md authoring alone, code implementation, `/new`, `/status`, PTY control, or session-rotation policy.
 - When updating the skill contract, template, marker semantics, examples, or evals, run the validation commands below before committing.
 
@@ -33,6 +33,6 @@ python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
 python3 scripts/check-install-helper.py
-python3 scripts/validate_handoff.py examples/HANDOFF.filled.example.md examples/compact-bugfix/HANDOFF.md examples/expanded-architecture/HANDOFF.md examples/unsafe-handoff/HANDOFF.md
+python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/verified-bugfix/SAVEPOINT.md examples/verified-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
 git diff --check
 ```

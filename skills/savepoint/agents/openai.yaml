@@ -1,0 +1,4 @@
+interface:
+  display_name: "Savepoint"
+  short_description: "Create lightweight or verified coding-session savepoints"
+  default_prompt: "Use $savepoint to create, inspect, or resume lightweight/verified coding-session state. For verified recovery, write .savepoint/SAVEPOINT.md with Git/disk state, validation status, risks, and one narrow next action."

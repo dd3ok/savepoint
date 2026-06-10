@@ -2,12 +2,12 @@
 
 ## Scenario
 
-The agent runtime loads `skills/new-session-handoff/SKILL.md` and parses the YAML frontmatter before reading the body.
+The agent runtime loads `skills/savepoint/SKILL.md` and parses the YAML frontmatter before reading the body.
 
 ## Expected
 
 - Frontmatter parses as valid YAML.
-- `name` is `new-session-handoff`.
+- `name` is `savepoint`.
 - `description` is a single string.
 - Colons inside the description, such as `Triggers:`, are quoted or otherwise YAML-safe.
 

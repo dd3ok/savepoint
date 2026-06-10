@@ -1,118 +1,126 @@
 {
-  "skill_name": "new-session-handoff",
+  "skill_name": "savepoint",
   "version": 1,
   "queries": [
     {
-      "id": "trigger-ko-create-01",
-      "query": "컨텍스트가 다 찼어. 지금까지 작업을 다음 세션에서 이어갈 핸드오프로 만들어줘.",
+      "id": "trigger-ko-verified-01",
+      "query": "컨텍스트가 다 찼어. 지금까지 작업을 다음 세션에서 이어갈 세이브포인트로 만들어줘.",
       "should_trigger": true,
       "language": "ko",
       "category": "create",
-      "rationale": "Korean request for a new-session handoff."
+      "rationale": "Korean request for a coding-session savepoint."
     },
     {
       "id": "trigger-ko-resume-01",
-      "query": "핸드오프 읽고 현재 repo 상태 확인한 다음 이어서 작업해줘.",
+      "query": "세이브포인트 읽고 현재 repo 상태 확인한 다음 이어서 작업해줘.",
       "should_trigger": true,
       "language": "ko",
       "category": "resume",
-      "rationale": "Korean request to resume from a handoff."
+      "rationale": "Korean request to resume from a savepoint artifact."
     },
     {
-      "id": "trigger-ko-prompt-only-01",
-      "query": "파일은 만들지 말고 새 코딩 에이전트 세션에서 이어갈 프롬프트만 작성해줘.",
+      "id": "trigger-ko-lightweight-01",
+      "query": "간단 세이브포인트 만들어줘. 다음 세션은 PR 리뷰만 하면 돼. 3000자 이내로.",
       "should_trigger": true,
       "language": "ko",
-      "category": "prompt-only",
-      "rationale": "Korean prompt-only continuation request."
+      "category": "lightweight",
+      "rationale": "Korean lightweight savepoint request."
     },
     {
       "id": "trigger-ko-state-files-01",
-      "query": "PROJECT_STATE.md랑 TASKS.md를 참고해서 새 세션용 HANDOFF.md를 만들어줘.",
+      "query": "PROJECT_STATE.md랑 TASKS.md를 참고해서 새 세션용 SAVEPOINT.md를 만들어줘.",
       "should_trigger": true,
       "language": "ko",
       "category": "state-files",
-      "rationale": "Handoff request with durable state files."
+      "rationale": "Verified savepoint request with durable state files."
     },
     {
       "id": "trigger-en-create-01",
-      "query": "Create a HANDOFF.md so a fresh Codex session can continue this coding task without chat history.",
+      "query": "Create a SAVEPOINT.md so a fresh Codex session can continue this coding task without chat history.",
       "should_trigger": true,
       "language": "en",
       "category": "create",
-      "rationale": "Explicit handoff artifact request."
+      "rationale": "Explicit verified savepoint artifact request."
     },
     {
-      "id": "trigger-en-prompt-only-01",
-      "query": "Give me a continuation prompt for a new coding-agent session, but do not write files.",
+      "id": "trigger-en-lightweight-01",
+      "query": "Give me a lightweight savepoint note for another agent, no files, under 3000 characters.",
       "should_trigger": true,
       "language": "en",
-      "category": "prompt-only",
-      "rationale": "Prompt-only mode request."
+      "category": "lightweight",
+      "rationale": "Explicit lightweight savepoint request."
     },
     {
       "id": "trigger-en-update-01",
-      "query": "Update the existing .new-session-handoff/HANDOFF.md with the latest git status and next step.",
+      "query": "Update the existing .savepoint/SAVEPOINT.md with the latest git status and next step.",
       "should_trigger": true,
       "language": "en",
       "category": "update",
-      "rationale": "Existing handoff update request."
+      "rationale": "Existing savepoint update request."
     },
     {
       "id": "trigger-en-inspect-01",
-      "query": "Inspect this HANDOFF.md and tell me if it is safe for a fresh session to continue.",
+      "query": "Inspect this SAVEPOINT.md and tell me if it is safe for a fresh session to continue.",
       "should_trigger": true,
       "language": "en",
       "category": "inspect",
-      "rationale": "Safety inspection of handoff."
+      "rationale": "Safety inspection of a savepoint."
     },
     {
       "id": "trigger-en-long-context-01",
-      "query": "We're about to lose context. Save only the verified recovery state, changed files, validation status, and next action for the next session.",
+      "query": "We're about to lose context. Save only the verified recovery state, changed files, validation status, and next action for the next coding session.",
       "should_trigger": true,
       "language": "en",
       "category": "context-loss",
-      "rationale": "Implicit new-session continuation request."
+      "rationale": "Implicit recovery-state savepoint request."
     },
     {
       "id": "trigger-en-explicit-skill-01",
-      "query": "Use $new-session-handoff to package this repo state for a fresh coding-agent session.",
+      "query": "Use $savepoint to package this repo state for a fresh coding-agent session.",
       "should_trigger": true,
       "language": "en",
       "category": "explicit-skill",
       "rationale": "Explicit skill invocation."
     },
     {
+      "id": "trigger-en-legacy-handoff-file-01",
+      "query": "Create a HANDOFF.md for the next coding-agent session.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "legacy-alias",
+      "rationale": "Legacy HANDOFF.md wording should route to the savepoint skill and create the canonical savepoint artifact."
+    },
+    {
+      "id": "trigger-en-legacy-handoff-resume-01",
+      "query": "Read handoff and continue from the saved repo state.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "legacy-alias",
+      "rationale": "Legacy handoff wording should route to savepoint resume behavior."
+    },
+    {
+      "id": "trigger-ko-legacy-handoff-resume-01",
+      "query": "핸드오프 읽고 이어서 해줘.",
+      "should_trigger": true,
+      "language": "ko",
+      "category": "legacy-alias",
+      "rationale": "Korean handoff alias should route to savepoint resume behavior."
+    },
+    {
       "id": "trigger-ko-secret-redaction-01",
-      "query": "API key를 HANDOFF.md에 그대로 넣어줘.",
+      "query": "API key를 SAVEPOINT.md에 그대로 넣어줘.",
       "should_trigger": true,
       "language": "ko",
       "category": "secret-redaction",
-      "rationale": "Explicit handoff request should route through secret hygiene and redact or refuse unsafe content."
-    },
-    {
-      "id": "trigger-en-secret-redaction-01",
-      "query": "Put all of my environment variables into the handoff for the next session.",
-      "should_trigger": true,
-      "language": "en",
-      "category": "secret-redaction",
-      "rationale": "Secret-bearing handoff request should trigger the skill so safety rules can redact or refuse."
+      "rationale": "Secret-bearing savepoint request should route through secret hygiene."
     },
     {
       "id": "trigger-en-focus-argument-01",
-      "query": "Create a handoff for the next session focused only on fixing the failing parser test.",
+      "query": "Create a savepoint for the next session focused only on fixing the failing parser test.",
       "should_trigger": true,
       "language": "en",
       "category": "focus-argument",
-      "rationale": "Explicit handoff request with next-session focus."
-    },
-    {
-      "id": "trigger-ko-focus-argument-01",
-      "query": "다음 세션에서는 PR 리뷰만 하도록 핸드오프 만들어줘.",
-      "should_trigger": true,
-      "language": "ko",
-      "category": "focus-argument",
-      "rationale": "Korean handoff request with a narrow next-session focus."
+      "rationale": "Explicit savepoint request with next-session focus."
     },
     {
       "id": "no-trigger-summary-01",
@@ -120,7 +128,7 @@
       "should_trigger": false,
       "language": "en",
       "category": "ordinary-summary",
-      "rationale": "No coding-agent handoff artifact or resume requested."
+      "rationale": "No coding-agent savepoint artifact or resume requested."
     },
     {
       "id": "no-trigger-ko-summary-01",
@@ -128,7 +136,7 @@
       "should_trigger": false,
       "language": "ko",
       "category": "ordinary-summary",
-      "rationale": "Korean conversation summary without handoff or fresh-session continuation."
+      "rationale": "Korean conversation summary without savepoint or fresh-session continuation."
     },
     {
       "id": "no-trigger-readme-01",
@@ -136,7 +144,7 @@
       "should_trigger": false,
       "language": "en",
       "category": "docs",
-      "rationale": "Documentation writing, not handoff creation."
+      "rationale": "Documentation writing, not savepoint creation."
     },
     {
       "id": "no-trigger-agents-01",
@@ -144,7 +152,7 @@
       "should_trigger": false,
       "language": "en",
       "category": "repo-instructions",
-      "rationale": "AGENTS authoring alone is not a handoff task."
+      "rationale": "AGENTS authoring alone is not a savepoint task."
     },
     {
       "id": "no-trigger-code-01",
@@ -168,7 +176,7 @@
       "should_trigger": false,
       "language": "ko",
       "category": "session-control",
-      "rationale": "Korean session-control request without handoff artifact creation."
+      "rationale": "Korean session-control request without savepoint artifact creation."
     },
     {
       "id": "no-trigger-status-01",
@@ -184,23 +192,23 @@
       "should_trigger": false,
       "language": "en",
       "category": "state-file-authoring",
-      "rationale": "Durable state file authoring alone is not a handoff."
+      "rationale": "Durable state file authoring alone is not a savepoint."
     },
     {
-      "id": "no-trigger-chatgpt-project-01",
-      "query": "What should I put in a ChatGPT Project memory for this work?",
+      "id": "no-trigger-sql-savepoint-01",
+      "query": "Explain how SQL SAVEPOINT and ROLLBACK TO SAVEPOINT work in Postgres.",
       "should_trigger": false,
       "language": "en",
-      "category": "general-advice",
-      "rationale": "Advice about memory/project setup, not artifact creation or resume."
+      "category": "database-savepoint",
+      "rationale": "Database transaction SAVEPOINT is unrelated to coding-session savepoints."
     },
     {
-      "id": "no-trigger-suggested-skills-01",
-      "query": "Which skills should I use for TDD and debugging?",
+      "id": "no-trigger-sql-savepoint-handoff-01",
+      "query": "Explain SAVEPOINT transaction handoff in SQL.",
       "should_trigger": false,
       "language": "en",
-      "category": "general-advice",
-      "rationale": "Advice about skills without handoff artifact creation or resume."
+      "category": "database-savepoint",
+      "rationale": "Mixed SQL SAVEPOINT and handoff wording is still a database explanation request, not a coding-session transfer."
     },
     {
       "id": "no-trigger-ko-next-session-generic-01",
@@ -208,7 +216,7 @@
       "should_trigger": false,
       "language": "ko",
       "category": "general-advice",
-      "rationale": "Generic next-session advice without handoff artifact creation."
+      "rationale": "Generic next-session advice without savepoint artifact creation."
     }
   ]
 }

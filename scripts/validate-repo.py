@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the handoff skill repository contract."""
+"""Validate the savepoint skill repository contract."""
 
 from __future__ import annotations
 
@@ -7,16 +7,17 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL_DIR = ROOT / "skills" / "new-session-handoff"
+SKILL_DIR = ROOT / "skills" / "savepoint"
 SKILL_SCRIPTS = SKILL_DIR / "scripts"
 sys.path.insert(0, str(SKILL_SCRIPTS))
 
-from handoff_contract import (  # noqa: E402
+from savepoint_contract import (  # noqa: E402
     MARKER_BLOCK_END,
     MARKER_BLOCK_START,
     marker_allowed_values,
@@ -24,55 +25,98 @@ from handoff_contract import (  # noqa: E402
     marker_template_lines,
     validate_marker_semantics,
 )
+from validate_savepoint import scan_secret_patterns  # noqa: E402
 
 EXPECTED_MARKER_LINES = [
-    "HANDOFF_AUTOMATION_V1",
-    "HANDOFF_READY: <absolute path or not-written>",
-    "HANDOFF_SCHEMA_VERSION: 1",
-    "HANDOFF_MODE: compact|expanded|prompt-only",
-    "DETAIL_ARTIFACTS_READY: yes|no|not-needed",
-    "NEW_SESSION_PROMPT_READY: yes|no",
-    "DISK_STATE_RECORDED: yes|no",
+    "SAVEPOINT_V1",
+    "SAVEPOINT_PATH: <absolute path or not-written>",
+    "SAVEPOINT_MODE: lightweight|verified",
+    "DETAILS_READY: yes|no|not-needed",
+    "PROMPT_READY: yes|no",
+    "DISK_RECORDED: yes|no",
     "VALIDATION_RECORDED: yes|no",
-    "SECRET_REDACTION_CHECKED: yes|no",
-    "SAFE_FOR_NEW_SESSION: yes|no",
+    "REDACTION_CHECKED: yes|no",
+    "RESUME_READY: yes|no",
     "BLOCKERS: none|<short reason>",
-    "END_HANDOFF_AUTOMATION_V1",
+    "END_SAVEPOINT_V1",
 ]
-HANDOFF_FILES = [
-    SKILL_DIR / "references" / "handoff-template.md",
-    ROOT / "examples" / "HANDOFF.filled.example.md",
-    ROOT / "examples" / "compact-bugfix" / "HANDOFF.md",
-    ROOT / "examples" / "expanded-architecture" / "HANDOFF.md",
-    ROOT / "examples" / "unsafe-handoff" / "HANDOFF.md",
+SAVEPOINT_FILES = [
+    SKILL_DIR / "references" / "savepoint-template.md",
+    ROOT / "examples" / "SAVEPOINT.filled.example.md",
+    ROOT / "examples" / "verified-bugfix" / "SAVEPOINT.md",
+    ROOT / "examples" / "verified-architecture" / "SAVEPOINT.md",
+    ROOT / "examples" / "unsafe-savepoint" / "SAVEPOINT.md",
 ]
-PROMPT_ONLY_EXAMPLE = ROOT / "examples" / "prompt-only" / "RESPONSE.md"
+LIGHTWEIGHT_EXAMPLE = ROOT / "examples" / "lightweight-note" / "RESPONSE.md"
 CANONICAL_REFERENCES = [
     "context-packaging.md",
-    "handoff-contract.md",
-    "handoff-template.md",
+    "savepoint-contract.md",
+    "savepoint-template.md",
 ]
 MARKER_ENUMS = {
-    "HANDOFF_SCHEMA_VERSION": {"1"},
-    "HANDOFF_MODE": {"compact", "expanded", "prompt-only"},
-    "DETAIL_ARTIFACTS_READY": {"yes", "no", "not-needed"},
-    "NEW_SESSION_PROMPT_READY": {"yes", "no"},
-    "DISK_STATE_RECORDED": {"yes", "no"},
+    "SAVEPOINT_MODE": {"lightweight", "verified"},
+    "DETAILS_READY": {"yes", "no", "not-needed"},
+    "PROMPT_READY": {"yes", "no"},
+    "DISK_RECORDED": {"yes", "no"},
     "VALIDATION_RECORDED": {"yes", "no"},
-    "SECRET_REDACTION_CHECKED": {"yes", "no"},
-    "SAFE_FOR_NEW_SESSION": {"yes", "no"},
+    "REDACTION_CHECKED": {"yes", "no"},
+    "RESUME_READY": {"yes", "no"},
 }
 TRUST_ORDER_LINES = [
     "1. Current explicit user instruction in this session.",
     "2. Current working tree and Git state.",
     "3. Repository instruction files and durable state files such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `PROJECT_STATE.md`, `TASKS.md`, `DECISIONS.md`, `PLAN.md`, and `PLANS.md`.",
-    "4. `HANDOFF.md`.",
-    "5. Focused detail artifacts referenced by `HANDOFF.md`.",
+    "4. `SAVEPOINT.md`.",
+    "5. Focused detail artifacts referenced by `SAVEPOINT.md`.",
     "6. Prior chat history only if explicitly provided by the user.",
 ]
 KOREAN_INVOCATION_PHRASES = [
+    "세이브포인트 만들어줘",
+    "세이브포인트 읽고 이어서 해줘",
     "핸드오프 만들어줘",
-    "핸드오프 읽고 이어서 해줘",
+]
+ALIAS_INVOCATION_PHRASES = [
+    "handoff",
+    "HANDOFF.md",
+]
+SKILL_LINK_TARGETS = {
+    ROOT / ".agents" / "skills" / "savepoint": "../../skills/savepoint",
+    ROOT / ".claude" / "skills" / "savepoint": "../../skills/savepoint",
+}
+LEGACY_SKILL_LINKS = [
+    ROOT / ".agents" / "skills" / "new-session-handoff",
+    ROOT / ".claude" / "skills" / "new-session-handoff",
+]
+LEGACY_SCAN_ROOTS = [
+    ROOT / ".github",
+    ROOT / ".agents",
+    ROOT / ".claude",
+    ROOT / "AGENTS.md",
+    ROOT / "CHANGELOG.md",
+    ROOT / "README.md",
+    ROOT / "SECURITY.md",
+    ROOT / "evals",
+    ROOT / "examples",
+    ROOT / "orchestrators",
+    ROOT / "scripts",
+    SKILL_DIR,
+]
+LEGACY_FORBIDDEN_PATTERNS = [
+    r"new-session-handoff",
+    r"\.new-session-handoff",
+    r"HANDOFF_AUTOMATION",
+    r"END_HANDOFF_AUTOMATION",
+    r"HANDOFF_READY",
+    r"HANDOFF_MODE",
+    r"HANDOFF_SCHEMA_VERSION",
+    r"NEW_SESSION_PROMPT_READY",
+    r"SAFE_FOR_NEW_SESSION",
+    r"SAVEPOINT_AUTOMATION",
+    r"SAVEPOINT_SCHEMA_VERSION",
+    r"prompt-only",
+    r"compact\|expanded\|prompt-only",
+    r"compact mode",
+    r"expanded mode",
 ]
 
 
@@ -104,9 +148,8 @@ class Validator:
             self.fail("SKILL.md frontmatter closing delimiter is missing")
             return
 
-        frontmatter = lines[1:end]
         data: dict[str, str] = {}
-        for line in frontmatter:
+        for line in lines[1:end]:
             if ":" not in line:
                 self.fail(f"invalid frontmatter line: {line}")
                 continue
@@ -126,108 +169,109 @@ class Validator:
         if len(description) > 1024:
             self.fail("frontmatter description exceeds 1024 characters")
         lower_description = description.lower()
-        if "explicit" not in lower_description:
-            self.fail("frontmatter description must limit use to explicit user requests")
-        if "/new" not in lower_description or "pty" not in lower_description:
-            self.fail("frontmatter description must state the session-control boundary")
+        for term in ["explicit", "sql", "/new", "pty"]:
+            if term not in lower_description:
+                self.fail(f"frontmatter description must include boundary term: {term}")
         for phrase in KOREAN_INVOCATION_PHRASES:
             if phrase not in description:
                 self.fail(f"frontmatter description must include Korean invocation phrase: {phrase}")
+        for phrase in ALIAS_INVOCATION_PHRASES:
+            if phrase not in description:
+                self.fail(f"frontmatter description must include alias invocation phrase: {phrase}")
         body = "\n".join(lines[end + 1 :])
-        if not body.strip().startswith("# New Session Handoff"):
-            self.fail("SKILL.md body should start with '# New Session Handoff'")
+        if not body.strip().startswith("# Savepoint"):
+            self.fail("SKILL.md body should start with '# Savepoint'")
 
     def validate_references(self) -> None:
         skill_text = self.read(SKILL_DIR / "SKILL.md")
         for ref in sorted(set(re.findall(r"`(references/[^`]+)`", skill_text))):
-            if "*" in ref:
-                continue
             self.require_exists(SKILL_DIR / ref)
         for name in CANONICAL_REFERENCES:
             self.require_exists(SKILL_DIR / "references" / name)
-        self.require_exists(SKILL_DIR / "schemas" / "handoff-automation-v1.schema.json")
-        openai_yaml = self.read(SKILL_DIR / "agents" / "openai.yaml")
-        if "allow_implicit_invocation" in openai_yaml:
-            self.fail("agents/openai.yaml must not use unvalidated allow_implicit_invocation policy")
+        self.require_exists(SKILL_DIR / "schemas" / "savepoint-v1.schema.json")
+
         required_skill_phrases = [
-            ".new-session-handoff/HANDOFF.md",
-            "Embed the resume prompt inside `HANDOFF.md`",
-            "verified recovery manifest",
-            "Optional Focus",
-            "Size Budget",
-            "Suggested Skills / Next Agent Behaviors",
-            "delete only untracked generated handoff artifacts",
-            "Durable state files are not generated detail artifacts",
-            "A handoff is adopted only after",
+            "Lightweight note",
+            "Verified savepoint",
+            ".savepoint/SAVEPOINT.md",
+            "SAVEPOINT_V1",
+            "RESUME_READY: yes",
             "For inspect-only requests, do not clean up by default.",
         ]
         for phrase in required_skill_phrases:
             if phrase not in skill_text:
-                self.fail(f"SKILL.md missing lightweight default policy: {phrase}")
+                self.fail(f"SKILL.md missing required policy: {phrase}")
 
-        contract_text = self.read(SKILL_DIR / "references" / "handoff-contract.md")
-        required_contract_phrases = [
-            ".new-session-handoff/HANDOFF.md",
-            "Next-session focus",
-            "Suggested Skills / Next Agent Behaviors",
-            "150 lines or 6000 characters",
-            "NEW_SESSION_PROMPT_READY",
-            "embedded",
-            "legacy `HANDOFF.md`",
+        contract_text = self.read(SKILL_DIR / "references" / "savepoint-contract.md")
+        for phrase in [
+            ".savepoint/SAVEPOINT.md",
+            "SAVEPOINT_MODE: lightweight|verified",
+            "Detail Spillover",
             "Do not delete tracked files",
-            "relevant durable state files",
             "Durable state files are not generated detail artifacts",
             "cleanup happens only after adoption",
-            "Cleanup scope is limited to the selected generated handoff",
-        ]
-        for phrase in required_contract_phrases:
-            if phrase not in contract_text:
-                self.fail(f"handoff-contract.md missing lightweight policy: {phrase}")
-
-        template_text = self.read(SKILL_DIR / "references" / "handoff-template.md")
-        if "## Resume Prompt" not in template_text:
-            self.fail("handoff-template.md must embed a Resume Prompt section")
-        if "- Next-session focus:" not in template_text:
-            self.fail("handoff-template.md missing next-session focus field")
-        if "## Suggested Skills / Next Agent Behaviors" not in template_text:
-            self.fail("handoff-template.md missing suggested next-agent behavior section")
-        if "150 lines / 6000 characters" not in template_text:
-            self.fail("handoff-template.md missing compact budget guidance")
-        if "## Fresh Session Prompt" in template_text:
-            self.fail("handoff-template.md should use Resume Prompt, not Fresh Session Prompt")
-        cleanup_eval_text = self.read(ROOT / "evals" / "cases" / "resume-cleanup.md")
-        for phrase in [
-            "only after adoption",
-            "inspect-only",
-            "external-path",
-            "Reports removed paths, kept paths, and reasons.",
+            "`git diff --cached --name-status`",
+            "SAVEPOINT_V1",
         ]:
-            if phrase not in cleanup_eval_text:
-                self.fail(f"evals/cases/resume-cleanup.md missing cleanup policy phrase: {phrase}")
+            if phrase not in contract_text:
+                self.fail(f"savepoint-contract.md missing policy phrase: {phrase}")
+
+        template_text = self.read(SKILL_DIR / "references" / "savepoint-template.md")
+        for phrase in [
+            "## Resume Prompt",
+            "- Next-session focus:",
+            "120 lines / 5000 characters",
+            "SAVEPOINT_MODE: lightweight|verified",
+            "- `git diff --cached --name-status`:",
+        ]:
+            if phrase not in template_text:
+                self.fail(f"savepoint-template.md missing phrase: {phrase}")
 
     def validate_readme_format(self) -> None:
         readme_text = self.read(ROOT / "README.md")
-        lines = readme_text.splitlines()
-        first_line = lines[0] if lines else ""
-        stripped_readme = readme_text.strip()
-        if stripped_readme.startswith('"""') or stripped_readme.endswith('"""'):
+        if readme_text.strip().startswith('"""') or readme_text.strip().endswith('"""'):
             self.fail("README.md must not be wrapped in triple quotes")
-        if first_line != "# New Session Handoff Skill":
-            self.fail("README.md must start with '# New Session Handoff Skill'")
+        if not readme_text.startswith("# Savepoint Skill"):
+            self.fail("README.md must start with '# Savepoint Skill'")
         for phrase in [
-            "This skill is not a generic conversation summarizer. It is a compact, verified recovery manifest for coding-agent session transfer.",
-            "skills/new-session-handoff/references/context-packaging.md",
+            "skills/savepoint/references/context-packaging.md",
+            "Lightweight",
+            "Verified",
             "evals/trigger-queries.json",
-            "evals/cases/context-state-bridge.md",
-            "evals/cases/trigger-boundaries.md",
         ]:
             if phrase not in readme_text:
-                self.fail(f"README.md missing repository map entry: {phrase}")
+                self.fail(f"README.md missing entry: {phrase}")
+
+    def validate_agent_metadata(self) -> None:
+        path = SKILL_DIR / "agents" / "openai.yaml"
+        text = self.read(path)
+        for phrase in [
+            'display_name: "Savepoint"',
+            "short_description:",
+            "default_prompt:",
+        ]:
+            if phrase not in text:
+                self.fail(f"agents/openai.yaml missing phrase: {phrase}")
+        match = re.search(r'(?m)^\s*default_prompt:\s*"([^"]+)"\s*$', text)
+        if not match:
+            self.fail("agents/openai.yaml default_prompt must be a quoted single-line string")
+            return
+        prompt = match.group(1)
+        for phrase in [
+            "$savepoint",
+            "create",
+            "inspect",
+            "resume",
+            "lightweight",
+            "verified",
+            ".savepoint/SAVEPOINT.md",
+        ]:
+            if phrase not in prompt:
+                self.fail(f"agents/openai.yaml default_prompt missing phrase: {phrase}")
 
     def validate_trigger_evals(self) -> None:
         path = ROOT / "evals" / "trigger-queries.json"
         self.require_exists(path)
-
         if not path.exists():
             return
         try:
@@ -237,8 +281,8 @@ class Validator:
             return
 
         queries = data.get("queries", [])
-        if data.get("skill_name") != "new-session-handoff":
-            self.fail("evals/trigger-queries.json skill_name must be new-session-handoff")
+        if data.get("skill_name") != "savepoint":
+            self.fail("evals/trigger-queries.json skill_name must be savepoint")
         if data.get("version") != 1:
             self.fail("evals/trigger-queries.json version must be 1")
         if not isinstance(queries, list):
@@ -249,14 +293,17 @@ class Validator:
 
         required_fields = {"id", "query", "should_trigger", "language", "category", "rationale"}
         seen_ids: set[str] = set()
-        positives = 0
-        negatives = 0
-        has_korean_handoff_positive = False
+        positives = negatives = 0
+        has_korean_positive = False
         has_korean_negative = False
-        has_secret_redaction_positive = False
-        has_focus_argument_positive = False
-        has_suggested_skills_negative = False
-        present_negative_categories: set[str] = set()
+        has_secret_positive = False
+        has_focus_positive = False
+        has_legacy_alias_positive = False
+        has_legacy_handoff_word = False
+        has_legacy_handoff_file = False
+        has_korean_handoff_alias = False
+        has_sql_negative = False
+        negative_categories: set[str] = set()
         for index, query in enumerate(queries):
             if not isinstance(query, dict):
                 self.fail(f"trigger eval query #{index} must be an object")
@@ -264,40 +311,44 @@ class Validator:
             missing = required_fields - set(query)
             if missing:
                 self.fail(f"trigger eval query #{index} missing fields: {sorted(missing)}")
-
             query_id = query.get("id")
+            query_text = query.get("query")
+            category = query.get("category")
             if not isinstance(query_id, str) or not query_id.strip():
                 self.fail(f"trigger eval query #{index} has invalid id")
             elif query_id in seen_ids:
                 self.fail(f"evals/trigger-queries.json contains duplicate id: {query_id}")
             else:
                 seen_ids.add(query_id)
-
-            query_text = query.get("query")
             if not isinstance(query_text, str) or not query_text.strip():
                 self.fail(f"trigger eval query #{index} has empty query")
-
             should_trigger = query.get("should_trigger")
-            category = query.get("category")
             if should_trigger is True:
                 positives += 1
-                if isinstance(query_text, str) and "핸드오프" in query_text:
-                    has_korean_handoff_positive = True
+                if isinstance(query_text, str) and "세이브포인트" in query_text:
+                    has_korean_positive = True
                 if category == "secret-redaction":
-                    has_secret_redaction_positive = True
+                    has_secret_positive = True
                 if category == "focus-argument":
-                    has_focus_argument_positive = True
+                    has_focus_positive = True
+                if category == "legacy-alias":
+                    has_legacy_alias_positive = True
+                    if isinstance(query_text, str) and "handoff" in query_text.lower():
+                        has_legacy_handoff_word = True
+                    if isinstance(query_text, str) and "HANDOFF.md" in query_text:
+                        has_legacy_handoff_file = True
+                    if isinstance(query_text, str) and "핸드오프" in query_text:
+                        has_korean_handoff_alias = True
             elif should_trigger is False:
                 negatives += 1
                 if query.get("language") == "ko":
                     has_korean_negative = True
                 if isinstance(category, str):
-                    present_negative_categories.add(category)
-                if query_id == "no-trigger-suggested-skills-01":
-                    has_suggested_skills_negative = True
+                    negative_categories.add(category)
+                    if category == "database-savepoint":
+                        has_sql_negative = True
             else:
                 self.fail(f"trigger eval query #{index} should_trigger must be boolean")
-
             if query.get("language") not in {"en", "ko"}:
                 self.fail(f"trigger eval query #{index} language must be en or ko")
             if not isinstance(category, str) or not category.strip():
@@ -309,31 +360,37 @@ class Validator:
             self.fail("trigger evals should include at least 8 should_trigger=true queries")
         if negatives < 8:
             self.fail("trigger evals should include at least 8 should_trigger=false queries")
-        if not has_korean_handoff_positive:
-            self.fail("trigger evals should include Korean handoff trigger queries")
+        if not has_korean_positive:
+            self.fail("trigger evals should include Korean savepoint trigger queries")
         if not has_korean_negative:
             self.fail("trigger evals should include Korean near-miss negative queries")
-        if not has_secret_redaction_positive:
-            self.fail("trigger evals should include secret-bearing handoff requests as should_trigger=true")
-        if not has_focus_argument_positive:
-            self.fail("trigger evals should include next-session focus handoff requests as should_trigger=true")
-        if not has_suggested_skills_negative:
-            self.fail("trigger evals should include suggested-skill advice as should_trigger=false")
+        if not has_secret_positive:
+            self.fail("trigger evals should include secret-bearing savepoint requests")
+        if not has_focus_positive:
+            self.fail("trigger evals should include next-session focus savepoint requests")
+        if not has_legacy_alias_positive:
+            self.fail("trigger evals should include legacy handoff alias requests")
+        if not has_legacy_handoff_word:
+            self.fail("trigger evals should include a handoff alias query")
+        if not has_legacy_handoff_file:
+            self.fail("trigger evals should include a HANDOFF.md alias query")
+        if not has_korean_handoff_alias:
+            self.fail("trigger evals should include a Korean 핸드오프 alias query")
+        if not has_sql_negative:
+            self.fail("trigger evals should include database/SQL SAVEPOINT negative queries")
 
-        near_miss_categories = {
+        required_negative_categories = {
             "ordinary-summary",
             "repo-instructions",
             "implementation",
             "session-control",
             "status-command",
             "state-file-authoring",
+            "database-savepoint",
         }
-        missing_near_misses = near_miss_categories - present_negative_categories
-        if missing_near_misses:
-            self.fail(f"trigger evals missing near-miss negative categories: {sorted(missing_near_misses)}")
-
-        for case_name in ["context-state-bridge.md", "trigger-boundaries.md"]:
-            self.require_exists(ROOT / "evals" / "cases" / case_name)
+        missing = required_negative_categories - negative_categories
+        if missing:
+            self.fail(f"trigger evals missing near-miss negative categories: {sorted(missing)}")
 
     def validate_schema_contract(self) -> None:
         expected_names = [line.split(":", 1)[0] for line in EXPECTED_MARKER_LINES[1:-1]]
@@ -343,36 +400,24 @@ class Validator:
             self.fail("schema-derived marker template lines must match repository marker block")
         if marker_allowed_values() != MARKER_ENUMS:
             self.fail("schema enum/const marker values must match validator constants")
-        valid_blocked_expanded = {
-            "HANDOFF_MODE": "expanded",
-            "DETAIL_ARTIFACTS_READY": "no",
-            "SAFE_FOR_NEW_SESSION": "no",
-        }
-        invalid_blocked_compact = {
-            "HANDOFF_MODE": "compact",
-            "DETAIL_ARTIFACTS_READY": "yes",
-            "SAFE_FOR_NEW_SESSION": "no",
-        }
-        if validate_marker_semantics(valid_blocked_expanded):
-            self.fail("expanded handoffs may be unsafe while detail artifacts are not ready")
-        if not validate_marker_semantics(invalid_blocked_compact):
-            self.fail("compact handoffs must use DETAIL_ARTIFACTS_READY=not-needed even when unsafe")
+        if not validate_marker_semantics({"SAVEPOINT_MODE": "lightweight", "SAVEPOINT_PATH": "not-written", "DETAILS_READY": "not-needed", "RESUME_READY": "yes"}):
+            self.fail("lightweight savepoints must not be RESUME_READY=yes")
+        if validate_marker_semantics({"SAVEPOINT_MODE": "verified", "SAVEPOINT_PATH": "/tmp/SAVEPOINT.md", "DETAILS_READY": "no", "RESUME_READY": "no"}):
+            self.fail("unsafe verified savepoints may have pending detail artifacts")
 
     def extract_marker_block(self, text: str, path: Path) -> list[str] | None:
         pattern = re.compile(
-            rf"```text\n({MARKER_BLOCK_START}\n.*?{MARKER_BLOCK_END})\n```",
+            rf"```text\r?\n({MARKER_BLOCK_START}\r?\n.*?{MARKER_BLOCK_END})\r?\n```",
             re.DOTALL,
         )
         blocks = pattern.findall(text)
         if len(blocks) != 1:
-            self.fail(
-                f"{path.relative_to(ROOT)} must contain exactly one automation marker block, found {len(blocks)}"
-            )
+            self.fail(f"{path.relative_to(ROOT)} must contain exactly one marker block, found {len(blocks)}")
             return None
         return blocks[0].splitlines()
 
     def validate_marker_blocks(self) -> None:
-        for path in HANDOFF_FILES:
+        for path in SAVEPOINT_FILES:
             text = self.read(path)
             block = self.extract_marker_block(text, path)
             if block is None:
@@ -383,11 +428,10 @@ class Validator:
                 self.fail(f"{path.relative_to(ROOT)} marker block does not match expected field order")
             self.validate_marker_values(path, block)
 
-        path = SKILL_DIR / "references" / "handoff-contract.md"
-        text = self.read(path)
+        contract_text = self.read(SKILL_DIR / "references" / "savepoint-contract.md")
         for marker in marker_field_order():
-            if marker not in text:
-                self.fail(f"{path.relative_to(ROOT)} missing marker name {marker}")
+            if marker not in contract_text:
+                self.fail(f"savepoint-contract.md missing marker name {marker}")
 
     def validate_marker_values(self, path: Path, block: list[str]) -> None:
         values: dict[str, str] = {}
@@ -397,7 +441,7 @@ class Validator:
             key, value = line.split(":", 1)
             values[key] = value.strip()
         if any("<" in value or "|" in value for value in values.values()):
-            if "references/handoff-template.md" not in path.as_posix():
+            if "savepoint-template.md" not in path.as_posix():
                 self.fail(f"{path.relative_to(ROOT)} marker block contains placeholder values")
             return
         for key, allowed in MARKER_ENUMS.items():
@@ -407,7 +451,7 @@ class Validator:
         for error in validate_marker_semantics(values):
             self.fail(f"{path.relative_to(ROOT)} {error}")
 
-    def validate_handoff_sections(self) -> None:
+    def validate_savepoint_sections(self) -> None:
         required_sections = [
             "## TL;DR / Operational Summary",
             "## Recovery Contract",
@@ -415,14 +459,14 @@ class Validator:
             "## Repo Snapshot",
             "## Required Reading",
             "## Change Manifest",
+            "## Recovery Notes",
             "## Validation Manifest",
-            "## Suggested Skills / Next Agent Behaviors",
             "## Remaining Work",
             "## Resume Prompt",
-            "## Automation Markers",
+            "## Markers",
         ]
         tldr_fields = ["- Goal:", "- Current state:", "- Next action:", "- Blocker:"]
-        for path in HANDOFF_FILES:
+        for path in SAVEPOINT_FILES:
             text = self.read(path)
             for section in required_sections:
                 if section not in text:
@@ -432,127 +476,136 @@ class Validator:
                     self.fail(f"{path.relative_to(ROOT)} must contain exactly one TL;DR field {field}")
             if "Expected drift from captured state:" not in text:
                 self.fail(f"{path.relative_to(ROOT)} missing expected drift field")
+            if "- `git diff --cached --name-status`:" not in text:
+                self.fail(f"{path.relative_to(ROOT)} missing staged name-status field")
             if "- Next-session focus:" not in text:
                 self.fail(f"{path.relative_to(ROOT)} missing next-session focus field")
-            if (
-                "If disk state differs" not in text
-                and "If the handoff conflicts" not in text
-                and "Trust order: disk/current working tree" not in text
-                and "Current working tree and Git state" not in text
-            ):
-                self.fail(f"{path.relative_to(ROOT)} must state disk-conflict handling")
-            if "SECRET_REDACTION_CHECKED: yes" in text and "Secret redaction check:" not in text:
-                self.fail(f"{path.relative_to(ROOT)} records secret check yes without a check method")
-            if "references/handoff-template.md" not in path.as_posix() and "HANDOFF_MODE: compact" in text:
-                detail_refs = sorted(set(re.findall(r"`(details/[^`]+\.md)`", text)))
-                if detail_refs:
-                    self.fail(f"{path.relative_to(ROOT)} compact handoff references detail artifacts")
-            if path.name == "HANDOFF.md" and "HANDOFF_READY: /" in text:
-                marker_line = next(
-                    (line for line in text.splitlines() if line.startswith("HANDOFF_READY: /")),
-                    "",
-                )
-                if "references/handoff-template.md" not in path.as_posix() and ".new-session-handoff/HANDOFF.md" not in marker_line:
-                    self.fail(f"{path.relative_to(ROOT)} should demonstrate the default .new-session-handoff/HANDOFF.md path")
-        template = self.read(SKILL_DIR / "references" / "handoff-contract.md")
+            if "SAVEPOINT_MODE: verified" in text and "SAVEPOINT_PATH: /" in text:
+                marker_line = next((line for line in text.splitlines() if line.startswith("SAVEPOINT_PATH: /")), "")
+                if "savepoint-template.md" not in path.as_posix() and ".savepoint/SAVEPOINT.md" not in marker_line:
+                    self.fail(f"{path.relative_to(ROOT)} should demonstrate the default .savepoint/SAVEPOINT.md path")
+        contract = self.read(SKILL_DIR / "references" / "savepoint-contract.md")
         for line in TRUST_ORDER_LINES:
-            if line not in template:
-                self.fail(f"handoff-contract.md missing trust order line: {line}")
+            if line not in contract:
+                self.fail(f"savepoint-contract.md missing trust order line: {line}")
 
-    def validate_prompt_only_example(self) -> None:
-        path = PROMPT_ONLY_EXAMPLE
-        text = self.read(path)
+    def validate_lightweight_example(self) -> None:
+        text = self.read(LIGHTWEIGHT_EXAMPLE)
         for phrase in [
-            "# Prompt-Only Handoff Response",
+            "# Lightweight Savepoint Response",
             "No files were written.",
-            "## Continuation Prompt",
-            "Captured at:",
-            "Working directory:",
-            "Git root:",
-            "Branch:",
-            "Short HEAD:",
-            "git status --short:",
-            "git diff --stat:",
-            "git diff --name-status:",
-            "git diff --cached --stat:",
-            "Latest commit:",
-            "Instruction files checked:",
-            "Durable state files checked:",
-            "Changed files at capture time:",
-            "Secret redaction check:",
-            "HANDOFF_READY: not-written",
-            "HANDOFF_MODE: prompt-only",
-            "DETAIL_ARTIFACTS_READY: not-needed",
-            "NEW_SESSION_PROMPT_READY: yes",
+            "## Transfer Note",
+            "This is not a verified savepoint.",
+            "Do not claim .savepoint/SAVEPOINT.md exists.",
         ]:
             if phrase not in text:
-                self.fail(f"{path.relative_to(ROOT)} missing prompt-only example phrase: {phrase}")
-        if ".new-session-handoff/HANDOFF.md" in text:
-            self.fail(f"{path.relative_to(ROOT)} prompt-only example must not point to a missing default handoff file")
-        block = self.extract_marker_block(text, path)
-        if block is None:
-            return
-        actual_names = [line.split(":", 1)[0] for line in block]
-        expected_names = [MARKER_BLOCK_START, *marker_field_order(), MARKER_BLOCK_END]
-        if actual_names != expected_names:
-            self.fail(f"{path.relative_to(ROOT)} marker block does not match expected field order")
-        self.validate_marker_values(path, block)
+                self.fail(f"{LIGHTWEIGHT_EXAMPLE.relative_to(ROOT)} missing lightweight example phrase: {phrase}")
+        if "SAVEPOINT_V1" in text:
+            self.fail(f"{LIGHTWEIGHT_EXAMPLE.relative_to(ROOT)} lightweight example should omit markers by default")
+        if ".savepoint/SAVEPOINT.md" in text:
+            if "Do not claim .savepoint/SAVEPOINT.md exists." not in text:
+                self.fail(f"{LIGHTWEIGHT_EXAMPLE.relative_to(ROOT)} lightweight example must not point to a missing default savepoint file")
 
     def validate_no_legacy_prompt_file_reference(self) -> None:
         legacy_prompt_file = "NEW_SESSION_PROMPT" + ".txt"
         for dirpath, dirnames, filenames in os.walk(ROOT):
             dirnames[:] = [dirname for dirname in dirnames if dirname != ".git"]
             if legacy_prompt_file in filenames:
-                path = Path(dirpath) / legacy_prompt_file
-                self.fail(f"{path.relative_to(ROOT)} must not exist")
+                self.fail(f"{(Path(dirpath) / legacy_prompt_file).relative_to(ROOT)} must not exist")
 
-        forbidden_paths = [
-            ROOT / "examples" / ("resume-prompt" + ".example.txt"),
-        ]
-        for path in forbidden_paths:
-            if path.exists():
-                self.fail(f"{path.relative_to(ROOT)} must not exist")
+    def validate_skill_links(self) -> None:
+        for path in LEGACY_SKILL_LINKS:
+            if path.exists() or path.is_symlink():
+                self.fail(f"legacy skill link must not exist: {path.relative_to(ROOT)}")
+        for path, expected_target in SKILL_LINK_TARGETS.items():
+            if not path.exists() and not path.is_symlink():
+                self.fail(f"missing savepoint skill link: {path.relative_to(ROOT)}")
+                continue
+            actual_target = self.read_link_target(path)
+            if actual_target != expected_target:
+                self.fail(
+                    f"{path.relative_to(ROOT)} must point to {expected_target!r}, "
+                    f"got {actual_target!r}"
+                )
+            blob_target = self.read_git_link_blob(path)
+            if blob_target is not None and blob_target != expected_target:
+                self.fail(
+                    f"{path.relative_to(ROOT)} committed link target must be "
+                    f"{expected_target!r}, got {blob_target!r}"
+                )
 
-        checked_roots = [
-            ROOT / "README.md",
-            ROOT / "AGENTS.md",
-            ROOT / "SECURITY.md",
-            ROOT / "CHANGELOG.md",
-            ROOT / "examples",
-            ROOT / "evals",
-            ROOT / "orchestrators",
-            ROOT / "scripts",
-            SKILL_DIR,
-        ]
-        allowed_suffixes = {".json", ".md", ".py", ".txt", ".yaml", ".yml"}
-        for base in checked_roots:
-            paths = [base] if base.is_file() else sorted(base.rglob("*"))
-            for path in paths:
-                if not path.is_file() or path.suffix not in allowed_suffixes:
+    def read_link_target(self, path: Path) -> str:
+        if path.is_symlink():
+            return os.readlink(path).replace("\\", "/")
+        if path.is_file():
+            return path.read_text(encoding="utf-8").replace("\\", "/")
+        return ""
+
+    def read_git_link_blob(self, path: Path) -> str | None:
+        relative = path.relative_to(ROOT).as_posix()
+        try:
+            mode = subprocess.check_output(
+                ["git", "ls-files", "-s", "--", relative],
+                cwd=ROOT,
+                text=True,
+                stderr=subprocess.DEVNULL,
+            ).split(maxsplit=1)[0]
+        except (subprocess.CalledProcessError, IndexError, FileNotFoundError):
+            return None
+        if mode != "120000":
+            return None
+        try:
+            return subprocess.check_output(
+                ["git", "cat-file", "-p", f":{relative}"],
+                cwd=ROOT,
+                text=True,
+                stderr=subprocess.DEVNULL,
+            ).replace("\\", "/")
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return None
+
+    def validate_no_legacy_terms(self) -> None:
+        for path in self.iter_text_paths(LEGACY_SCAN_ROOTS):
+            if path == ROOT / "scripts" / "validate-repo.py":
+                continue
+            text = self.read_link_target(path) if path.is_symlink() else path.read_text(encoding="utf-8")
+            for pattern in LEGACY_FORBIDDEN_PATTERNS:
+                if re.search(pattern, text, re.IGNORECASE):
+                    self.fail(f"legacy term {pattern!r} in {path.relative_to(ROOT)}")
+
+    def iter_text_paths(self, roots: list[Path]) -> list[Path]:
+        paths: list[Path] = []
+        for root in roots:
+            if not root.exists() and not root.is_symlink():
+                continue
+            candidates = [root] if root.is_file() or root.is_symlink() else sorted(root.rglob("*"))
+            for path in candidates:
+                if path.is_dir() and not path.is_symlink():
                     continue
-                text = path.read_text(encoding="utf-8")
-                if legacy_prompt_file in text:
-                    self.fail(
-                        f"{path.relative_to(ROOT)} must not reference legacy prompt sidecar"
-                    )
+                if "__pycache__" in path.parts:
+                    continue
+                if path.suffix in {".md", ".py", ".json", ".yaml", ".yml", ".txt"} or not path.suffix:
+                    paths.append(path)
+        return paths
 
-    def validate_expanded_artifacts(self) -> None:
-        handoff = ROOT / "examples" / "expanded-architecture" / "HANDOFF.md"
-        text = self.read(handoff)
+    def validate_detail_artifacts(self) -> None:
+        savepoint = ROOT / "examples" / "verified-architecture" / "SAVEPOINT.md"
+        text = self.read(savepoint)
         for rel in sorted(set(re.findall(r"`(details/[^`]+\.md)`", text))):
-            self.require_exists(handoff.parent / rel)
+            self.require_exists(savepoint.parent / rel)
 
     def validate_secret_hygiene(self) -> None:
-        secret_patterns = [
-            r"sk-[A-Za-z0-9_-]{20,}",
-            r"ghp_[A-Za-z0-9_]{20,}",
-            r"(?i)(api[_-]?key|token|password|secret)\s*=\s*['\"][^'\"]+['\"]",
-        ]
         checked_roots = [
+            ROOT / ".github",
+            ROOT / ".agents",
+            ROOT / ".claude",
+            ROOT / "AGENTS.md",
+            ROOT / "CHANGELOG.md",
             ROOT / "README.md",
             ROOT / "SECURITY.md",
             ROOT / "evals",
             ROOT / "examples",
+            ROOT / "orchestrators",
             SKILL_DIR,
         ]
         for base in checked_roots:
@@ -561,22 +614,26 @@ class Validator:
                 if not path.is_file() or path.suffix not in {".json", ".md", ".txt", ".yaml"}:
                     continue
                 text = path.read_text(encoding="utf-8")
-                for pattern in secret_patterns:
-                    if re.search(pattern, text):
-                        self.fail(f"possible secret in {path.relative_to(ROOT)}")
+                secret_errors: list[str] = []
+                scan_secret_patterns(path.relative_to(ROOT), text, secret_errors)
+                for error in secret_errors:
+                    self.fail(error)
 
     def run(self, checks: set[str]) -> int:
         all_checks = {
             "frontmatter": self.validate_frontmatter,
             "references": self.validate_references,
             "readme-format": self.validate_readme_format,
+            "agent-metadata": self.validate_agent_metadata,
             "trigger-evals": self.validate_trigger_evals,
             "schema": self.validate_schema_contract,
             "markers": self.validate_marker_blocks,
-            "examples": self.validate_handoff_sections,
-            "prompt-only-example": self.validate_prompt_only_example,
-            "expanded": self.validate_expanded_artifacts,
+            "examples": self.validate_savepoint_sections,
+            "lightweight-example": self.validate_lightweight_example,
+            "detail-artifacts": self.validate_detail_artifacts,
             "legacy-prompt-file": self.validate_no_legacy_prompt_file_reference,
+            "skill-links": self.validate_skill_links,
+            "legacy-terms": self.validate_no_legacy_terms,
             "secrets": self.validate_secret_hygiene,
         }
         selected = all_checks if "all" in checks else {k: v for k, v in all_checks.items() if k in checks}
@@ -601,7 +658,7 @@ def main() -> int:
         "--check",
         action="append",
         default=[],
-        help="Check to run: frontmatter, references, readme-format, trigger-evals, schema, markers, examples, prompt-only-example, expanded, legacy-prompt-file, secrets, all",
+        help="Check to run: frontmatter, references, readme-format, agent-metadata, trigger-evals, schema, markers, examples, lightweight-example, detail-artifacts, legacy-prompt-file, skill-links, legacy-terms, secrets, all",
     )
     args = parser.parse_args()
     checks = set(args.check or ["all"])

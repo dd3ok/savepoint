@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/savepoint/savepoint-v1.schema.json",
+  "title": "Savepoint V1 Marker Values",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "SAVEPOINT_PATH",
+    "SAVEPOINT_MODE",
+    "DETAILS_READY",
+    "PROMPT_READY",
+    "DISK_RECORDED",
+    "VALIDATION_RECORDED",
+    "REDACTION_CHECKED",
+    "RESUME_READY",
+    "BLOCKERS"
+  ],
+  "properties": {
+    "SAVEPOINT_PATH": {
+      "type": "string",
+      "minLength": 1
+    },
+    "SAVEPOINT_MODE": {
+      "enum": ["lightweight", "verified"]
+    },
+    "DETAILS_READY": {
+      "enum": ["yes", "no", "not-needed"]
+    },
+    "PROMPT_READY": {
+      "enum": ["yes", "no"]
+    },
+    "DISK_RECORDED": {
+      "enum": ["yes", "no"]
+    },
+    "VALIDATION_RECORDED": {
+      "enum": ["yes", "no"]
+    },
+    "REDACTION_CHECKED": {
+      "enum": ["yes", "no"]
+    },
+    "RESUME_READY": {
+      "enum": ["yes", "no"]
+    },
+    "BLOCKERS": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

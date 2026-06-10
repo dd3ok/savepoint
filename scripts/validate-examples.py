@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate example handoff artifacts."""
+"""Validate example savepoint artifacts."""
 
 from pathlib import Path
 import runpy
@@ -10,9 +10,9 @@ sys.argv = [
     "--check",
     "examples",
     "--check",
-    "prompt-only-example",
+    "lightweight-example",
     "--check",
-    "expanded",
+    "detail-artifacts",
     "--check",
     "secrets",
 ]
