@@ -53,6 +53,16 @@ CANONICAL_REFERENCES = [
     "savepoint-contract.md",
     "savepoint-template.md",
 ]
+README_ALLOWED_HANDOFF_PHRASE = (
+    "A savepoint is a handoff-style checkpoint for when a coding agent's context is full and a new "
+    "session needs to continue from saved repo state; canonical commands and files use `savepoint` "
+    "and `.savepoint/SAVEPOINT.md`."
+)
+README_KO_ALLOWED_HANDOFF_PHRASE = (
+    "Savepoint는 코딩 에이전트의 컨텍스트가 다 찼을 때 새 세션이 저장된 저장소/Git 상태에서 "
+    "이어갈 수 있게 하는 핸드오프 스타일 체크포인트입니다. 정식 이름과 파일 경로는 `savepoint`와 "
+    "`.savepoint/SAVEPOINT.md`입니다."
+)
 MARKER_ENUMS = {
     "SAVEPOINT_MODE": {"text", "file"},
     "DETAILS_READY": {"yes", "no", "not-needed"},
@@ -72,8 +82,54 @@ TRUST_ORDER_LINES = [
 ]
 KOREAN_INVOCATION_PHRASES = [
     "세이브포인트 만들어줘",
-    "세이브포인트 읽고 이어서 해줘",
+    "세이브포인트 로드해줘",
+    "세이브포인트 읽어줘",
+    "세이브포인트 이어서 해줘",
 ]
+REQUIRED_TRIGGER_CASES = {
+    "trigger-ko-resume-01": {
+        "query": "세이브포인트 이어서 해줘.",
+        "should_trigger": True,
+        "language": "ko",
+        "category": "resume",
+    },
+    "trigger-ko-load-01": {
+        "query": "세이브포인트 로드해줘.",
+        "should_trigger": True,
+        "language": "ko",
+        "category": "load",
+    },
+    "trigger-ko-read-01": {
+        "query": "세이브포인트 읽어줘.",
+        "should_trigger": True,
+        "language": "ko",
+        "category": "load",
+    },
+    "trigger-en-load-01": {
+        "query": "Load the savepoint.",
+        "should_trigger": True,
+        "language": "en",
+        "category": "load",
+    },
+    "trigger-en-read-01": {
+        "query": "Read the savepoint.",
+        "should_trigger": True,
+        "language": "en",
+        "category": "load",
+    },
+    "trigger-en-resume-01": {
+        "query": "Resume from the savepoint.",
+        "should_trigger": True,
+        "language": "en",
+        "category": "resume",
+    },
+    "no-trigger-ko-sql-savepoint-01": {
+        "query": "Postgres SAVEPOINT 명령 설명해줘.",
+        "should_trigger": False,
+        "language": "ko",
+        "category": "database-savepoint",
+    },
+}
 SKILL_LINK_TARGETS = {
     ROOT / ".agents" / "skills" / "savepoint": "../../skills/savepoint",
     ROOT / ".claude" / "skills" / "savepoint": "../../skills/savepoint",
@@ -89,6 +145,7 @@ REMOVED_TERM_SCAN_ROOTS = [
     ROOT / "AGENTS.md",
     ROOT / "CHANGELOG.md",
     ROOT / "README.md",
+    ROOT / "README.ko.md",
     ROOT / "SECURITY.md",
     ROOT / "evals",
     ROOT / "examples",
@@ -245,21 +302,41 @@ class Validator:
 
     def validate_readme_format(self) -> None:
         readme_text = self.read(ROOT / "README.md")
+        readme_ko_text = self.read(ROOT / "README.ko.md")
         if readme_text.strip().startswith('"""') or readme_text.strip().endswith('"""'):
             self.fail("README.md must not be wrapped in triple quotes")
         if not readme_text.startswith("# Savepoint Skill"):
             self.fail("README.md must start with '# Savepoint Skill'")
+        if not readme_ko_text.startswith("# Savepoint Skill"):
+            self.fail("README.ko.md must start with '# Savepoint Skill'")
         for phrase in [
+            README_ALLOWED_HANDOFF_PHRASE,
+            "[한국어 README](README.ko.md)",
+            "## Usage",
+            "Create a savepoint.",
+            "Create a copy-paste text savepoint.",
+            "Load the savepoint.",
+            "Resume from SAVEPOINT.md.",
             "skills/savepoint/references/context-packaging.md",
             "Text Savepoint",
             "File Savepoint",
             "Load / Resume Savepoint",
-            "복붙용 세이브포인트 만들어줘",
             "Load/resume verifies disk state before continuation or implementation.",
             "evals/trigger-queries.json",
         ]:
             if phrase not in readme_text:
                 self.fail(f"README.md missing entry: {phrase}")
+        for phrase in [
+            README_KO_ALLOWED_HANDOFF_PHRASE,
+            "[English README](README.md)",
+            "복붙용 세이브포인트 만들어줘",
+            "세이브포인트 로드해줘",
+            "세이브포인트 읽어줘",
+            "세이브포인트 이어서 해줘",
+            "단발성 작업용으로 복붙용 세이브포인트 만들어줘",
+        ]:
+            if phrase not in readme_ko_text:
+                self.fail(f"README.ko.md missing entry: {phrase}")
 
     def validate_agent_metadata(self) -> None:
         path = SKILL_DIR / "agents" / "openai.yaml"
@@ -313,6 +390,7 @@ class Validator:
 
         required_fields = {"id", "query", "should_trigger", "language", "category", "rationale"}
         seen_ids: set[str] = set()
+        seen_required_trigger_cases: set[str] = set()
         positives = negatives = 0
         has_korean_positive = False
         has_korean_negative = False
@@ -323,7 +401,12 @@ class Validator:
         has_in_response_text_positive = False
         has_korean_load_positive = False
         has_english_load_positive = False
+        has_korean_read_positive = False
+        has_korean_start_positive = False
+        has_english_read_positive = False
+        has_english_start_positive = False
         has_sql_negative = False
+        has_korean_sql_negative = False
         negative_categories: set[str] = set()
         for index, query in enumerate(queries):
             if not isinstance(query, dict):
@@ -343,6 +426,19 @@ class Validator:
                 seen_ids.add(query_id)
             if not isinstance(query_text, str) or not query_text.strip():
                 self.fail(f"trigger eval query #{index} has empty query")
+            if isinstance(query_id, str) and query_id in REQUIRED_TRIGGER_CASES:
+                expected = REQUIRED_TRIGGER_CASES[query_id]
+                mismatches = [
+                    key
+                    for key, value in expected.items()
+                    if query.get(key) != value
+                ]
+                if mismatches:
+                    self.fail(
+                        f"trigger eval {query_id} has mismatched fields: {mismatches}"
+                    )
+                else:
+                    seen_required_trigger_cases.add(query_id)
             should_trigger = query.get("should_trigger")
             if should_trigger is True:
                 positives += 1
@@ -362,6 +458,14 @@ class Validator:
                     has_korean_load_positive = True
                 if category == "load" and query.get("language") == "en":
                     has_english_load_positive = True
+                if query_id == "trigger-ko-read-01":
+                    has_korean_read_positive = True
+                if query_id == "trigger-ko-resume-01":
+                    has_korean_start_positive = True
+                if query_id == "trigger-en-read-01":
+                    has_english_read_positive = True
+                if query_id == "trigger-en-resume-01":
+                    has_english_start_positive = True
             elif should_trigger is False:
                 negatives += 1
                 if query.get("language") == "ko":
@@ -370,6 +474,8 @@ class Validator:
                     negative_categories.add(category)
                     if category == "database-savepoint":
                         has_sql_negative = True
+                        if query.get("language") == "ko":
+                            has_korean_sql_negative = True
             else:
                 self.fail(f"trigger eval query #{index} should_trigger must be boolean")
             if query.get("language") not in {"en", "ko"}:
@@ -401,8 +507,21 @@ class Validator:
             self.fail("trigger evals should include Korean load-only savepoint requests")
         if not has_english_load_positive:
             self.fail("trigger evals should include English load-only savepoint requests")
+        if not has_korean_read_positive:
+            self.fail("trigger evals should include Korean read-only savepoint requests")
+        if not has_korean_start_positive:
+            self.fail("trigger evals should include Korean resume-from-savepoint requests")
+        if not has_english_read_positive:
+            self.fail("trigger evals should include English read-only savepoint requests")
+        if not has_english_start_positive:
+            self.fail("trigger evals should include English resume-from-savepoint requests")
         if not has_sql_negative:
             self.fail("trigger evals should include database/SQL SAVEPOINT negative queries")
+        if not has_korean_sql_negative:
+            self.fail("trigger evals should include Korean database/SQL SAVEPOINT negative queries")
+        missing_required_cases = set(REQUIRED_TRIGGER_CASES) - seen_required_trigger_cases
+        if missing_required_cases:
+            self.fail(f"trigger evals missing required exact cases: {sorted(missing_required_cases)}")
 
         required_negative_categories = {
             "ordinary-summary",
@@ -594,6 +713,10 @@ class Validator:
             if path == ROOT / "scripts" / "validate-repo.py":
                 continue
             text = self.read_link_target(path) if path.is_symlink() else path.read_text(encoding="utf-8")
+            if path == ROOT / "README.md":
+                text = text.replace(README_ALLOWED_HANDOFF_PHRASE, "", 1)
+            if path == ROOT / "README.ko.md":
+                text = text.replace(README_KO_ALLOWED_HANDOFF_PHRASE, "", 1)
             for pattern in REMOVED_FORBIDDEN_PATTERNS:
                 if re.search(pattern, text, re.IGNORECASE):
                     self.fail(f"removed term {pattern!r} in {path.relative_to(ROOT)}")
