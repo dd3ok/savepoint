@@ -189,7 +189,8 @@ def test_gitignore_is_explicit_and_apply_only() -> None:
             "--add-gitignore",
         )
         require(applied.returncode == 0, applied.stderr or applied.stdout)
-        gitignore = (repo / ".gitignore").read_text(encoding="utf-8", newline="")
+        with (repo / ".gitignore").open("r", encoding="utf-8", newline="") as handle:
+            gitignore = handle.read()
         require(gitignore == f"{existing}.savepoint/\r\n", ".gitignore content was not preserved")
 
         repeat = run_installer(
@@ -203,7 +204,8 @@ def test_gitignore_is_explicit_and_apply_only() -> None:
             "--add-gitignore",
         )
         require(repeat.returncode == 0, repeat.stderr or repeat.stdout)
-        gitignore = (repo / ".gitignore").read_text(encoding="utf-8", newline="")
+        with (repo / ".gitignore").open("r", encoding="utf-8", newline="") as handle:
+            gitignore = handle.read()
         require(gitignore.count(".savepoint/") == 1, ".gitignore entry was duplicated")
 
 

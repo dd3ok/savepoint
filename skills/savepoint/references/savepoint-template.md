@@ -1,6 +1,6 @@
 # Savepoint Manifest
 
-File budget: aim for about 1500-2500 tokens; allow up to about 4000 tokens for complex work. Use focused `details/*.md` spillover instead of bloating this file.
+File budget: default to 1500-2500 tokens; allow 2500-4000 tokens for complex ops, DB, PR, CI, or multi-agent work. If the top-level file would exceed about 4000 tokens, move focused details to `details/*.md` instead of bloating this file.
 
 Use this skeleton for file `.savepoint/SAVEPOINT.md`. Consult `references/savepoint-contract.md` only when marker semantics, `RESUME_READY`, cleanup, staleness, or detail-spillover rules are unclear.
 

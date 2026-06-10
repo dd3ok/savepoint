@@ -9,7 +9,7 @@ Preserve coding-session state for continuation without prior chat context.
 
 ## Paths
 
-- **Text savepoint**: response-only, copy-paste transfer for `복붙용`, `텍스트`, `파일 없이`, `붙여넣을`, `copy-paste`, `text`, `no-file`, `no files`, `in-response`, or `in the response` requests. Aim for about 800-1200 tokens for coding handoffs, shorter for simple text savepoints; if safe transfer needs much more than about 2000 tokens, compress or ask before writing a file. Do not claim repo recovery, disk/Git verification, `SAVEPOINT.md`, or `RESUME_READY: yes`. Omit markers by default; if markers are requested, use `SAVEPOINT_MODE: text`.
+- **Text savepoint**: response-only, copy-paste transfer for `복붙용`, `텍스트`, `파일 없이`, `붙여넣을`, `copy-paste`, `text`, `no-file`, `no files`, `in-response`, or `in the response` requests. Use 300-600 tokens for simple notes, 800-1200 tokens by default for coding-session transfers, and up to 2000 tokens for complex cross-agent transfers. If more is needed, create a file savepoint instead. Do not claim repo recovery, disk/Git verification, `SAVEPOINT.md`, or `RESUME_READY: yes`. Omit markers by default; if markers are requested, use `SAVEPOINT_MODE: text`.
 - **File savepoint**: default path for generic savepoint requests, `SAVEPOINT.md`, repo/Git state, validation, safe resume, or recovery by another coding agent. Write `.savepoint/SAVEPOINT.md`, include `## Resume Prompt`, and exactly one `SAVEPOINT_V1` block with `SAVEPOINT_MODE: file`.
 
 ## Rules
@@ -17,6 +17,7 @@ Preserve coding-session state for continuation without prior chat context.
 - Do not run `/new`, `/status`, control PTYs, rotate sessions, choose thresholds, or edit application code while creating.
 - Use extra focus text only to narrow the next action.
 - Redact secrets. Do not paste transcripts, full diffs, long logs, shell history, or duplicated PRDs/plans/ADRs/issues/commits.
+- Do not read `scripts/*.py` or `evals/*.json` during normal savepoint create/load. Run validators as commands; inspect validator/eval source only when debugging this skill.
 
 ## Create
 

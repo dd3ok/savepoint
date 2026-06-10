@@ -18,17 +18,29 @@ The goal is to give a fresh coding-agent session just enough checked context to 
 
 Prefer the smallest recoverable package:
 
-1. Text savepoint: response text for explicit text/copy-paste/no-file/no files/in-response/in the response transfer; no repo recovery guarantee.
-2. File savepoint: one `.savepoint/SAVEPOINT.md` with disk/Git snapshot and validation state.
-3. Detail spillover: focused `details/*.md` files only when file `SAVEPOINT.md` cannot stay both concise and recoverable.
+1. Text savepoint:
+   - Response text for explicit text/copy-paste/no-file/no files/in-response/in the response transfer.
+   - No repo recovery guarantee.
+   - Use 300-600 tokens for simple copy-paste summaries.
+   - Default to 800-1200 tokens for coding-agent transfers.
+   - Allow up to 2000 tokens for complex cross-agent transfers.
+   - If more is needed, create a file savepoint instead.
+2. File savepoint:
+   - One `.savepoint/SAVEPOINT.md` with disk/Git snapshot and validation state.
+   - Default to 1500-2500 tokens for recoverable coding-session transfer.
+   - Allow 2500-4000 tokens for complex ops, DB, PR, CI, or multi-agent work.
+   - If top-level `SAVEPOINT.md` would exceed about 4000 tokens, move focused details to `details/*.md`.
+3. Detail spillover:
+   - Use focused `details/*.md` files only when `SAVEPOINT.md` cannot stay both concise and recoverable.
+   - Top-level `SAVEPOINT.md` must say which detail file to read and why.
 
 Budget guidance is advisory, not a validation rule. Path selection happens before budget: explicit text/copy-paste/no-file/no files/in-response/in the response requests remain text unless the user agrees to write a file.
 
-Text savepoints should target about 800-1200 tokens for coding handoffs; keep simple text savepoints shorter. If safe transfer needs much more than about 2000 tokens, compress first or ask before writing a file. File `SAVEPOINT.md` should target about 1500-2500 tokens; allow up to about 4000 tokens for complex ops, DB, PR, CI, or multi-agent work.
-
-Use `details/*.md` only for focused spillover after compression. The top-level `SAVEPOINT.md` must still contain required markers, repo snapshot summary, validation status, changed-file summary, risks, and a singular next action. Do not omit recovery-critical facts to fit the budget.
+These are budgets, not hard correctness limits. The top-level `SAVEPOINT.md` must still contain required markers, repo snapshot summary, validation status, changed-file summary, risks, and a singular next action. Do not omit recovery-critical facts solely to fit the budget; compress or spill over instead.
 
 Never preserve raw chat transcripts, full diffs, long logs, shell history, or broad background unless the user explicitly asks and the content is essential and redacted.
+
+Do not read `scripts/*.py` or `evals/*.json` during normal savepoint create/load. Run validators as commands; inspect validator/eval source only when debugging this skill.
 
 ## Durable State Files
 
