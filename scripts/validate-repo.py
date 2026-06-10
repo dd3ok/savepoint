@@ -194,6 +194,10 @@ class Validator:
             ".savepoint/SAVEPOINT.md",
             "SAVEPOINT_V1",
             "RESUME_READY: yes",
+            "Aim for about 1200 characters unless the user requests more.",
+            "For lightweight notes, do not read references unless asked.",
+            "read `references/savepoint-contract.md` only for unclear marker",
+            "Read `references/context-packaging.md` only for state-file/context-budget questions.",
             "For inspect-only requests, do not clean up by default.",
         ]
         for phrase in required_skill_phrases:

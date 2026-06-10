@@ -9,7 +9,7 @@ Preserve coding-session state for continuation without prior chat context.
 
 ## Paths
 
-- **Lightweight note**: response-only transfer for `간단`, `빠른`, `요약`, `3000자`, `파일 없이`, or low-token requests. Do not claim repo recovery, disk/Git verification, `SAVEPOINT.md`, or `RESUME_READY: yes`. Omit markers by default.
+- **Lightweight note**: response-only transfer for `간단`, `빠른`, `요약`, `3000자`, `파일 없이`, or low-token requests. Aim for about 1200 characters unless the user requests more. Do not claim repo recovery, disk/Git verification, `SAVEPOINT.md`, or `RESUME_READY: yes`. Omit markers by default.
 - **Verified savepoint**: `.savepoint/SAVEPOINT.md` for generic savepoint requests, `SAVEPOINT.md`, repo/Git state, validation, safe resume, or recovery by another coding agent. Include `## Resume Prompt` and exactly one `SAVEPOINT_V1` block.
 
 ## Rules
@@ -33,4 +33,4 @@ Preserve coding-session state for continuation without prior chat context.
 4. If `RESUME_READY` is not `yes`, stop after the report unless the user explicitly instructs how to proceed.
 5. Cleanup only adopted, generated, untracked artifacts. For inspect-only requests, do not clean up by default.
 
-Read `references/savepoint-contract.md` for marker semantics, safety, cleanup, and detail-spillover rules. Read `references/context-packaging.md` for state-file and context-budget boundaries.
+For lightweight notes, do not read references unless asked. For verified create, start with `references/savepoint-template.md`; read `references/savepoint-contract.md` only for unclear marker, `RESUME_READY`, cleanup, staleness, or detail-spillover rules. Read `references/context-packaging.md` only for state-file/context-budget questions.
