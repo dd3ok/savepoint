@@ -77,6 +77,30 @@ def test_portable_helper_writes_valid_draft() -> None:
         require("RESUME_READY: no" in text, "draft must not be resume-ready")
         require("BLOCKERS: draft-needs-agent-review" in text, "draft blocker missing")
         require(text.rstrip().endswith("END_SAVEPOINT_V1\n```"), "marker block must be final")
+        require(len(text) <= 3400, "stub draft should stay compact")
+
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode == 0, validation.stderr or validation.stdout)
+
+
+def test_truncates_large_git_snapshot() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        src = repo / "src"
+        src.mkdir()
+        for index in range(50):
+            (src / f"file_{index:02}.py").write_text("print('old')\n", encoding="utf-8")
+        git(repo, "add", "src")
+        git(repo, "commit", "-m", "add many files")
+        for index in range(50):
+            (src / f"file_{index:02}.py").write_text("print('new')\n", encoding="utf-8")
+
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run([sys.executable, str(STUB_HELPER)], repo)
+        require(result.returncode == 0, result.stderr or result.stdout)
+        text = output.read_text(encoding="utf-8")
+        require("truncated, rerun command for full output" in text, "large snapshot was not truncated")
+        require(len(text) <= 5600, "large fixture stub draft should stay compact")
 
         validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
         require(validation.returncode == 0, validation.stderr or validation.stdout)
@@ -222,6 +246,7 @@ def test_truncates_long_focus() -> None:
 def main() -> int:
     tests = [
         test_portable_helper_writes_valid_draft,
+        test_truncates_large_git_snapshot,
         test_refuses_overwrite_without_force,
         test_root_wrapper_forwards_to_portable_helper,
         test_run_command_handles_oserror,
