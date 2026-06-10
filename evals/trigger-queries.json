@@ -43,6 +43,14 @@
       "rationale": "Korean text savepoint request."
     },
     {
+      "id": "trigger-ko-text-direct-01",
+      "query": "세이브포인트 텍스트로 만들어줘.",
+      "should_trigger": true,
+      "language": "ko",
+      "category": "text",
+      "rationale": "Korean explicit text savepoint request."
+    },
+    {
       "id": "trigger-ko-state-files-01",
       "query": "PROJECT_STATE.md랑 TASKS.md를 참고해서 새 세션용 SAVEPOINT.md를 만들어줘.",
       "should_trigger": true,
@@ -69,6 +77,14 @@
     {
       "id": "trigger-en-text-01",
       "query": "Create a copy-paste text savepoint for another agent, no files, under 3000 characters.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "text",
+      "rationale": "Explicit text savepoint request."
+    },
+    {
+      "id": "trigger-en-text-direct-01",
+      "query": "Create a text savepoint.",
       "should_trigger": true,
       "language": "en",
       "category": "text",

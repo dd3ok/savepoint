@@ -11,12 +11,12 @@ Savepoint는 코딩 에이전트의 컨텍스트가 다 찼을 때 새 세션이
 | 필요 | 말하기 | 출력 |
 |---|---|---|
 | File Savepoint | `세이브포인트 만들어줘`, `세이브포인트 파일 만들어줘`, `SAVEPOINT.md 만들어줘` | `.savepoint/SAVEPOINT.md` |
-| Text Savepoint | `복붙용 세이브포인트 만들어줘`, `파일 없이 텍스트 세이브포인트 만들어줘` | 응답 텍스트 |
 | Load / Resume Savepoint | `세이브포인트 로드해줘`, `세이브포인트 읽어줘`, `세이브포인트 이어서 해줘` | 상태를 검증/보고하고, 요청됐고 안전할 때만 이어서 작업 |
+| Text Savepoint | `복붙용 세이브포인트 만들어줘`, `세이브포인트 텍스트로 만들어줘`, `파일 없이 세이브포인트 만들어줘` | 응답 텍스트 |
 
-코딩 세션 상태를 보존할 때는 기본적으로 **File Savepoint**를 사용합니다. 기존 `.savepoint/SAVEPOINT.md`에서 시작할 때는 기본적으로 **Load / Resume Savepoint**를 사용합니다.
+코딩 세션 상태를 보존할 때는 기본적으로 **File Savepoint**를 사용합니다. 기존 `.savepoint/SAVEPOINT.md`에서 이어갈 때는 기본적으로 **Load / Resume Savepoint**를 사용합니다.
 
-**Text Savepoint**는 파일이나 repo 복구 보장이 필요 없는 단발성/간단한 복붙 전달이 명시된 경우에만 사용합니다.
+`복붙용`, `텍스트`, `파일 없이`처럼 파일 없는 전달을 명시한 경우에만 **Text Savepoint**를 사용합니다.
 
 이 스킬은 일반 대화 요약기가 아닙니다. `/new`, `/status`, PTY 제어, 세션 회전, 컨텍스트 임계값 선택, 애플리케이션 코드 수정을 수행하지 않습니다.
 
@@ -29,26 +29,6 @@ File Savepoint는 아래 파일을 씁니다.
 ```
 
 `SAVEPOINT.md`는 `## Resume Prompt`와 파일 끝의 `SAVEPOINT_V1` 블록을 포함합니다. 정확한 필드 스키마는 `skills/savepoint/schemas/savepoint-v1.schema.json`에 있고, `SAVEPOINT_V1` 필드 의미는 `skills/savepoint/references/savepoint-contract.md`에 있습니다.
-
-## 사용 예시
-
-```text
-새 세션에서 안전하게 이어갈 SAVEPOINT.md 만들어줘. 현재 git 상태와 validation 결과 포함해줘.
-```
-
-`.savepoint/SAVEPOINT.md`에 File Savepoint를 만듭니다.
-
-```text
-세이브포인트 이어서 해줘.
-```
-
-savepoint를 읽고 현재 디스크/Git 상태와 비교한 뒤, 일치/드리프트를 보고합니다. 명시적으로 이어서 작업하라고 요청됐고 안전할 때만 계속합니다.
-
-```text
-단발성 작업용으로 복붙용 세이브포인트 만들어줘. 다음 세션은 PR 리뷰만 하면 돼.
-```
-
-Text Savepoint를 만듭니다. `RESUME_READY: yes`를 주장하면 안 됩니다. 기본적으로 `SAVEPOINT_V1` 블록을 출력하지 않습니다.
 
 ## Canonical Contract
 

@@ -11,14 +11,12 @@ It provides one skill, `$savepoint`, with three user-facing workflows:
 | Need | Say | Output |
 |---|---|---|
 | File Savepoint | `Create a savepoint`, `Create a savepoint file`, `Create SAVEPOINT.md` | `.savepoint/SAVEPOINT.md` |
-| Text Savepoint | `Create a copy-paste text savepoint`, `Create a no-file text savepoint` | Response text |
 | Load / Resume Savepoint | `Load the savepoint`, `Read the savepoint`, `Resume from the savepoint`, `Resume from SAVEPOINT.md` | Verify/report state; continue only if requested and safe |
+| Text Savepoint | `Create a copy-paste savepoint`, `Create a text savepoint`, `Create a no-file savepoint` | Response text |
 
-Use **File Savepoint** by default when preserving coding-session state, and use **Load / Resume Savepoint** by default when starting from an existing `.savepoint/SAVEPOINT.md`.
+Default to **File Savepoint** when preserving coding-session state. Default to **Load / Resume Savepoint** when continuing from an existing `.savepoint/SAVEPOINT.md`.
 
-Use **Text Savepoint** for one-off or simple copy-paste transfer only when you explicitly do not need a file or repo recovery guarantees.
-
-Use **Load / Resume Savepoint** when a fresh coding agent must read `.savepoint/SAVEPOINT.md`, compare it with current disk/Git state, and continue only if requested and safe.
+Use **Text Savepoint** only for explicit copy-paste, text, or no-file requests that do not need file recovery guarantees.
 
 This skill is not a generic conversation summarizer. It does not run `/new`, `/status`, control PTYs, rotate sessions, choose context thresholds, or edit application code while creating a savepoint.
 
@@ -31,27 +29,6 @@ File savepoints write:
 ```
 
 File `SAVEPOINT.md` embeds `## Resume Prompt` and ends with a `SAVEPOINT_V1` marker block. The exact field schema lives in `skills/savepoint/schemas/savepoint-v1.schema.json`; marker semantics live in `skills/savepoint/references/savepoint-contract.md`.
-
-## Usage
-
-```text
-Create a savepoint.
-```
-
-Creates a File Savepoint at `.savepoint/SAVEPOINT.md`.
-
-```text
-Load the savepoint.
-Resume from SAVEPOINT.md.
-```
-
-Reads the file savepoint, verifies current disk/Git state, reports consistency or drift, and continues only when safe and explicitly requested.
-
-```text
-Create a copy-paste text savepoint.
-```
-
-Creates a Text Savepoint for one-off or simple transfer without file recovery guarantees.
 
 ## Canonical Contract
 
