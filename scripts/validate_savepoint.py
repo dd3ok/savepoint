@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compatibility wrapper for the portable savepoint validator."""
+"""Forward to the portable savepoint validator."""
 
 from __future__ import annotations
 

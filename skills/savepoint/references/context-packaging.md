@@ -24,7 +24,7 @@ Prefer the smallest recoverable package:
 
 For verified `SAVEPOINT.md`, aim for about 120 lines or 5000 characters. For lightweight notes, aim for about 20 lines or 1200 characters. Do not omit recovery-critical facts to fit the budget.
 
-Never preserve raw chat history, full diffs, long logs, shell history, or broad background unless the user explicitly asks and the content is essential and redacted.
+Never preserve raw chat transcripts, full diffs, long logs, shell history, or broad background unless the user explicitly asks and the content is essential and redacted.
 
 ## Durable State Files
 
@@ -61,7 +61,7 @@ On resume, trust sources in this order:
 3. Repository instructions and durable state files.
 4. `SAVEPOINT.md`.
 5. Focused detail artifacts referenced by `SAVEPOINT.md`.
-6. Prior chat history only if explicitly provided by the user.
+6. Prior chat context only if explicitly provided by the user.
 
 If a state file conflicts with disk state, disk state wins. Report the conflict before editing.
 
@@ -84,7 +84,7 @@ Keep only:
 Cut:
 
 - motivational text
-- broad project history
+- broad project background
 - full conversation summaries
 - repeated instructions already in `AGENTS.md` or `CLAUDE.md`
 - speculative explanations

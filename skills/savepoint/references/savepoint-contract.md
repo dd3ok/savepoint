@@ -24,20 +24,18 @@
 - Default lightweight output: response text unless the user asks to write a file.
 - Default prompt: an embedded `## Resume Prompt` section inside verified `SAVEPOINT.md`.
 - Create `details/*.md` only as internal spillover when verified `SAVEPOINT.md` cannot stay both concise and recoverable.
-- Treat `handoff`, `HANDOFF.md`, and `핸드오프` as legacy aliases for savepoint requests. New artifacts still use `.savepoint/SAVEPOINT.md`.
 
 Resume lookup order:
 
 1. User-provided savepoint path.
 2. `.savepoint/SAVEPOINT.md`.
-3. Migration-only `HANDOFF.md` when the user explicitly asks for a handoff artifact.
 
 ## Paths
 
 - `lightweight`: short note for another agent; no disk/Git recovery guarantee and no marker by default.
 - `verified`: recoverable `SAVEPOINT.md` with disk/Git snapshot, validation state, secret-redaction state, and marker block.
 
-For generic "savepoint", "handoff", "세이브포인트 만들어줘", or "핸드오프 만들어줘" requests, default to verified.
+For generic "savepoint" or "세이브포인트 만들어줘" requests, default to verified.
 
 ## Required `SAVEPOINT.md` Shape
 
@@ -69,7 +67,7 @@ On resume, trust sources in this order:
 3. Repository instruction files and durable state files such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `PROJECT_STATE.md`, `TASKS.md`, `DECISIONS.md`, `PLAN.md`, and `PLANS.md`.
 4. `SAVEPOINT.md`.
 5. Focused detail artifacts referenced by `SAVEPOINT.md`.
-6. Prior chat history only if explicitly provided by the user.
+6. Prior chat context only if explicitly provided by the user.
 
 If the savepoint conflicts with disk state, disk state wins. Report the mismatch before editing.
 

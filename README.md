@@ -8,11 +8,10 @@ It provides one skill, `$savepoint`, with two user-facing paths:
 |---|---|---|
 | Lightweight transfer | `간단 세이브포인트 만들어줘`, `3000자 이내로 인계 요약해줘` | Response text by default |
 | Verified recovery | `SAVEPOINT.md 만들어줘`, `repo/Git 상태 포함해서 세이브포인트 만들어줘` | `.savepoint/SAVEPOINT.md` |
-| Legacy wording | `HANDOFF.md 만들어줘`, `핸드오프 읽고 이어서 해줘` | Routes to Savepoint; new verified artifacts use `.savepoint/SAVEPOINT.md` |
 
 Use **Lightweight** when you want the lowest token/tool cost and do not need repo recovery guarantees.
 
-Use **Verified** when a fresh coding agent must reconstruct current disk/Git state without prior chat history. Verified savepoints record changed files, validation status, risks, relevant instruction/state files, and one narrow next action.
+Use **Verified** when a fresh coding agent must reconstruct current disk/Git state without prior chat context. Verified savepoints record changed files, validation status, risks, relevant instruction/state files, and one narrow next action.
 
 This skill is not a generic conversation summarizer. It does not run `/new`, `/status`, control PTYs, rotate sessions, choose context thresholds, or edit application code while creating a savepoint.
 
@@ -25,8 +24,6 @@ Verified savepoints write:
 ```
 
 Verified `SAVEPOINT.md` embeds `## Resume Prompt` and ends with a `SAVEPOINT_V1` marker block. The exact field schema lives in `skills/savepoint/schemas/savepoint-v1.schema.json`; marker semantics live in `skills/savepoint/references/savepoint-contract.md`.
-
-`handoff`, `HANDOFF.md`, and `핸드오프` are accepted as legacy aliases for routing, but the canonical artifact remains `.savepoint/SAVEPOINT.md`.
 
 ## Korean Usage
 
@@ -60,7 +57,7 @@ The canonical files are:
 - Marker schema: `skills/savepoint/schemas/savepoint-v1.schema.json`
 - Portable validator: `skills/savepoint/scripts/validate_savepoint.py`
 
-The root-level `examples/`, `evals/`, `orchestrators/`, and `scripts/validate-repo.py` are maintainer assets. The root `scripts/validate_savepoint.py` is a compatibility wrapper around the portable validator.
+The root-level `examples/`, `evals/`, `orchestrators/`, and `scripts/validate-repo.py` are maintainer assets. The root `scripts/validate_savepoint.py` forwards to the portable validator.
 
 ## Repository Layout
 
@@ -68,7 +65,6 @@ The root-level `examples/`, `evals/`, `orchestrators/`, and `scripts/validate-re
 .
 ├── README.md
 ├── SECURITY.md
-├── CHANGELOG.md
 ├── AGENTS.md
 ├── skills/
 │   └── savepoint/

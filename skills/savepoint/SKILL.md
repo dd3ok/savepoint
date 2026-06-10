@@ -1,16 +1,16 @@
 ---
 name: savepoint
-description: "Use when explicitly transferring coding-session state: create/update/inspect/resume .savepoint/SAVEPOINT.md, a lightweight note, or legacy handoff/HANDOFF.md. Not for SQL SAVEPOINT, summaries, docs, code changes, /new, /status, PTY, or session rotation. Triggers include 세이브포인트 만들어줘, 세이브포인트 읽고 이어서 해줘, 핸드오프 만들어줘."
+description: "Use when explicitly transferring coding-session state: create/update/inspect/resume .savepoint/SAVEPOINT.md or a lightweight note. Not for SQL SAVEPOINT, summaries, docs, code changes, /new, /status, PTY, or session rotation. Triggers include 세이브포인트 만들어줘, 세이브포인트 읽고 이어서 해줘."
 ---
 
 # Savepoint
 
-Preserve coding-session state for continuation without prior chat history.
+Preserve coding-session state for continuation without prior chat context.
 
 ## Paths
 
 - **Lightweight note**: response-only transfer for `간단`, `빠른`, `요약`, `3000자`, `파일 없이`, or low-token requests. Do not claim repo recovery, disk/Git verification, `SAVEPOINT.md`, or `RESUME_READY: yes`. Omit markers by default.
-- **Verified savepoint**: `.savepoint/SAVEPOINT.md` for generic savepoint/handoff requests, `SAVEPOINT.md`, `HANDOFF.md`, repo/Git state, validation, safe resume, or recovery by another coding agent. Include `## Resume Prompt` and exactly one `SAVEPOINT_V1` block.
+- **Verified savepoint**: `.savepoint/SAVEPOINT.md` for generic savepoint requests, `SAVEPOINT.md`, repo/Git state, validation, safe resume, or recovery by another coding agent. Include `## Resume Prompt` and exactly one `SAVEPOINT_V1` block.
 
 ## Rules
 
@@ -28,7 +28,7 @@ Preserve coding-session state for continuation without prior chat history.
 ## Resume
 
 1. Verify cwd, Git root, branch, short HEAD, status, and diff before trusting a savepoint.
-2. Read applicable instructions and the selected savepoint: user path first, then `.savepoint/SAVEPOINT.md`, then migration-only `HANDOFF.md` when explicitly requested.
+2. Read applicable instructions and the selected savepoint: user path first, then `.savepoint/SAVEPOINT.md`.
 3. Compare claims with the working tree; disk state wins, and drift must be reported before edits.
 4. If `RESUME_READY` is not `yes`, stop after the report unless the user explicitly instructs how to proceed.
 5. Cleanup only adopted, generated, untracked artifacts. For inspect-only requests, do not clean up by default.

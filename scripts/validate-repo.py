@@ -68,26 +68,21 @@ TRUST_ORDER_LINES = [
     "3. Repository instruction files and durable state files such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `PROJECT_STATE.md`, `TASKS.md`, `DECISIONS.md`, `PLAN.md`, and `PLANS.md`.",
     "4. `SAVEPOINT.md`.",
     "5. Focused detail artifacts referenced by `SAVEPOINT.md`.",
-    "6. Prior chat history only if explicitly provided by the user.",
+    "6. Prior chat context only if explicitly provided by the user.",
 ]
 KOREAN_INVOCATION_PHRASES = [
     "세이브포인트 만들어줘",
     "세이브포인트 읽고 이어서 해줘",
-    "핸드오프 만들어줘",
-]
-ALIAS_INVOCATION_PHRASES = [
-    "handoff",
-    "HANDOFF.md",
 ]
 SKILL_LINK_TARGETS = {
     ROOT / ".agents" / "skills" / "savepoint": "../../skills/savepoint",
     ROOT / ".claude" / "skills" / "savepoint": "../../skills/savepoint",
 }
-LEGACY_SKILL_LINKS = [
+REMOVED_SKILL_LINKS = [
     ROOT / ".agents" / "skills" / "new-session-handoff",
     ROOT / ".claude" / "skills" / "new-session-handoff",
 ]
-LEGACY_SCAN_ROOTS = [
+REMOVED_TERM_SCAN_ROOTS = [
     ROOT / ".github",
     ROOT / ".agents",
     ROOT / ".claude",
@@ -101,7 +96,13 @@ LEGACY_SCAN_ROOTS = [
     ROOT / "scripts",
     SKILL_DIR,
 ]
-LEGACY_FORBIDDEN_PATTERNS = [
+REMOVED_FORBIDDEN_PATTERNS = [
+    r"\bhandoff\b",
+    r"HANDOFF\.md",
+    r"핸드오프",
+    r"legacy alias",
+    r"migration-only",
+    r"compatibility wrapper",
     r"new-session-handoff",
     r"\.new-session-handoff",
     r"HANDOFF_AUTOMATION",
@@ -175,9 +176,6 @@ class Validator:
         for phrase in KOREAN_INVOCATION_PHRASES:
             if phrase not in description:
                 self.fail(f"frontmatter description must include Korean invocation phrase: {phrase}")
-        for phrase in ALIAS_INVOCATION_PHRASES:
-            if phrase not in description:
-                self.fail(f"frontmatter description must include alias invocation phrase: {phrase}")
         body = "\n".join(lines[end + 1 :])
         if not body.strip().startswith("# Savepoint"):
             self.fail("SKILL.md body should start with '# Savepoint'")
@@ -298,10 +296,6 @@ class Validator:
         has_korean_negative = False
         has_secret_positive = False
         has_focus_positive = False
-        has_legacy_alias_positive = False
-        has_legacy_handoff_word = False
-        has_legacy_handoff_file = False
-        has_korean_handoff_alias = False
         has_sql_negative = False
         negative_categories: set[str] = set()
         for index, query in enumerate(queries):
@@ -331,14 +325,6 @@ class Validator:
                     has_secret_positive = True
                 if category == "focus-argument":
                     has_focus_positive = True
-                if category == "legacy-alias":
-                    has_legacy_alias_positive = True
-                    if isinstance(query_text, str) and "handoff" in query_text.lower():
-                        has_legacy_handoff_word = True
-                    if isinstance(query_text, str) and "HANDOFF.md" in query_text:
-                        has_legacy_handoff_file = True
-                    if isinstance(query_text, str) and "핸드오프" in query_text:
-                        has_korean_handoff_alias = True
             elif should_trigger is False:
                 negatives += 1
                 if query.get("language") == "ko":
@@ -368,14 +354,6 @@ class Validator:
             self.fail("trigger evals should include secret-bearing savepoint requests")
         if not has_focus_positive:
             self.fail("trigger evals should include next-session focus savepoint requests")
-        if not has_legacy_alias_positive:
-            self.fail("trigger evals should include legacy handoff alias requests")
-        if not has_legacy_handoff_word:
-            self.fail("trigger evals should include a handoff alias query")
-        if not has_legacy_handoff_file:
-            self.fail("trigger evals should include a HANDOFF.md alias query")
-        if not has_korean_handoff_alias:
-            self.fail("trigger evals should include a Korean 핸드오프 alias query")
         if not has_sql_negative:
             self.fail("trigger evals should include database/SQL SAVEPOINT negative queries")
 
@@ -506,17 +484,17 @@ class Validator:
             if "Do not claim .savepoint/SAVEPOINT.md exists." not in text:
                 self.fail(f"{LIGHTWEIGHT_EXAMPLE.relative_to(ROOT)} lightweight example must not point to a missing default savepoint file")
 
-    def validate_no_legacy_prompt_file_reference(self) -> None:
-        legacy_prompt_file = "NEW_SESSION_PROMPT" + ".txt"
+    def validate_no_removed_prompt_file_reference(self) -> None:
+        removed_prompt_file = "NEW_SESSION_PROMPT" + ".txt"
         for dirpath, dirnames, filenames in os.walk(ROOT):
             dirnames[:] = [dirname for dirname in dirnames if dirname != ".git"]
-            if legacy_prompt_file in filenames:
-                self.fail(f"{(Path(dirpath) / legacy_prompt_file).relative_to(ROOT)} must not exist")
+            if removed_prompt_file in filenames:
+                self.fail(f"{(Path(dirpath) / removed_prompt_file).relative_to(ROOT)} must not exist")
 
     def validate_skill_links(self) -> None:
-        for path in LEGACY_SKILL_LINKS:
+        for path in REMOVED_SKILL_LINKS:
             if path.exists() or path.is_symlink():
-                self.fail(f"legacy skill link must not exist: {path.relative_to(ROOT)}")
+                self.fail(f"removed skill link must not exist: {path.relative_to(ROOT)}")
         for path, expected_target in SKILL_LINK_TARGETS.items():
             if not path.exists() and not path.is_symlink():
                 self.fail(f"missing savepoint skill link: {path.relative_to(ROOT)}")
@@ -564,14 +542,14 @@ class Validator:
         except (subprocess.CalledProcessError, FileNotFoundError):
             return None
 
-    def validate_no_legacy_terms(self) -> None:
-        for path in self.iter_text_paths(LEGACY_SCAN_ROOTS):
+    def validate_no_removed_terms(self) -> None:
+        for path in self.iter_text_paths(REMOVED_TERM_SCAN_ROOTS):
             if path == ROOT / "scripts" / "validate-repo.py":
                 continue
             text = self.read_link_target(path) if path.is_symlink() else path.read_text(encoding="utf-8")
-            for pattern in LEGACY_FORBIDDEN_PATTERNS:
+            for pattern in REMOVED_FORBIDDEN_PATTERNS:
                 if re.search(pattern, text, re.IGNORECASE):
-                    self.fail(f"legacy term {pattern!r} in {path.relative_to(ROOT)}")
+                    self.fail(f"removed term {pattern!r} in {path.relative_to(ROOT)}")
 
     def iter_text_paths(self, roots: list[Path]) -> list[Path]:
         paths: list[Path] = []
@@ -631,9 +609,9 @@ class Validator:
             "examples": self.validate_savepoint_sections,
             "lightweight-example": self.validate_lightweight_example,
             "detail-artifacts": self.validate_detail_artifacts,
-            "legacy-prompt-file": self.validate_no_legacy_prompt_file_reference,
+            "removed-prompt-file": self.validate_no_removed_prompt_file_reference,
             "skill-links": self.validate_skill_links,
-            "legacy-terms": self.validate_no_legacy_terms,
+            "removed-terms": self.validate_no_removed_terms,
             "secrets": self.validate_secret_hygiene,
         }
         selected = all_checks if "all" in checks else {k: v for k, v in all_checks.items() if k in checks}
@@ -658,7 +636,7 @@ def main() -> int:
         "--check",
         action="append",
         default=[],
-        help="Check to run: frontmatter, references, readme-format, agent-metadata, trigger-evals, schema, markers, examples, lightweight-example, detail-artifacts, legacy-prompt-file, skill-links, legacy-terms, secrets, all",
+        help="Check to run: frontmatter, references, readme-format, agent-metadata, trigger-evals, schema, markers, examples, lightweight-example, detail-artifacts, removed-prompt-file, skill-links, removed-terms, secrets, all",
     )
     args = parser.parse_args()
     checks = set(args.check or ["all"])
