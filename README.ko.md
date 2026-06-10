@@ -10,7 +10,7 @@
 |---|---|---|
 | File Savepoint | `세이브포인트 만들어줘`, `세이브포인트 파일 만들어줘`, `SAVEPOINT.md 만들어줘` | `.savepoint/SAVEPOINT.md` |
 | Load / Resume Savepoint | `세이브포인트 로드해줘`, `세이브포인트 읽어줘`, `세이브포인트 이어서 해줘` | 상태를 검증/보고하고, 요청됐고 안전할 때만 이어서 작업 |
-| Text Savepoint | `복붙용 세이브포인트 만들어줘`, `세이브포인트 텍스트로 만들어줘`, `파일 없이 세이브포인트 만들어줘` | 응답 텍스트 |
+| Text Savepoint | `세이브포인트 텍스트로 만들어줘`, `세이브포인트 복붙용으로 만들어줘`, `세이브포인트 파일 없이 만들어줘` | 응답 텍스트 |
 
 코딩 세션 상태를 보존할 때는 기본적으로 **File Savepoint**를 사용합니다. 기존 `.savepoint/SAVEPOINT.md`에서 이어갈 때는 기본적으로 **Load / Resume Savepoint**를 사용합니다.
 
