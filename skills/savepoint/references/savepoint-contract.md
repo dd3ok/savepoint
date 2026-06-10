@@ -104,7 +104,7 @@ Before implementation, confirm current disk state, read applicable instructions,
 
 Report the loaded instructions, repo state, savepoint consistency, detail artifacts read, missing or conflicting paths, and smallest next step before editing.
 
-If `RESUME_READY` is not `yes`, stop after the report unless the user explicitly instructs how to proceed.
+Continue only when the user requested continuation and `RESUME_READY` is `yes`; inspect/load-only requests stop after the report.
 
 ## Detail Spillover
 

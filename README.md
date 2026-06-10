@@ -8,13 +8,13 @@ It provides one skill, `$savepoint`, with three user-facing actions:
 |---|---|---|
 | File Savepoint | `세이브포인트 만들어줘`, `세이브포인트 파일 만들어줘`, `SAVEPOINT.md 만들어줘` | `.savepoint/SAVEPOINT.md` |
 | Text Savepoint | `복붙용 세이브포인트 만들어줘`, `파일 없이 텍스트 세이브포인트 만들어줘` | Response text |
-| Load Savepoint | `세이브포인트 로드해줘`, `세이브포인트 읽고 이어서 해줘` | Verify current state, then continue when safe |
+| Load Savepoint | `세이브포인트 로드해줘`, `세이브포인트 읽고 이어서 해줘` | Verify/report state; continue only if requested and safe |
 
 Use **File Savepoint** by default when preserving coding-session state.
 
 Use **Text Savepoint** only when you explicitly want copy-paste response text and do not need repo recovery guarantees.
 
-Use **Load Savepoint** when a fresh coding agent must read `.savepoint/SAVEPOINT.md`, compare it with current disk/Git state, and continue only when safe.
+Use **Load Savepoint** when a fresh coding agent must read `.savepoint/SAVEPOINT.md`, compare it with current disk/Git state, and continue only if requested and safe.
 
 This skill is not a generic conversation summarizer. It does not run `/new`, `/status`, control PTYs, rotate sessions, choose context thresholds, or edit application code while creating a savepoint.
 

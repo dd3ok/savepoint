@@ -35,6 +35,14 @@
       "rationale": "File savepoint request with durable state files."
     },
     {
+      "id": "trigger-ko-file-short-01",
+      "query": "간단 세이브포인트 만들어줘. 3000자 이내로 현재 git 상태와 다음 작업을 남겨줘.",
+      "should_trigger": true,
+      "language": "ko",
+      "category": "create",
+      "rationale": "Generic short savepoint request still defaults to a file unless text, no-file, or copy-paste output is explicit."
+    },
+    {
       "id": "trigger-en-create-01",
       "query": "Create a SAVEPOINT.md so a fresh Codex session can continue this coding task without prior chat context.",
       "should_trigger": true,
