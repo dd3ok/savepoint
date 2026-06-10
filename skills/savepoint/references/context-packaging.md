@@ -14,6 +14,8 @@ A file `SAVEPOINT.md` is a recovery manifest. It is not:
 
 The goal is to give a fresh coding-agent session just enough checked context to continue safely.
 
+Savepoints are current recovery artifacts, not history logs. Preserve older savepoints only when the user asks for history, audit, records, or preservation.
+
 ## Context Budget
 
 Prefer the smallest recoverable package:
