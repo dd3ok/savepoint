@@ -13,7 +13,7 @@ SKILL_SCRIPTS = ROOT / "skills" / "savepoint" / "scripts"
 sys.path.insert(0, str(SKILL_SCRIPTS))
 
 from savepoint_contract import validate_marker_semantics  # noqa: E402
-from validate_savepoint import validate_savepoint  # noqa: E402
+from validate_savepoint import scan_secret_patterns, validate_savepoint  # noqa: E402
 
 
 BASE_VALUES = {
@@ -127,6 +127,8 @@ def main() -> int:
     errors.extend(check_resume_ready_requires_substantive_values())
     errors.extend(check_resume_ready_rejects_none_for_required_value())
     errors.extend(check_resume_ready_allows_none_for_absence_value())
+    errors.extend(check_secret_scanner_flags_common_tokens())
+    errors.extend(check_secret_scanner_allows_redacted_values())
 
     if errors:
         for error in errors:
@@ -376,6 +378,41 @@ def check_resume_ready_allows_none_for_absence_value() -> list[str]:
             "RESUME_READY=yes should allow 'none' for absence-only Blocker, "
             f"got errors={errors}"
         ]
+    return []
+
+
+def check_secret_scanner_flags_common_tokens() -> list[str]:
+    samples = {
+        "github fine-grained token": "github_pat_" + "A" * 24,
+        "github oauth token": "gho_" + "B" * 24,
+        "github user token": "ghu_" + "C" * 24,
+        "github server token": "ghs_" + "D" * 24,
+        "slack token": "xoxb-" + "E" * 12 + "-" + "F" * 12,
+        "google oauth token": "ya29." + "G" * 24,
+        "bearer header": "Authorization: Bearer " + "h" * 24,
+        "jwt": "eyJ" + "a" * 12 + "." + "b" * 12 + "." + "c" * 12,
+    }
+    errors: list[str] = []
+    for name, text in samples.items():
+        scan_errors: list[str] = []
+        scan_secret_patterns(Path(f"{name}.txt"), text, scan_errors)
+        if not scan_errors:
+            errors.append(f"secret scanner should flag {name}")
+    return errors
+
+
+def check_secret_scanner_allows_redacted_values() -> list[str]:
+    text = "\n".join(
+        [
+            'token="<REDACTED>"',
+            "api_key='<REDACTED>'",
+            "Authorization: Bearer <REDACTED>",
+        ]
+    )
+    errors: list[str] = []
+    scan_secret_patterns(Path("redacted.txt"), text, errors)
+    if errors:
+        return [f"redacted secret placeholders should not be flagged, got errors={errors}"]
     return []
 
 

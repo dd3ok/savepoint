@@ -25,8 +25,14 @@ REQUIRED_FIELDS = marker_field_order()
 SECRET_PATTERNS = [
     r"sk-[A-Za-z0-9_-]{20,}",
     r"ghp_[A-Za-z0-9_]{20,}",
+    r"github_pat_[A-Za-z0-9_]{20,}",
+    r"gh[ousr]_[A-Za-z0-9_]{20,}",
     r"AKIA[0-9A-Z]{16}",
     r"-----BEGIN .*PRIVATE KEY",
+    r"xox[baprs]-[A-Za-z0-9-]+",
+    r"ya29\.[A-Za-z0-9_-]+",
+    r"(?i)authorization:\s*bearer\s+[A-Za-z0-9._~+/=-]{16,}",
+    r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}",
     r"(?i)(api[_-]?key|token|password|secret)\s*=\s*['\"][^'\"]+['\"]",
 ]
 REQUIRED_VERIFIED_SECTIONS = [
@@ -244,8 +250,16 @@ def is_placeholder_value(value: str, *, allow_absence: bool = False) -> bool:
 
 def scan_secret_patterns(path: Path, text: str, errors: list[str]) -> None:
     for pattern in SECRET_PATTERNS:
-        if re.search(pattern, text):
+        for match in re.finditer(pattern, text):
+            if is_redacted_secret_match(match.group(0)):
+                continue
             errors.append(f"{path}: possible unredacted secret matching {pattern}")
+            break
+
+
+def is_redacted_secret_match(value: str) -> bool:
+    normalized = value.lower()
+    return "<redacted>" in normalized or "redacted" in normalized or "***" in value
 
 
 def has_resume_prompt_evidence(text: str) -> bool:

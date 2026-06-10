@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -24,6 +25,7 @@ from savepoint_contract import (  # noqa: E402
     marker_template_lines,
     validate_marker_semantics,
 )
+from validate_savepoint import scan_secret_patterns  # noqa: E402
 
 EXPECTED_MARKER_LINES = [
     "SAVEPOINT_V1",
@@ -498,13 +500,42 @@ class Validator:
                     f"{path.relative_to(ROOT)} must point to {expected_target!r}, "
                     f"got {actual_target!r}"
                 )
+            blob_target = self.read_git_link_blob(path)
+            if blob_target is not None and blob_target != expected_target:
+                self.fail(
+                    f"{path.relative_to(ROOT)} committed link target must be "
+                    f"{expected_target!r}, got {blob_target!r}"
+                )
 
     def read_link_target(self, path: Path) -> str:
         if path.is_symlink():
             return os.readlink(path).replace("\\", "/")
         if path.is_file():
-            return path.read_text(encoding="utf-8").strip().replace("\\", "/")
+            return path.read_text(encoding="utf-8").replace("\\", "/")
         return ""
+
+    def read_git_link_blob(self, path: Path) -> str | None:
+        relative = path.relative_to(ROOT).as_posix()
+        try:
+            mode = subprocess.check_output(
+                ["git", "ls-files", "-s", "--", relative],
+                cwd=ROOT,
+                text=True,
+                stderr=subprocess.DEVNULL,
+            ).split(maxsplit=1)[0]
+        except (subprocess.CalledProcessError, IndexError, FileNotFoundError):
+            return None
+        if mode != "120000":
+            return None
+        try:
+            return subprocess.check_output(
+                ["git", "cat-file", "-p", f":{relative}"],
+                cwd=ROOT,
+                text=True,
+                stderr=subprocess.DEVNULL,
+            ).replace("\\", "/")
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return None
 
     def validate_no_legacy_terms(self) -> None:
         for path in self.iter_text_paths(LEGACY_SCAN_ROOTS):
@@ -537,16 +568,17 @@ class Validator:
             self.require_exists(savepoint.parent / rel)
 
     def validate_secret_hygiene(self) -> None:
-        secret_patterns = [
-            r"sk-[A-Za-z0-9_-]{20,}",
-            r"ghp_[A-Za-z0-9_]{20,}",
-            r"(?i)(api[_-]?key|token|password|secret)\s*=\s*['\"][^'\"]+['\"]",
-        ]
         checked_roots = [
+            ROOT / ".github",
+            ROOT / ".agents",
+            ROOT / ".claude",
+            ROOT / "AGENTS.md",
+            ROOT / "CHANGELOG.md",
             ROOT / "README.md",
             ROOT / "SECURITY.md",
             ROOT / "evals",
             ROOT / "examples",
+            ROOT / "orchestrators",
             SKILL_DIR,
         ]
         for base in checked_roots:
@@ -555,9 +587,10 @@ class Validator:
                 if not path.is_file() or path.suffix not in {".json", ".md", ".txt", ".yaml"}:
                     continue
                 text = path.read_text(encoding="utf-8")
-                for pattern in secret_patterns:
-                    if re.search(pattern, text):
-                        self.fail(f"possible secret in {path.relative_to(ROOT)}")
+                secret_errors: list[str] = []
+                scan_secret_patterns(path.relative_to(ROOT), text, secret_errors)
+                for error in secret_errors:
+                    self.fail(error)
 
     def run(self, checks: set[str]) -> int:
         all_checks = {
