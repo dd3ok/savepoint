@@ -342,7 +342,7 @@ class Validator:
                     has_secret_positive = True
                 if category == "focus-argument":
                     has_focus_positive = True
-                if isinstance(query_text, str) and category == "create" and "3000" in query_text:
+                if query_id == "trigger-ko-file-short-01":
                     has_short_file_positive = True
                 if category == "load" and query.get("language") == "ko":
                     has_korean_load_positive = True
