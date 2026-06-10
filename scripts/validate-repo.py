@@ -105,6 +105,12 @@ REQUIRED_TRIGGER_CASES = {
         "language": "ko",
         "category": "load",
     },
+    "trigger-ko-text-direct-01": {
+        "query": "세이브포인트 텍스트로 만들어줘.",
+        "should_trigger": True,
+        "language": "ko",
+        "category": "text",
+    },
     "trigger-en-load-01": {
         "query": "Load the savepoint.",
         "should_trigger": True,
@@ -116,6 +122,12 @@ REQUIRED_TRIGGER_CASES = {
         "should_trigger": True,
         "language": "en",
         "category": "load",
+    },
+    "trigger-en-text-direct-01": {
+        "query": "Create a text savepoint.",
+        "should_trigger": True,
+        "language": "en",
+        "category": "text",
     },
     "trigger-en-resume-01": {
         "query": "Resume from the savepoint.",
@@ -312,11 +324,12 @@ class Validator:
         for phrase in [
             README_ALLOWED_HANDOFF_PHRASE,
             "[한국어 README](README.ko.md)",
-            "## Usage",
-            "Create a savepoint.",
-            "Create a copy-paste text savepoint.",
-            "Load the savepoint.",
-            "Resume from SAVEPOINT.md.",
+            "Create a savepoint",
+            "Create a copy-paste savepoint",
+            "Create a text savepoint",
+            "Create a no-file savepoint",
+            "Load the savepoint",
+            "Resume from SAVEPOINT.md",
             "skills/savepoint/references/context-packaging.md",
             "Text Savepoint",
             "File Savepoint",
@@ -330,10 +343,11 @@ class Validator:
             README_KO_ALLOWED_HANDOFF_PHRASE,
             "[English README](README.md)",
             "복붙용 세이브포인트 만들어줘",
+            "세이브포인트 텍스트로 만들어줘",
+            "파일 없이 세이브포인트 만들어줘",
             "세이브포인트 로드해줘",
             "세이브포인트 읽어줘",
             "세이브포인트 이어서 해줘",
-            "단발성 작업용으로 복붙용 세이브포인트 만들어줘",
         ]:
             if phrase not in readme_ko_text:
                 self.fail(f"README.ko.md missing entry: {phrase}")
