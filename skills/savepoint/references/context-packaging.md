@@ -4,7 +4,7 @@ Use this reference only when deciding what context belongs in a savepoint.
 
 ## Principle
 
-A verified `SAVEPOINT.md` is a recovery manifest. It is not:
+A file `SAVEPOINT.md` is a recovery manifest. It is not:
 
 - a chat transcript
 - a full project memory
@@ -12,17 +12,17 @@ A verified `SAVEPOINT.md` is a recovery manifest. It is not:
 - proof that code is correct
 - a session-rotation controller
 
-The goal is to give a fresh coding-agent session just enough verified context to continue safely.
+The goal is to give a fresh coding-agent session just enough checked context to continue safely.
 
 ## Context Budget
 
 Prefer the smallest recoverable package:
 
-1. Lightweight note: response text for simple/fast/short transfer; no repo recovery guarantee.
-2. Verified savepoint: one `.savepoint/SAVEPOINT.md` with disk/Git snapshot and validation state.
-3. Detail spillover: focused `details/*.md` files only when verified `SAVEPOINT.md` cannot stay both concise and recoverable.
+1. Text savepoint: response text for explicit copy-paste/no-file transfer; no repo recovery guarantee.
+2. File savepoint: one `.savepoint/SAVEPOINT.md` with disk/Git snapshot and validation state.
+3. Detail spillover: focused `details/*.md` files only when file `SAVEPOINT.md` cannot stay both concise and recoverable.
 
-For verified `SAVEPOINT.md`, aim for about 120 lines or 5000 characters. For lightweight notes, aim for about 20 lines or 1200 characters. Do not omit recovery-critical facts to fit the budget.
+For file `SAVEPOINT.md`, aim for about 120 lines or 5000 characters. For text savepoints, aim for about 20 lines or 1200 characters. Do not omit recovery-critical facts to fit the budget.
 
 Never preserve raw chat transcripts, full diffs, long logs, shell history, or broad background unless the user explicitly asks and the content is essential and redacted.
 
@@ -48,7 +48,7 @@ Do not copy whole state files into `SAVEPOINT.md`. Prefer path plus reason plus 
 
 Durable state files are not detail artifacts.
 
-`details/*.md` files are generated savepoint support artifacts used only for verified detail spillover. They answer focused recovery questions that do not fit in `SAVEPOINT.md`.
+`details/*.md` files are generated savepoint support artifacts used only for file detail spillover. They answer focused recovery questions that do not fit in `SAVEPOINT.md`.
 
 Do not set `DETAILS_READY: yes` because durable state files exist. `DETAILS_READY` only describes generated `details/*.md` artifacts referenced by `SAVEPOINT.md`.
 
@@ -96,7 +96,7 @@ Cut:
 
 Set `RESUME_READY: yes` only when:
 
-- `SAVEPOINT_MODE: verified`
+- `SAVEPOINT_MODE: file`
 - disk/Git state was recorded
 - changed files are listed
 - relevant instruction/state files are listed, marked `none`, or marked `not-read` with a reason

@@ -9,7 +9,7 @@
 
 ## Recovery Contract
 
-- Mode: `verified`; resume ready: `no`; blockers: test command still running
+- Mode: `file`; resume ready: `no`; blockers: test command still running
 - Trust order: current user instruction, working tree/Git state, repository instructions/state files, `SAVEPOINT.md`, referenced details, explicit prior chat.
 - If this savepoint conflicts with disk state, trust disk state and report the mismatch before editing.
 
@@ -89,7 +89,7 @@ Read /workspace/shop/.savepoint/SAVEPOINT.md and verify disk state, but do not r
 ```text
 SAVEPOINT_V1
 SAVEPOINT_PATH: /workspace/shop/.savepoint/SAVEPOINT.md
-SAVEPOINT_MODE: verified
+SAVEPOINT_MODE: file
 DETAILS_READY: not-needed
 PROMPT_READY: yes
 DISK_RECORDED: yes

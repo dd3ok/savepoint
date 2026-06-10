@@ -6,7 +6,7 @@ It is not a Skill. The `savepoint` skill prepares savepoint artifacts; this work
 
 ## Responsibilities
 
-- Skill `savepoint`: inspect repository state, create `.savepoint/SAVEPOINT.md` by default, optionally create focused detail artifacts as verified spillover, and print readiness markers.
+- Skill `savepoint`: inspect repository state, create `.savepoint/SAVEPOINT.md` by default, optionally create focused detail artifacts as file spillover, and print readiness markers.
 - External orchestrator: inspect the agent's status command, detect near-full context or compact events, wait for work completion, request savepoint generation, send the agent-specific session-reset command, and inject the resume prompt.
 
 ## Rotation Flow
@@ -34,7 +34,7 @@ It is not a Skill. The `savepoint` skill prepares savepoint artifacts; this work
    ```text
    SAVEPOINT_V1
    SAVEPOINT_PATH: <absolute path or not-written>
-   SAVEPOINT_MODE: lightweight|verified
+   SAVEPOINT_MODE: text|file
    DETAILS_READY: yes|no|not-needed
    PROMPT_READY: yes|no
    DISK_RECORDED: yes|no
@@ -82,7 +82,7 @@ Continue only if RESUME_READY is yes and the user asked for implementation.
 ## Safe Rotation Conditions
 
 - The previous session has completed or paused at a clean checkpoint.
-- `SAVEPOINT.md` exists or the orchestrator captured an explicit lightweight savepoint response.
+- `SAVEPOINT.md` exists or the orchestrator captured an explicit text savepoint response.
 - cwd, Git root, branch, short HEAD, `git status --short`, and `git diff --stat` were recorded in the savepoint.
 - Dirty and staged files were recorded.
 - Last validation command and result were recorded, or skipped validation has an explicit low-risk reason and next validation command.

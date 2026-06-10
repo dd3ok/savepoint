@@ -1,4 +1,4 @@
-# Eval: Create Verified Savepoint
+# Eval: Create File Savepoint
 
 ## Scenario
 
@@ -14,7 +14,7 @@ The user asks: "세이브포인트 만들어줘" after a small bug fix. One sour
 - Includes decisions, pitfalls, validation, and one smallest next step.
 - Embeds a `## Resume Prompt` section.
 - Prints the versioned marker block.
-- Sets `SAVEPOINT_MODE: verified`.
+- Sets `SAVEPOINT_MODE: file`.
 - Sets `DETAILS_READY: not-needed`.
 - Sets `RESUME_READY: yes` only if no blockers remain.
 

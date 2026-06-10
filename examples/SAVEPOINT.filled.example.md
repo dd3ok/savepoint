@@ -9,7 +9,7 @@
 
 ## Recovery Contract
 
-- Mode: `verified`; resume ready: `yes`; blockers: `none`
+- Mode: `file`; resume ready: `yes`; blockers: `none`
 - Trust order: current user instruction, working tree/Git state, repository instructions/state files, `SAVEPOINT.md`, referenced details, explicit prior chat.
 - If this savepoint conflicts with disk state, trust disk state and report the mismatch before editing.
 
@@ -94,7 +94,7 @@ Read /workspace/acme-dashboard/.savepoint/SAVEPOINT.md first. Verify cwd, Git ro
 ```text
 SAVEPOINT_V1
 SAVEPOINT_PATH: /workspace/acme-dashboard/.savepoint/SAVEPOINT.md
-SAVEPOINT_MODE: verified
+SAVEPOINT_MODE: file
 DETAILS_READY: not-needed
 PROMPT_READY: yes
 DISK_RECORDED: yes

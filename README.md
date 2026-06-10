@@ -2,43 +2,46 @@
 
 `savepoint` helps coding agents preserve continuation state for a later session.
 
-It provides one skill, `$savepoint`, with two user-facing paths:
+It provides one skill, `$savepoint`, with three user-facing actions:
 
 | Need | Say | Output |
 |---|---|---|
-| Lightweight transfer | `간단 세이브포인트 만들어줘`, `3000자 이내로 간단 세이브포인트 인계 요약해줘` | Response text by default |
-| Verified recovery | `SAVEPOINT.md 만들어줘`, `repo/Git 상태 포함해서 세이브포인트 만들어줘` | `.savepoint/SAVEPOINT.md` |
+| File Savepoint | `세이브포인트 만들어줘`, `세이브포인트 파일 만들어줘`, `SAVEPOINT.md 만들어줘` | `.savepoint/SAVEPOINT.md` |
+| Text Savepoint | `복붙용 세이브포인트 만들어줘`, `파일 없이 텍스트 세이브포인트 만들어줘` | Response text |
+| Load Savepoint | `세이브포인트 로드해줘`, `세이브포인트 읽고 이어서 해줘` | Verify current state, then continue when safe |
 
-Use **Lightweight** when you want the lowest token/tool cost and do not need repo recovery guarantees.
+Use **File Savepoint** by default when preserving coding-session state.
 
-Use **Verified** when a fresh coding agent must reconstruct current disk/Git state without prior chat context. Verified savepoints record changed files, validation status, risks, relevant instruction/state files, and one narrow next action.
+Use **Text Savepoint** only when you explicitly want copy-paste response text and do not need repo recovery guarantees.
+
+Use **Load Savepoint** when a fresh coding agent must read `.savepoint/SAVEPOINT.md`, compare it with current disk/Git state, and continue only when safe.
 
 This skill is not a generic conversation summarizer. It does not run `/new`, `/status`, control PTYs, rotate sessions, choose context thresholds, or edit application code while creating a savepoint.
 
 ## Default Artifact
 
-Verified savepoints write:
+File savepoints write:
 
 ```text
 .savepoint/SAVEPOINT.md
 ```
 
-Verified `SAVEPOINT.md` embeds `## Resume Prompt` and ends with a `SAVEPOINT_V1` marker block. The exact field schema lives in `skills/savepoint/schemas/savepoint-v1.schema.json`; marker semantics live in `skills/savepoint/references/savepoint-contract.md`.
+File `SAVEPOINT.md` embeds `## Resume Prompt` and ends with a `SAVEPOINT_V1` marker block. The exact field schema lives in `skills/savepoint/schemas/savepoint-v1.schema.json`; marker semantics live in `skills/savepoint/references/savepoint-contract.md`.
 
 ## Korean Usage
 
 ```text
-간단 세이브포인트 만들어줘. 다음 세션은 PR 리뷰만 하면 돼.
+복붙용 세이브포인트 만들어줘. 다음 세션은 PR 리뷰만 하면 돼.
 ```
 
-Creates a Lightweight note. It must not claim `RESUME_READY: yes`.
+Creates a Text Savepoint. It must not claim `RESUME_READY: yes`.
 By default it does not emit a marker block.
 
 ```text
 새 세션에서 안전하게 이어갈 SAVEPOINT.md 만들어줘. 현재 git 상태와 validation 결과 포함해줘.
 ```
 
-Creates a Verified savepoint at `.savepoint/SAVEPOINT.md`.
+Creates a File Savepoint at `.savepoint/SAVEPOINT.md`.
 
 ```text
 세이브포인트 읽고 현재 repo 상태 확인한 다음 이어서 작업해줘.
@@ -113,10 +116,10 @@ The helper defaults to dry-run. It writes files only with `--apply`; `--add-giti
 
 ## Examples
 
-- `examples/verified-bugfix/`: small verified savepoint.
-- `examples/verified-architecture/`: verified savepoint with focused `details/*.md` spillover.
-- `examples/lightweight-note/`: response-only lightweight savepoint note.
-- `examples/unsafe-savepoint/`: intentionally unsafe savepoint with `RESUME_READY: no`.
+- `examples/file-bugfix/`: small file savepoint.
+- `examples/file-architecture/`: file savepoint with focused `details/*.md` spillover.
+- `examples/text-note/`: response-only text savepoint note.
+- `examples/unsafe-savepoint/`: intentionally unsafe file savepoint with `RESUME_READY: no`.
 
 ## Evals
 
@@ -124,14 +127,14 @@ The helper defaults to dry-run. It writes files only with `--apply`; `--add-giti
 
 Core expectations:
 
-- Lightweight output is short and does not claim repo recovery.
-- Verified output writes `.savepoint/SAVEPOINT.md`.
-- Verified output embeds `## Resume Prompt`.
-- Large verified work uses focused detail artifacts instead of bloating `SAVEPOINT.md`.
+- Text output is short and does not claim repo recovery.
+- File output writes `.savepoint/SAVEPOINT.md`.
+- File output embeds `## Resume Prompt`.
+- Large file savepoints use focused detail artifacts instead of bloating `SAVEPOINT.md`.
 - Resume verifies disk state before implementation.
 - Disk state wins over savepoint text.
 - Secrets are redacted.
-- Verified `SAVEPOINT_V1` marker block is present and honest.
+- File `SAVEPOINT_V1` marker block is present and honest.
 - Unsafe state never emits `RESUME_READY: yes`.
 
 ## Validation
@@ -145,11 +148,11 @@ python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
 python3 scripts/check-install-helper.py
-python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/verified-bugfix/SAVEPOINT.md examples/verified-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
+python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
 git diff --check
 ```
 
-To validate a generated verified savepoint:
+To validate a generated file savepoint:
 
 ```bash
 python3 scripts/validate_savepoint.py .savepoint/SAVEPOINT.md
@@ -157,6 +160,6 @@ python3 scripts/validate_savepoint.py .savepoint/SAVEPOINT.md
 
 ## Orchestrators
 
-External PTY controllers may parse the final `SAVEPOINT_V1` block and decide whether to rotate sessions. This skill only prepares artifacts or lightweight notes; orchestration remains outside the skill.
+External PTY controllers may parse the final `SAVEPOINT_V1` block and decide whether to rotate sessions. This skill only prepares file artifacts or text notes; orchestration remains outside the skill.
 
 See `orchestrators/session-rotation.md`.

@@ -94,8 +94,8 @@ def validate_marker_semantics(values: dict[str, str]) -> list[str]:
     safe = values.get("RESUME_READY")
 
     if safe == "yes":
-        if mode != "verified":
-            errors.append("RESUME_READY=yes requires SAVEPOINT_MODE=verified")
+        if mode != "file":
+            errors.append("RESUME_READY=yes requires SAVEPOINT_MODE=file")
         for field in ["DISK_RECORDED", "VALIDATION_RECORDED", "REDACTION_CHECKED"]:
             if values.get(field) != "yes":
                 errors.append(f"RESUME_READY=yes requires {field}=yes")
@@ -104,20 +104,20 @@ def validate_marker_semantics(values: dict[str, str]) -> list[str]:
         if values.get("BLOCKERS") != "none":
             errors.append("RESUME_READY=yes requires BLOCKERS=none")
 
-    if mode == "lightweight":
+    if mode == "text":
         if detail_state != "not-needed":
-            errors.append("lightweight mode requires DETAILS_READY=not-needed")
-        if savepoint_ready and savepoint_ready != "not-written" and not _is_absolute_savepoint_path(savepoint_ready):
-            errors.append("lightweight mode requires SAVEPOINT_PATH to be not-written or an absolute path to SAVEPOINT.md")
-    elif mode == "verified":
+            errors.append("text mode requires DETAILS_READY=not-needed")
+        if savepoint_ready and savepoint_ready != "not-written":
+            errors.append("text mode requires SAVEPOINT_PATH=not-written")
+    elif mode == "file":
         if detail_state not in {"yes", "no", "not-needed"}:
-            errors.append("verified mode requires DETAILS_READY=yes, no, or not-needed")
+            errors.append("file mode requires DETAILS_READY=yes, no, or not-needed")
         elif safe == "yes" and detail_state == "no":
             errors.append("RESUME_READY=yes requires detail artifacts ready or not-needed")
         if savepoint_ready == "not-written":
-            errors.append("verified mode requires SAVEPOINT_PATH to point to SAVEPOINT.md")
+            errors.append("file mode requires SAVEPOINT_PATH to point to SAVEPOINT.md")
         elif savepoint_ready and not _is_absolute_savepoint_path(savepoint_ready):
-            errors.append("verified mode requires SAVEPOINT_PATH to be an absolute path to SAVEPOINT.md")
+            errors.append("file mode requires SAVEPOINT_PATH to be an absolute path to SAVEPOINT.md")
     elif mode:
         errors.append(f"unknown SAVEPOINT_MODE={mode}")
 

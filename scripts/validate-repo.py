@@ -30,7 +30,7 @@ from validate_savepoint import scan_secret_patterns  # noqa: E402
 EXPECTED_MARKER_LINES = [
     "SAVEPOINT_V1",
     "SAVEPOINT_PATH: <absolute path or not-written>",
-    "SAVEPOINT_MODE: lightweight|verified",
+    "SAVEPOINT_MODE: text|file",
     "DETAILS_READY: yes|no|not-needed",
     "PROMPT_READY: yes|no",
     "DISK_RECORDED: yes|no",
@@ -43,18 +43,18 @@ EXPECTED_MARKER_LINES = [
 SAVEPOINT_FILES = [
     SKILL_DIR / "references" / "savepoint-template.md",
     ROOT / "examples" / "SAVEPOINT.filled.example.md",
-    ROOT / "examples" / "verified-bugfix" / "SAVEPOINT.md",
-    ROOT / "examples" / "verified-architecture" / "SAVEPOINT.md",
+    ROOT / "examples" / "file-bugfix" / "SAVEPOINT.md",
+    ROOT / "examples" / "file-architecture" / "SAVEPOINT.md",
     ROOT / "examples" / "unsafe-savepoint" / "SAVEPOINT.md",
 ]
-LIGHTWEIGHT_EXAMPLE = ROOT / "examples" / "lightweight-note" / "RESPONSE.md"
+TEXT_EXAMPLE = ROOT / "examples" / "text-note" / "RESPONSE.md"
 CANONICAL_REFERENCES = [
     "context-packaging.md",
     "savepoint-contract.md",
     "savepoint-template.md",
 ]
 MARKER_ENUMS = {
-    "SAVEPOINT_MODE": {"lightweight", "verified"},
+    "SAVEPOINT_MODE": {"text", "file"},
     "DETAILS_READY": {"yes", "no", "not-needed"},
     "PROMPT_READY": {"yes", "no"},
     "DISK_RECORDED": {"yes", "no"},
@@ -189,13 +189,13 @@ class Validator:
         self.require_exists(SKILL_DIR / "schemas" / "savepoint-v1.schema.json")
 
         required_skill_phrases = [
-            "Lightweight note",
-            "Verified savepoint",
+            "Text savepoint",
+            "File savepoint",
             ".savepoint/SAVEPOINT.md",
             "SAVEPOINT_V1",
             "RESUME_READY: yes",
             "Aim for about 1200 characters unless the user requests more.",
-            "For lightweight notes, do not read references unless asked.",
+            "For text savepoints, do not read references unless asked.",
             "read `references/savepoint-contract.md` only for unclear marker",
             "Read `references/context-packaging.md` only for state-file/context-budget questions.",
             "For inspect-only requests, do not clean up by default.",
@@ -207,7 +207,7 @@ class Validator:
         contract_text = self.read(SKILL_DIR / "references" / "savepoint-contract.md")
         for phrase in [
             ".savepoint/SAVEPOINT.md",
-            "SAVEPOINT_MODE: lightweight|verified",
+            "SAVEPOINT_MODE: text|file",
             "Detail Spillover",
             "Do not delete tracked files",
             "Durable state files are not generated detail artifacts",
@@ -224,7 +224,7 @@ class Validator:
             "- Next-session focus:",
             "120 lines / 5000 characters",
             "Consult `references/savepoint-contract.md` only when marker semantics",
-            "SAVEPOINT_MODE: lightweight|verified",
+            "SAVEPOINT_MODE: text|file",
             "- `git diff --cached --name-status`:",
         ]:
             if phrase not in template_text:
@@ -238,9 +238,10 @@ class Validator:
             self.fail("README.md must start with '# Savepoint Skill'")
         for phrase in [
             "skills/savepoint/references/context-packaging.md",
-            "Lightweight",
-            "Verified",
-            "3000자 이내로 간단 세이브포인트 인계 요약해줘",
+            "Text Savepoint",
+            "File Savepoint",
+            "Load Savepoint",
+            "복붙용 세이브포인트 만들어줘",
             "evals/trigger-queries.json",
         ]:
             if phrase not in readme_text:
@@ -267,8 +268,8 @@ class Validator:
             "update",
             "inspect",
             "resume",
-            "lightweight",
-            "verified",
+            "text",
+            "file",
             ".savepoint/SAVEPOINT.md",
         ]:
             if phrase not in prompt:
@@ -385,10 +386,10 @@ class Validator:
             self.fail("schema-derived marker template lines must match repository marker block")
         if marker_allowed_values() != MARKER_ENUMS:
             self.fail("schema enum/const marker values must match validator constants")
-        if not validate_marker_semantics({"SAVEPOINT_MODE": "lightweight", "SAVEPOINT_PATH": "not-written", "DETAILS_READY": "not-needed", "RESUME_READY": "yes"}):
-            self.fail("lightweight savepoints must not be RESUME_READY=yes")
-        if validate_marker_semantics({"SAVEPOINT_MODE": "verified", "SAVEPOINT_PATH": "/tmp/SAVEPOINT.md", "DETAILS_READY": "no", "RESUME_READY": "no"}):
-            self.fail("unsafe verified savepoints may have pending detail artifacts")
+        if not validate_marker_semantics({"SAVEPOINT_MODE": "text", "SAVEPOINT_PATH": "not-written", "DETAILS_READY": "not-needed", "RESUME_READY": "yes"}):
+            self.fail("text savepoints must not be RESUME_READY=yes")
+        if validate_marker_semantics({"SAVEPOINT_MODE": "file", "SAVEPOINT_PATH": "/tmp/SAVEPOINT.md", "DETAILS_READY": "no", "RESUME_READY": "no"}):
+            self.fail("unsafe file savepoints may have pending detail artifacts")
 
     def extract_marker_block(self, text: str, path: Path) -> list[str] | None:
         pattern = re.compile(
@@ -465,7 +466,7 @@ class Validator:
                 self.fail(f"{path.relative_to(ROOT)} missing staged name-status field")
             if "- Next-session focus:" not in text:
                 self.fail(f"{path.relative_to(ROOT)} missing next-session focus field")
-            if "SAVEPOINT_MODE: verified" in text and "SAVEPOINT_PATH: /" in text:
+            if "SAVEPOINT_MODE: file" in text and "SAVEPOINT_PATH: /" in text:
                 marker_line = next((line for line in text.splitlines() if line.startswith("SAVEPOINT_PATH: /")), "")
                 if "savepoint-template.md" not in path.as_posix() and ".savepoint/SAVEPOINT.md" not in marker_line:
                     self.fail(f"{path.relative_to(ROOT)} should demonstrate the default .savepoint/SAVEPOINT.md path")
@@ -474,22 +475,22 @@ class Validator:
             if line not in contract:
                 self.fail(f"savepoint-contract.md missing trust order line: {line}")
 
-    def validate_lightweight_example(self) -> None:
-        text = self.read(LIGHTWEIGHT_EXAMPLE)
+    def validate_text_example(self) -> None:
+        text = self.read(TEXT_EXAMPLE)
         for phrase in [
-            "# Lightweight Savepoint Response",
+            "# Text Savepoint Response",
             "No files were written.",
             "## Transfer Note",
-            "This is not a verified savepoint.",
+            "This is not a file savepoint.",
             "Do not claim .savepoint/SAVEPOINT.md exists.",
         ]:
             if phrase not in text:
-                self.fail(f"{LIGHTWEIGHT_EXAMPLE.relative_to(ROOT)} missing lightweight example phrase: {phrase}")
+                self.fail(f"{TEXT_EXAMPLE.relative_to(ROOT)} missing text example phrase: {phrase}")
         if "SAVEPOINT_V1" in text:
-            self.fail(f"{LIGHTWEIGHT_EXAMPLE.relative_to(ROOT)} lightweight example should omit markers by default")
+            self.fail(f"{TEXT_EXAMPLE.relative_to(ROOT)} text example should omit markers by default")
         if ".savepoint/SAVEPOINT.md" in text:
             if "Do not claim .savepoint/SAVEPOINT.md exists." not in text:
-                self.fail(f"{LIGHTWEIGHT_EXAMPLE.relative_to(ROOT)} lightweight example must not point to a missing default savepoint file")
+                self.fail(f"{TEXT_EXAMPLE.relative_to(ROOT)} text example must not point to a missing default savepoint file")
 
     def validate_no_removed_prompt_file_reference(self) -> None:
         removed_prompt_file = "NEW_SESSION_PROMPT" + ".txt"
@@ -574,7 +575,7 @@ class Validator:
         return paths
 
     def validate_detail_artifacts(self) -> None:
-        savepoint = ROOT / "examples" / "verified-architecture" / "SAVEPOINT.md"
+        savepoint = ROOT / "examples" / "file-architecture" / "SAVEPOINT.md"
         text = self.read(savepoint)
         for rel in sorted(set(re.findall(r"`(details/[^`]+\.md)`", text))):
             self.require_exists(savepoint.parent / rel)
@@ -614,7 +615,7 @@ class Validator:
             "schema": self.validate_schema_contract,
             "markers": self.validate_marker_blocks,
             "examples": self.validate_savepoint_sections,
-            "lightweight-example": self.validate_lightweight_example,
+            "text-example": self.validate_text_example,
             "detail-artifacts": self.validate_detail_artifacts,
             "removed-prompt-file": self.validate_no_removed_prompt_file_reference,
             "skill-links": self.validate_skill_links,
@@ -643,7 +644,7 @@ def main() -> int:
         "--check",
         action="append",
         default=[],
-        help="Check to run: frontmatter, references, readme-format, agent-metadata, trigger-evals, schema, markers, examples, lightweight-example, detail-artifacts, removed-prompt-file, skill-links, removed-terms, secrets, all",
+        help="Check to run: frontmatter, references, readme-format, agent-metadata, trigger-evals, schema, markers, examples, text-example, detail-artifacts, removed-prompt-file, skill-links, removed-terms, secrets, all",
     )
     args = parser.parse_args()
     checks = set(args.check or ["all"])

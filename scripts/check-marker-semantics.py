@@ -17,7 +17,7 @@ from validate_savepoint import scan_secret_patterns, validate_savepoint  # noqa:
 
 
 BASE_VALUES = {
-    "SAVEPOINT_MODE": "verified",
+    "SAVEPOINT_MODE": "file",
     "SAVEPOINT_PATH": "/tmp/SAVEPOINT.md",
     "DETAILS_READY": "not-needed",
     "DISK_RECORDED": "yes",
@@ -40,10 +40,10 @@ def expect(name: str, values: dict[str, str], should_pass: bool) -> list[str]:
 
 def main() -> int:
     errors: list[str] = []
-    errors.extend(expect("safe verified", {}, True))
+    errors.extend(expect("safe file", {}, True))
     errors.extend(
         expect(
-            "unsafe verified with details not ready",
+            "unsafe file with details not ready",
             {
                 "DETAILS_READY": "no",
                 "RESUME_READY": "no",
@@ -53,16 +53,16 @@ def main() -> int:
     )
     errors.extend(
         expect(
-            "safe verified rejects details not ready",
+            "safe file rejects details not ready",
             {"DETAILS_READY": "no"},
             False,
         )
     )
     errors.extend(
         expect(
-            "lightweight is never resume ready",
+            "text is never resume ready",
             {
-                "SAVEPOINT_MODE": "lightweight",
+                "SAVEPOINT_MODE": "text",
                 "SAVEPOINT_PATH": "not-written",
                 "DETAILS_READY": "not-needed",
             },
@@ -71,24 +71,24 @@ def main() -> int:
     )
     errors.extend(
         expect(
-            "unsafe lightweight note is valid",
+            "unsafe text savepoint is valid",
             {
-                "SAVEPOINT_MODE": "lightweight",
+                "SAVEPOINT_MODE": "text",
                 "SAVEPOINT_PATH": "not-written",
                 "DETAILS_READY": "not-needed",
                 "DISK_RECORDED": "no",
                 "VALIDATION_RECORDED": "no",
                 "RESUME_READY": "no",
-                "BLOCKERS": "lightweight-note-no-repo-recovery",
+                "BLOCKERS": "text-savepoint-no-repo-recovery",
             },
             True,
         )
     )
     errors.extend(
         expect(
-            "lightweight rejects detail artifacts",
+            "text rejects detail artifacts",
             {
-                "SAVEPOINT_MODE": "lightweight",
+                "SAVEPOINT_MODE": "text",
                 "DETAILS_READY": "yes",
                 "RESUME_READY": "no",
             },
@@ -97,7 +97,7 @@ def main() -> int:
     )
     errors.extend(
         expect(
-            "verified requires written savepoint path",
+            "file requires written savepoint path",
             {"SAVEPOINT_PATH": "not-written", "RESUME_READY": "no"},
             False,
         )
@@ -119,12 +119,12 @@ def main() -> int:
     errors.extend(expect("safe requires no blockers", {"BLOCKERS": "waiting-for-user"}, False))
     errors.extend(expect("safe requires prompt ready", {"PROMPT_READY": "no"}, False))
     errors.extend(check_detail_reference_required())
-    errors.extend(check_lightweight_details_reference_rejected())
+    errors.extend(check_text_details_reference_rejected())
     errors.extend(check_prompt_ready_requires_prompt_evidence())
     errors.extend(check_embedded_resume_prompt_satisfies_prompt_ready())
     errors.extend(check_marker_must_be_final())
     errors.extend(check_marker_parser_accepts_crlf())
-    errors.extend(check_verified_path_must_exist_without_example_flag())
+    errors.extend(check_file_path_must_exist_without_example_flag())
     errors.extend(check_resume_ready_requires_substantive_values())
     errors.extend(check_resume_ready_rejects_none_for_required_value())
     errors.extend(check_resume_ready_allows_none_for_absence_value())
@@ -146,7 +146,7 @@ def main() -> int:
 def marker_block(**overrides: str) -> str:
     values = {
         "SAVEPOINT_PATH": "/tmp/SAVEPOINT.md",
-        "SAVEPOINT_MODE": "verified",
+        "SAVEPOINT_MODE": "file",
         "DETAILS_READY": "yes",
         "PROMPT_READY": "yes",
         "DISK_RECORDED": "yes",
@@ -211,26 +211,26 @@ def check_detail_reference_required() -> list[str]:
     return []
 
 
-def check_lightweight_details_reference_rejected() -> list[str]:
+def check_text_details_reference_rejected() -> list[str]:
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "SAVEPOINT.md"
         path.write_text(
             minimal_savepoint(
                 marker_block(
-                    SAVEPOINT_MODE="lightweight",
+                    SAVEPOINT_MODE="text",
                     DETAILS_READY="not-needed",
                     SAVEPOINT_PATH="not-written",
                     RESUME_READY="no",
-                    BLOCKERS="lightweight-note-no-repo-recovery",
+                    BLOCKERS="text-savepoint-no-repo-recovery",
                 ),
                 detail_reference="- `details/changed-files.md` - should not be here",
             ),
             encoding="utf-8",
         )
         errors = validate_savepoint(path, allow_example_paths=True)
-    if not any("lightweight mode must not reference detail artifacts" in error for error in errors):
+    if not any("text mode must not reference detail artifacts" in error for error in errors):
         return [
-            "lightweight savepoint with detail references should fail, "
+            "text savepoint with detail references should fail, "
             f"got errors={errors}"
         ]
     return []
@@ -308,12 +308,12 @@ def check_marker_must_be_final() -> list[str]:
 def check_marker_parser_accepts_crlf() -> list[str]:
     text = f"```text\n{marker_block()}\n```\n".replace("\n", "\r\n")
     values, errors = extract_marker_values(Path("crlf-savepoint.md"), text)
-    if errors or values.get("SAVEPOINT_MODE") != "verified":
+    if errors or values.get("SAVEPOINT_MODE") != "file":
         return [f"CRLF marker block should parse, got values={values}, errors={errors}"]
     return []
 
 
-def check_verified_path_must_exist_without_example_flag() -> list[str]:
+def check_file_path_must_exist_without_example_flag() -> list[str]:
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "SAVEPOINT.md"
         path.write_text(
@@ -358,7 +358,7 @@ def check_resume_ready_requires_substantive_values() -> list[str]:
 
 
 def check_resume_ready_rejects_none_for_required_value() -> list[str]:
-    source = ROOT / "examples" / "verified-bugfix" / "SAVEPOINT.md"
+    source = ROOT / "examples" / "file-bugfix" / "SAVEPOINT.md"
     text = source.read_text(encoding="utf-8")
     text = text.replace(
         "- Goal: Fix a null-token crash in login without changing the auth API.",
@@ -378,7 +378,7 @@ def check_resume_ready_rejects_none_for_required_value() -> list[str]:
 
 
 def check_resume_ready_allows_none_for_absence_value() -> list[str]:
-    source = ROOT / "examples" / "verified-bugfix" / "SAVEPOINT.md"
+    source = ROOT / "examples" / "file-bugfix" / "SAVEPOINT.md"
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "SAVEPOINT.md"
         path.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
@@ -395,7 +395,7 @@ def check_resume_ready_allows_none_for_absence_value() -> list[str]:
 
 
 def check_resume_ready_rejects_indented_required_labels() -> list[str]:
-    source = ROOT / "examples" / "verified-bugfix" / "SAVEPOINT.md"
+    source = ROOT / "examples" / "file-bugfix" / "SAVEPOINT.md"
     text = source.read_text(encoding="utf-8").replace(
         "- Goal: Fix a null-token crash in login without changing the auth API.",
         "  - Goal: Fix a null-token crash in login without changing the auth API.",
@@ -414,7 +414,7 @@ def check_resume_ready_rejects_indented_required_labels() -> list[str]:
 
 
 def check_resume_ready_rejects_unindented_continuation() -> list[str]:
-    source = ROOT / "examples" / "verified-bugfix" / "SAVEPOINT.md"
+    source = ROOT / "examples" / "file-bugfix" / "SAVEPOINT.md"
     text = source.read_text(encoding="utf-8").replace(
         "- Goal: Fix a null-token crash in login without changing the auth API.",
         "- Goal:\nMalformed unindented continuation accepted as a value.",
@@ -433,7 +433,7 @@ def check_resume_ready_rejects_unindented_continuation() -> list[str]:
 
 
 def check_resume_ready_accepts_indented_continuation() -> list[str]:
-    source = ROOT / "examples" / "verified-bugfix" / "SAVEPOINT.md"
+    source = ROOT / "examples" / "file-bugfix" / "SAVEPOINT.md"
     text = source.read_text(encoding="utf-8").replace(
         "- Goal: Fix a null-token crash in login without changing the auth API.",
         "- Goal:\n  Fix a null-token crash in login without changing the auth API.",

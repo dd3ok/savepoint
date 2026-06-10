@@ -1,8 +1,8 @@
 # Savepoint Manifest
 
-Verified budget: aim for about 120 lines / 5000 characters when possible. Use focused `details/*.md` spillover instead of bloating this file.
+File budget: aim for about 120 lines / 5000 characters when possible. Use focused `details/*.md` spillover instead of bloating this file.
 
-Use this skeleton for verified `.savepoint/SAVEPOINT.md`. Consult `references/savepoint-contract.md` only when marker semantics, `RESUME_READY`, cleanup, staleness, or detail-spillover rules are unclear.
+Use this skeleton for file `.savepoint/SAVEPOINT.md`. Consult `references/savepoint-contract.md` only when marker semantics, `RESUME_READY`, cleanup, staleness, or detail-spillover rules are unclear.
 
 ## TL;DR / Operational Summary
 
@@ -13,7 +13,7 @@ Use this skeleton for verified `.savepoint/SAVEPOINT.md`. Consult `references/sa
 
 ## Recovery Contract
 
-- Mode: `verified`; resume ready: `yes | no`; blockers: `none | <short reason>`
+- Mode: `file`; resume ready: `yes | no`; blockers: `none | <short reason>`
 - Trust order: current user instruction, working tree/Git state, repository instructions/state files, `SAVEPOINT.md`, referenced details, explicit prior chat.
 - If this savepoint conflicts with disk state, trust disk state and report the mismatch before editing.
 
@@ -102,7 +102,7 @@ Read this savepoint, verify cwd/Git state/status/diff, read listed instruction/s
 ```text
 SAVEPOINT_V1
 SAVEPOINT_PATH: <absolute path or not-written>
-SAVEPOINT_MODE: lightweight|verified
+SAVEPOINT_MODE: text|file
 DETAILS_READY: yes|no|not-needed
 PROMPT_READY: yes|no
 DISK_RECORDED: yes|no

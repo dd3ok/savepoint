@@ -1,6 +1,6 @@
 # Savepoint Skill Evals
 
-These are lightweight manual evals for the `savepoint` skill. They define expected behavior without requiring a test harness.
+These are small manual evals for the `savepoint` skill. They define expected behavior without requiring a test harness.
 
 Use them when changing `SKILL.md`, savepoint templates, markers, examples, or orchestrator guidance.
 
@@ -23,11 +23,11 @@ For each case:
 - `SAVEPOINT.md` embeds a `## Resume Prompt`.
 - Large work uses focused detail artifacts instead of forced 100-line compression.
 - Resume mode verifies disk state before implementation.
-- Verified safe adopted resume deletes only selected untracked generated savepoint artifacts.
+- File safe adopted resume deletes only selected untracked generated savepoint artifacts.
 - Disk state wins over savepoint text.
 - Stale branch, HEAD, status, required-file, detail-artifact, or validation drift is reported before implementation.
 - Relevant durable state files are listed by path and purpose instead of copied wholesale into `SAVEPOINT.md`.
 - Secrets are redacted.
 - `SKILL.md` frontmatter parses as valid YAML.
-- Verified artifacts have a final marker block that is present and honest; lightweight notes omit it by default.
+- File artifacts have a final marker block that is present and honest; text notes omit it by default.
 - `VALIDATION_RECORDED: yes` means validation status is recorded, including passed, failed, or intentionally skipped validation with an explicit low-risk reason and next command.

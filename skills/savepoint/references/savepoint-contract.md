@@ -9,7 +9,7 @@
 - Required `SAVEPOINT.md` Shape
 - Trust Order
 - Create Contract
-- Lightweight Contract
+- Text Contract
 - Resume Contract
 - Detail Spillover
 - Cleanup
@@ -20,10 +20,10 @@
 
 ## Defaults
 
-- Default verified artifact: `.savepoint/SAVEPOINT.md`.
-- Default lightweight output: response text unless the user asks to write a file.
-- Default prompt: an embedded `## Resume Prompt` section inside verified `SAVEPOINT.md`.
-- Create `details/*.md` only as internal spillover when verified `SAVEPOINT.md` cannot stay both concise and recoverable.
+- Default file artifact: `.savepoint/SAVEPOINT.md`.
+- Default text output: response text only.
+- Default prompt: an embedded `## Resume Prompt` section inside file `SAVEPOINT.md`.
+- Create `details/*.md` only as internal spillover when file `SAVEPOINT.md` cannot stay both concise and recoverable.
 
 Resume lookup order:
 
@@ -32,14 +32,14 @@ Resume lookup order:
 
 ## Paths
 
-- `lightweight`: short note for another agent; no disk/Git recovery guarantee and no marker by default.
-- `verified`: recoverable `SAVEPOINT.md` with disk/Git snapshot, validation state, secret-redaction state, and marker block.
+- `text`: short copy-paste note for another agent; no disk/Git recovery guarantee, no file, and no marker by default.
+- `file`: recoverable `SAVEPOINT.md` with disk/Git snapshot, validation state, secret-redaction state, and marker block.
 
-For generic "savepoint" or "세이브포인트 만들어줘" requests, default to verified.
+For generic "savepoint" or "세이브포인트 만들어줘" requests, default to file.
 
 ## Required `SAVEPOINT.md` Shape
 
-Verified `SAVEPOINT.md` must include:
+File `SAVEPOINT.md` must include:
 
 - `TL;DR / Operational Summary` with exactly one `Goal`, `Current state`, `Next action`, and `Blocker`.
 - recovery contract with schema version, mode, safety state, blockers, trust order, and disk-verification requirement.
@@ -73,7 +73,7 @@ If the savepoint conflicts with disk state, disk state wins. Report the mismatch
 
 ## Create Contract
 
-Before writing a verified savepoint, inspect and record:
+Before writing a file savepoint, inspect and record:
 
 - `pwd`
 - Git root if inside a repository
@@ -92,11 +92,11 @@ If the user provides extra argument text or a next-session focus, record it as `
 
 Read only enough files to verify recovery state. Prefer instruction files, relevant durable state files, existing savepoint artifacts, changed files, and files needed for the smallest next step.
 
-## Lightweight Contract
+## Text Contract
 
-Use lightweight output only when the user asks for a simple, fast, short, no-file, or low-token transfer. It may summarize current conversation/work context, but it must not claim repo recovery.
+Use text output only when the user explicitly asks for copy-paste, text, no-file, clipboard, in-response, or similar transfer. It may summarize current conversation/work context, but it must not claim repo recovery.
 
-Omit markers by default. If the user asks for machine-readable lightweight output, set `SAVEPOINT_MODE: lightweight`; `RESUME_READY` must be `no` unless the full verified contract was satisfied.
+Omit markers by default. If the user asks for machine-readable text output, set `SAVEPOINT_MODE: text`, `SAVEPOINT_PATH: not-written`, and `RESUME_READY: no`.
 
 ## Resume Contract
 
@@ -108,7 +108,7 @@ If `RESUME_READY` is not `yes`, stop after the report unless the user explicitly
 
 ## Detail Spillover
 
-Use focused `details/*.md` artifacts only when verified `SAVEPOINT.md` cannot stay both concise and recoverable. Each detail artifact must answer one recovery question.
+Use focused `details/*.md` artifacts only when file `SAVEPOINT.md` cannot stay both concise and recoverable. Each detail artifact must answer one recovery question.
 
 Durable state files are not generated detail artifacts. They must not affect `DETAILS_READY`, which only describes generated `details/*.md` artifacts referenced by `SAVEPOINT.md`.
 
@@ -153,12 +153,12 @@ Before setting `REDACTION_CHECKED: yes`, scan generated savepoint artifacts, not
 
 ## Marker Block
 
-Verified artifacts must use exactly one final marker block. Lightweight notes include it only when the user asks for machine-readable output:
+File artifacts must use exactly one final marker block. Text notes include it only when the user asks for machine-readable output:
 
 ```text
 SAVEPOINT_V1
 SAVEPOINT_PATH: <absolute path or not-written>
-SAVEPOINT_MODE: lightweight|verified
+SAVEPOINT_MODE: text|file
 DETAILS_READY: yes|no|not-needed
 PROMPT_READY: yes|no
 DISK_RECORDED: yes|no
@@ -172,12 +172,12 @@ END_SAVEPOINT_V1
 Field meanings:
 
 - `SAVEPOINT_PATH`: absolute path to `SAVEPOINT.md`, or `not-written`.
-- `SAVEPOINT_MODE`: `lightweight` or `verified`.
-- `DETAILS_READY`: `yes` for verified detail spillover artifacts, `not-needed` when there are no generated details, otherwise `no`.
-- `PROMPT_READY`: `yes` when verified `SAVEPOINT.md` contains an embedded `## Resume Prompt`, or a lightweight response provides a transfer note with a usable next-step prompt.
+- `SAVEPOINT_MODE`: `text` or `file`.
+- `DETAILS_READY`: `yes` for file detail spillover artifacts, `not-needed` when there are no generated details, otherwise `no`.
+- `PROMPT_READY`: `yes` when file `SAVEPOINT.md` contains an embedded `## Resume Prompt`, or a text response provides a transfer note with a usable next-step prompt.
 - `DISK_RECORDED`: `yes` only when the required repo snapshot was recorded.
 - `VALIDATION_RECORDED`: `yes` when validation status is recorded, including passed, failed, or intentionally skipped validation with reason and next command.
-- `REDACTION_CHECKED`: `yes` only after checking generated artifacts or lightweight output for secrets.
+- `REDACTION_CHECKED`: `yes` only after checking generated artifacts or text output for secrets.
 - `RESUME_READY`: `yes` only when the safe resume checklist passes.
 - `BLOCKERS`: `none` or a short reason preventing safe continuation.
 
@@ -187,7 +187,7 @@ The marker value schema lives at `schemas/savepoint-v1.schema.json`.
 
 Set `RESUME_READY: yes` only when all are true:
 
-- `SAVEPOINT_MODE: verified`.
+- `SAVEPOINT_MODE: file`.
 - no command, build, test, dev server, approval prompt, or session-control action is still running.
 - repo snapshot is recorded.
 - dirty, staged, changed, created, deleted, moved, and inspected files are listed or explicitly marked `none`.

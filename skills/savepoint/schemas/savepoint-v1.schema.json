@@ -21,7 +21,7 @@
       "minLength": 1
     },
     "SAVEPOINT_MODE": {
-      "enum": ["lightweight", "verified"]
+      "enum": ["text", "file"]
     },
     "DETAILS_READY": {
       "enum": ["yes", "no", "not-needed"]

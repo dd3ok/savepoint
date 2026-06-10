@@ -1,8 +1,8 @@
-# Eval: Verified Detail Spillover Savepoint
+# Eval: File Detail Spillover Savepoint
 
 ## Scenario
 
-The user asks for a savepoint after a multi-file architecture change. The rationale, validation notes, and pitfalls are too large for a verified `SAVEPOINT.md`.
+The user asks for a savepoint after a multi-file architecture change. The rationale, validation notes, and pitfalls are too large for a file `SAVEPOINT.md`.
 
 ## Expected
 
@@ -11,7 +11,7 @@ The user asks for a savepoint after a multi-file architecture change. The ration
 - Creates focused `details/*.md` artifacts only when needed, relative to `SAVEPOINT.md`.
 - Lists each detail artifact in the required reading order with a short purpose.
 - Keeps raw transcripts, long logs, and full diffs out of artifacts.
-- Sets `SAVEPOINT_MODE: verified`.
+- Sets `SAVEPOINT_MODE: file`.
 - Sets `DETAILS_READY: yes` only after verifying every referenced artifact exists.
 
 ## Failure Conditions

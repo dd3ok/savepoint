@@ -35,7 +35,7 @@ SECRET_PATTERNS = [
     r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}",
     r"(?i)(api[_-]?key|token|password|secret)\s*=\s*['\"][^'\"]+['\"]",
 ]
-REQUIRED_VERIFIED_SECTIONS = [
+REQUIRED_FILE_SECTIONS = [
     "## TL;DR / Operational Summary",
     "## Recovery Contract",
     "## Session Target",
@@ -129,7 +129,7 @@ def validate_savepoint(path: Path, allow_example_paths: bool = False) -> list[st
     resume_ready = values.get("RESUME_READY")
     if marker_path and marker_path != "not-written":
         marker_file = Path(marker_path)
-        if mode == "verified" and not allow_example_paths:
+        if mode == "file" and not allow_example_paths:
             if not marker_file.exists():
                 errors.append(f"{path}: SAVEPOINT_PATH does not exist: {marker_path}")
             elif marker_file.resolve() != path.resolve():
@@ -139,7 +139,7 @@ def validate_savepoint(path: Path, allow_example_paths: bool = False) -> list[st
     if values.get("REDACTION_CHECKED") == "yes" and "Secret redaction check:" not in text:
         errors.append(f"{path}: REDACTION_CHECKED=yes requires a Secret redaction check entry")
     if (
-        values.get("SAVEPOINT_MODE") == "verified"
+        values.get("SAVEPOINT_MODE") == "file"
         and values.get("PROMPT_READY") == "yes"
         and not has_resume_prompt_evidence(text)
     ):
@@ -148,35 +148,35 @@ def validate_savepoint(path: Path, allow_example_paths: bool = False) -> list[st
             "an embedded ## Resume Prompt"
         )
 
-    if mode == "verified":
-        for section in REQUIRED_VERIFIED_SECTIONS:
+    if mode == "file":
+        for section in REQUIRED_FILE_SECTIONS:
             if section not in text:
-                errors.append(f"{path}: verified savepoint missing section {section}")
+                errors.append(f"{path}: file savepoint missing section {section}")
         for field in REQUIRED_REPO_SNAPSHOT_FIELDS:
             if field not in text:
-                errors.append(f"{path}: verified savepoint missing repo snapshot field {field}")
+                errors.append(f"{path}: file savepoint missing repo snapshot field {field}")
         for field in REQUIRED_CHANGE_FIELDS:
             if field not in text:
-                errors.append(f"{path}: verified savepoint missing change field {field}")
+                errors.append(f"{path}: file savepoint missing change field {field}")
         for field in REQUIRED_VALIDATION_FIELDS:
             if field not in text:
-                errors.append(f"{path}: verified savepoint missing validation field {field}")
+                errors.append(f"{path}: file savepoint missing validation field {field}")
         for field in REQUIRED_RECOVERY_NOTE_FIELDS:
             if field not in text:
-                errors.append(f"{path}: verified savepoint missing recovery note field {field}")
+                errors.append(f"{path}: file savepoint missing recovery note field {field}")
         if resume_ready == "yes":
             errors.extend(validate_resume_ready_content(path, text))
 
     details = values.get("DETAILS_READY")
     detail_refs = sorted(set(re.findall(r"`(details/[^`]+\.md)`", text)))
-    if mode == "lightweight" and detail_refs:
-        errors.append(f"{path}: lightweight mode must not reference detail artifacts")
-    if mode == "verified":
+    if mode == "text" and detail_refs:
+        errors.append(f"{path}: text mode must not reference detail artifacts")
+    if mode == "file":
         if details == "not-needed" and detail_refs:
             errors.append(f"{path}: DETAILS_READY=not-needed must not reference detail artifacts")
         if details == "yes" and not detail_refs:
             errors.append(
-                f"{path}: verified mode with DETAILS_READY=yes "
+                f"{path}: file mode with DETAILS_READY=yes "
                 "requires at least one detail artifact reference"
             )
         for rel in detail_refs:

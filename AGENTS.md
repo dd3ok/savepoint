@@ -18,7 +18,7 @@ This repository contains session-continuity assets for coding agents such as Cod
 
 ## Mandatory Skill Usage
 
-- Use `$savepoint` when the user asks to create, update, inspect, or resume `.savepoint/SAVEPOINT.md`, a lightweight transfer note, or Korean equivalents such as `세이브포인트 만들어줘` / `세이브포인트 읽고 이어서 해줘`.
+- Use `$savepoint` when the user asks to create, update, load, inspect, or resume `.savepoint/SAVEPOINT.md`, a text/copy-paste savepoint, or Korean equivalents such as `세이브포인트 만들어줘` / `세이브포인트 읽고 이어서 해줘`.
 - Do not use this skill for ordinary summaries, README writing, AGENTS.md authoring alone, code implementation, `/new`, `/status`, PTY control, or session-rotation policy.
 - When updating the skill contract, template, marker semantics, examples, or evals, run the validation commands below before committing.
 
@@ -33,6 +33,6 @@ python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
 python3 scripts/check-install-helper.py
-python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/verified-bugfix/SAVEPOINT.md examples/verified-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
+python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
 git diff --check
 ```

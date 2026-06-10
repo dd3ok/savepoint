@@ -3,7 +3,7 @@
   "version": 1,
   "queries": [
     {
-      "id": "trigger-ko-verified-01",
+      "id": "trigger-ko-file-01",
       "query": "컨텍스트가 다 찼어. 지금까지 작업을 다음 세션에서 이어갈 세이브포인트로 만들어줘.",
       "should_trigger": true,
       "language": "ko",
@@ -19,12 +19,12 @@
       "rationale": "Korean request to resume from a savepoint artifact."
     },
     {
-      "id": "trigger-ko-lightweight-01",
-      "query": "간단 세이브포인트 만들어줘. 다음 세션은 PR 리뷰만 하면 돼. 3000자 이내로.",
+      "id": "trigger-ko-text-01",
+      "query": "복붙용 세이브포인트 만들어줘. 다음 세션은 PR 리뷰만 하면 돼. 3000자 이내로.",
       "should_trigger": true,
       "language": "ko",
-      "category": "lightweight",
-      "rationale": "Korean lightweight savepoint request."
+      "category": "text",
+      "rationale": "Korean text savepoint request."
     },
     {
       "id": "trigger-ko-state-files-01",
@@ -32,7 +32,7 @@
       "should_trigger": true,
       "language": "ko",
       "category": "state-files",
-      "rationale": "Verified savepoint request with durable state files."
+      "rationale": "File savepoint request with durable state files."
     },
     {
       "id": "trigger-en-create-01",
@@ -40,15 +40,15 @@
       "should_trigger": true,
       "language": "en",
       "category": "create",
-      "rationale": "Explicit verified savepoint artifact request."
+      "rationale": "Explicit file savepoint artifact request."
     },
     {
-      "id": "trigger-en-lightweight-01",
-      "query": "Give me a lightweight savepoint note for another agent, no files, under 3000 characters.",
+      "id": "trigger-en-text-01",
+      "query": "Create a copy-paste text savepoint for another agent, no files, under 3000 characters.",
       "should_trigger": true,
       "language": "en",
-      "category": "lightweight",
-      "rationale": "Explicit lightweight savepoint request."
+      "category": "text",
+      "rationale": "Explicit text savepoint request."
     },
     {
       "id": "trigger-en-update-01",
@@ -68,7 +68,7 @@
     },
     {
       "id": "trigger-en-long-context-01",
-      "query": "We're about to lose context. Save only the verified recovery state, changed files, validation status, and next action for the next coding session.",
+      "query": "We're about to lose context. Save only the file recovery state, changed files, validation status, and next action for the next coding session.",
       "should_trigger": true,
       "language": "en",
       "category": "context-loss",

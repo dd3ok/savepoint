@@ -10,7 +10,7 @@ sys.argv = [
     "--check",
     "examples",
     "--check",
-    "lightweight-example",
+    "text-example",
     "--check",
     "detail-artifacts",
     "--check",
