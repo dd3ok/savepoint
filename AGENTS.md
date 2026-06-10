@@ -32,4 +32,7 @@ python3 scripts/check-marker-block.py
 python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
+python3 scripts/check-install-helper.py
+python3 scripts/validate_handoff.py examples/HANDOFF.filled.example.md examples/compact-bugfix/HANDOFF.md examples/expanded-architecture/HANDOFF.md examples/unsafe-handoff/HANDOFF.md
+git diff --check
 ```

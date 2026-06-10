@@ -98,6 +98,32 @@ ln -s ../../skills/new-session-handoff .agents/skills/new-session-handoff
 ln -s ../../skills/new-session-handoff .claude/skills/new-session-handoff
 ```
 
+### Safe Install Helper
+
+설치 helper는 기본적으로 dry-run이며, `--apply` 없이는 파일을 쓰지 않습니다. 초기 버전은 copy 설치만 지원하고 agent config 파일은 수정하지 않습니다.
+
+Preview:
+
+```bash
+python3 scripts/install.py --target claude --scope user
+```
+
+Apply:
+
+```bash
+python3 scripts/install.py --target claude --scope user --apply
+```
+
+Repo-scoped Codex install with optional handoff artifact ignore entry:
+
+```bash
+python3 scripts/install.py --target codex --scope repo --apply --add-gitignore
+```
+
+`--add-gitignore`는 repo scope에서만 사용할 수 있으며, `--apply`가 있을 때만 `.new-session-handoff/`를 `.gitignore`에 추가합니다.
+
+Repo scope는 기존 repository root만 대상으로 하며, 잘못 입력한 `--repo-root` 경로를 새로 만들지 않습니다.
+
 ## Examples
 
 - `examples/compact-bugfix/`: 작은 버그 수정을 위한 컴팩트 핸드오프.
@@ -137,6 +163,9 @@ python3 scripts/check-marker-block.py
 python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
+python3 scripts/check-install-helper.py
+python3 scripts/validate_handoff.py examples/HANDOFF.filled.example.md examples/compact-bugfix/HANDOFF.md examples/expanded-architecture/HANDOFF.md examples/unsafe-handoff/HANDOFF.md
+git diff --check
 ```
 
 생성된 핸드오프 아티팩트를 직접 유효성 검사하려면:
