@@ -262,6 +262,8 @@ class Validator:
         for name in CANONICAL_REFERENCES:
             self.require_exists(SKILL_DIR / "references" / name)
         self.require_exists(SKILL_DIR / "schemas" / "savepoint-v1.schema.json")
+        self.require_exists(SKILL_DIR / "scripts" / "create_savepoint_stub.py")
+        self.require_exists(ROOT / "scripts" / "create_savepoint_stub.py")
 
         required_skill_phrases = [
             "Text savepoint",
@@ -277,6 +279,7 @@ class Validator:
             "Read `references/context-packaging.md` only for state-file/context-budget questions.",
             "For inspect-only requests, do not clean up by default.",
             "Continue only when the user requested continuation and `RESUME_READY` is `yes`",
+            "scripts/create_savepoint_stub.py",
         ]
         for phrase in required_skill_phrases:
             if phrase not in skill_text:
@@ -334,6 +337,7 @@ class Validator:
             "Resume a coding-agent session after the context window is full.",
             "Hand off repo/Git state from one Codex or Claude session to another.",
             "Create a copy-paste Text Savepoint for a quick one-off transfer.",
+            "Token-efficient draft helper: `skills/savepoint/scripts/create_savepoint_stub.py`",
             "skills/savepoint/references/context-packaging.md",
             "Text Savepoint",
             "File Savepoint",
@@ -354,6 +358,7 @@ class Validator:
             "컨텍스트가 다 찬 코딩 에이전트 세션을 새 세션에서 이어가기",
             "Codex 또는 Claude 세션 간 저장소/Git 상태 인계하기",
             "단발성 작업을 위한 복붙용 Text Savepoint 만들기",
+            "토큰 절약형 초안 helper: `skills/savepoint/scripts/create_savepoint_stub.py`",
             "복붙용 세이브포인트 만들어줘",
             "세이브포인트 텍스트로 만들어줘",
             "파일 없이 세이브포인트 만들어줘",
