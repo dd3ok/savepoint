@@ -21,8 +21,8 @@ from savepoint_contract import (
 
 
 DEFAULT_OUTPUT = Path(".savepoint") / "SAVEPOINT.md"
-MAX_COMMAND_LINES = 40
-MAX_COMMAND_CHARS = 4000
+MAX_COMMAND_LINES = 10
+MAX_COMMAND_CHARS = 600
 MAX_FOCUS_CHARS = 500
 
 
@@ -137,7 +137,7 @@ def build_savepoint(output_path: Path, focus: str | None) -> str:
     focus_text = compact_focus(focus)
     return f"""# Savepoint Manifest
 
-Generated deterministic draft. Replace placeholder values before marking resume-ready.
+Generated deterministic draft. Fill placeholders before `RESUME_READY: yes`.
 
 ## TL;DR / Operational Summary
 
@@ -149,8 +149,8 @@ Generated deterministic draft. Replace placeholder values before marking resume-
 ## Recovery Contract
 
 - Mode: `file`; resume ready: `no`; blockers: `draft-needs-agent-review`
-- Trust order: current user instruction, working tree/Git state, repository instructions/state files, `SAVEPOINT.md`, referenced details, explicit prior chat.
-- If this savepoint conflicts with disk state, trust disk state and report the mismatch before editing.
+- Trust order: user instruction, working tree/Git state, repo instructions/state files, `SAVEPOINT.md`, details, explicit prior chat.
+- If this savepoint conflicts with disk state, trust disk state and report mismatch before editing.
 
 ## Session Target
 
@@ -172,25 +172,20 @@ Generated deterministic draft. Replace placeholder values before marking resume-
 - `git diff --cached --stat`: {snapshot["cached_stat"]}
 - `git diff --cached --name-status`: {snapshot["cached_name_status"]}
 - Latest commit: {snapshot["latest_commit"]}
-- Instruction files loaded: not-read by stub; agent must update after reading applicable instructions
+- Instruction files loaded: not-read by stub; update after reading instructions
 - Durable state files checked:
-  - none - not-read - stub only; agent must update if relevant
+  - none - not-read - update if relevant
 - Expected drift from captured state: none
 
 ## Required Reading
 
-Read in this order:
-
 1. Instruction files: <agent-fill>
-2. Durable state files:
-   - none - update if relevant
+2. Durable state files: none - update if relevant
 3. `SAVEPOINT.md` sections: all
-4. Focused detail artifacts, if any:
-   - none
-5. Files to inspect first:
-   - <agent-fill>
+4. Focused detail artifacts, if any: none
+5. Files to inspect first: <agent-fill>
 
-Relative detail artifact paths are resolved against the directory containing this `SAVEPOINT.md`.
+Relative detail paths resolve from this file.
 
 ## Change Manifest
 
@@ -212,10 +207,10 @@ Relative detail artifact paths are resolved against the directory containing thi
 
 ## Validation Manifest
 
-- Savepoint validation: not-run; run `python3 scripts/validate_savepoint.py {output_path}` after final edits
-- Project validation: not-run; agent must record relevant project checks or skipped reason
-- Skipped checks / next validation: final artifact review and validation are still required
-- Secret redaction check: not-run; scan generated savepoint artifacts before setting `REDACTION_CHECKED: yes`
+- Savepoint validation: not-run; run `python3 scripts/validate_savepoint.py {output_path}`
+- Project validation: not-run; record checks or skipped reason
+- Skipped checks / next validation: final artifact review and validation required
+- Secret redaction check: not-run; scan generated artifacts before `REDACTION_CHECKED: yes`
 - Observable completion criteria: <agent-fill>
 
 ## Remaining Work

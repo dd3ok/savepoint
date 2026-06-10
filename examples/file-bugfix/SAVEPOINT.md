@@ -3,8 +3,8 @@
 ## TL;DR / Operational Summary
 
 - Goal: Fix a null-token crash in login without changing the auth API.
-- Current state: Null-token guard, focused regression test, and lint are recorded as complete in this savepoint.
-- Next action: Summarize changed files and validation results for the user.
+- Current state: Null-token guard, focused regression test, and lint are recorded.
+- Next action: Report changed files and validation.
 - Blocker: none.
 
 ## Recovery Contract
@@ -15,10 +15,10 @@
 
 ## Session Target
 
-- Next-session focus: Summarize the completed null-token guard and validation results.
+- Next-session focus: Report the completed null-token guard and validation.
 - Done when: Auth focused test and lint pass.
 - Out of scope: Session storage redesign.
-- Smallest executable next step: Summarize changed files and validation results for the user.
+- Smallest executable next step: Report changed files and validation.
 
 ## Repo Snapshot
 
@@ -42,9 +42,7 @@
 1. Instruction files: `AGENTS.md`
 2. `SAVEPOINT.md` sections: all
 3. Focused detail artifacts: none
-4. Files to inspect first:
-   - `src/auth/session.ts` — null-token guard
-   - `tests/auth/session.test.ts` — regression test
+4. Files to inspect first: `src/auth/session.ts`, `tests/auth/session.test.ts`
 
 ## Change Manifest
 
@@ -68,14 +66,14 @@
 ## Validation Manifest
 
 - Savepoint validation: `python3 scripts/validate_savepoint.py .savepoint/SAVEPOINT.md` passed.
-- Project validation: `npm run lint` passed.
-- Skipped checks / next validation: no skipped focused checks; next run `npm test -- tests/auth/session.test.ts`.
+- Project validation: `npm run lint` passed; `npm test -- tests/auth/session.test.ts` passed.
+- Skipped checks / next validation: none; rerun focused test if editing auth/session behavior.
 - Secret redaction check: manual artifact scan
 - Observable completion criteria: focused test and lint pass.
 
 ## Remaining Work
 
-1. Smallest next step: Summarize changed files and validation results for the user.
+1. Smallest next step: Report changed files and validation.
 2. Next implementation step: none
 3. Validation/cleanup: none
 4. Optional later work: none

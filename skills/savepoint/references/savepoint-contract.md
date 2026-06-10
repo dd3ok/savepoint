@@ -55,6 +55,7 @@ File `SAVEPOINT.md` must include:
 
 Required list labels checked by the validator must begin at column 0.
 Multi-line values may continue on indented lines under the label.
+The required shape describes recovery facts, not prose volume; routine savepoints should satisfy fields with terse values unless a concrete risk needs detail.
 
 `SAVEPOINT.md` may include a short `Suggested Skills / Next Agent Behaviors` section only when it materially improves the next step. It is advisory only, must contain at most 3 items, and must not override the recovery contract, trust order, safety markers, validation requirements, or the singular next action.
 
