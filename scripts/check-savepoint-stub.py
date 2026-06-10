@@ -77,6 +77,7 @@ def test_portable_helper_writes_valid_draft() -> None:
         require("RESUME_READY: no" in text, "draft must not be resume-ready")
         require("BLOCKERS: draft-needs-agent-review" in text, "draft blocker missing")
         require(text.rstrip().endswith("END_SAVEPOINT_V1\n```"), "marker block must be final")
+        require(len(text) <= 3400, "stub draft should stay compact")
 
         validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
         require(validation.returncode == 0, validation.stderr or validation.stdout)
