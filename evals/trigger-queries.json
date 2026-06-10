@@ -12,11 +12,11 @@
     },
     {
       "id": "trigger-ko-resume-01",
-      "query": "세이브포인트 읽고 현재 repo 상태 확인한 다음 이어서 작업해줘.",
+      "query": "세이브포인트 이어서 해줘.",
       "should_trigger": true,
       "language": "ko",
       "category": "resume",
-      "rationale": "Korean request to resume from a savepoint artifact."
+      "rationale": "Korean request to resume from an existing savepoint artifact."
     },
     {
       "id": "trigger-ko-load-01",
@@ -25,6 +25,14 @@
       "language": "ko",
       "category": "load",
       "rationale": "Korean load-only savepoint request should verify and report state without continuing unless requested and safe."
+    },
+    {
+      "id": "trigger-ko-read-01",
+      "query": "세이브포인트 읽어줘.",
+      "should_trigger": true,
+      "language": "ko",
+      "category": "load",
+      "rationale": "Korean read-only savepoint request should verify and report state without continuing unless requested and safe."
     },
     {
       "id": "trigger-ko-text-01",
@@ -97,6 +105,22 @@
       "language": "en",
       "category": "load",
       "rationale": "Load-only request should inspect the savepoint and report before any continuation."
+    },
+    {
+      "id": "trigger-en-read-01",
+      "query": "Read the savepoint.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "load",
+      "rationale": "Read-only request should inspect the savepoint and report before any continuation."
+    },
+    {
+      "id": "trigger-en-resume-01",
+      "query": "Resume from the savepoint.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "resume",
+      "rationale": "English request to resume from an existing savepoint artifact."
     },
     {
       "id": "trigger-en-long-context-01",
@@ -217,6 +241,14 @@
       "language": "en",
       "category": "database-savepoint",
       "rationale": "SQL SAVEPOINT transfer wording is still a database explanation request, not a coding-session transfer."
+    },
+    {
+      "id": "no-trigger-ko-sql-savepoint-01",
+      "query": "Postgres SAVEPOINT 명령 설명해줘.",
+      "should_trigger": false,
+      "language": "ko",
+      "category": "database-savepoint",
+      "rationale": "Korean SQL SAVEPOINT explanation request is unrelated to coding-session savepoints."
     },
     {
       "id": "no-trigger-ko-next-session-generic-01",

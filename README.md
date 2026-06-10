@@ -2,17 +2,21 @@
 
 `savepoint` helps coding agents preserve continuation state for a later session.
 
+A savepoint is a handoff-style checkpoint for when a coding agent's context is full and a new session needs to continue from saved repo state; canonical commands and files use `savepoint` and `.savepoint/SAVEPOINT.md`.
+
+[한국어 README](README.ko.md)
+
 It provides one skill, `$savepoint`, with three user-facing workflows:
 
 | Need | Say | Output |
 |---|---|---|
-| File Savepoint | `세이브포인트 만들어줘`, `세이브포인트 파일 만들어줘`, `SAVEPOINT.md 만들어줘` | `.savepoint/SAVEPOINT.md` |
-| Text Savepoint | `복붙용 세이브포인트 만들어줘`, `파일 없이 텍스트 세이브포인트 만들어줘` | Response text |
-| Load / Resume Savepoint | `세이브포인트 로드해줘`, `세이브포인트 읽고 이어서 해줘` | Verify/report state; continue only if requested and safe |
+| File Savepoint | `Create a savepoint`, `Create a savepoint file`, `Create SAVEPOINT.md` | `.savepoint/SAVEPOINT.md` |
+| Text Savepoint | `Create a copy-paste text savepoint`, `Create a no-file text savepoint` | Response text |
+| Load / Resume Savepoint | `Load the savepoint`, `Read the savepoint`, `Resume from the savepoint`, `Resume from SAVEPOINT.md` | Verify/report state; continue only if requested and safe |
 
-Use **File Savepoint** by default when preserving coding-session state.
+Use **File Savepoint** by default when preserving coding-session state, and use **Load / Resume Savepoint** by default when starting from an existing `.savepoint/SAVEPOINT.md`.
 
-Use **Text Savepoint** only when you explicitly want copy-paste response text and do not need repo recovery guarantees.
+Use **Text Savepoint** for one-off or simple copy-paste transfer only when you explicitly do not need a file or repo recovery guarantees.
 
 Use **Load / Resume Savepoint** when a fresh coding agent must read `.savepoint/SAVEPOINT.md`, compare it with current disk/Git state, and continue only if requested and safe.
 
@@ -28,26 +32,26 @@ File savepoints write:
 
 File `SAVEPOINT.md` embeds `## Resume Prompt` and ends with a `SAVEPOINT_V1` marker block. The exact field schema lives in `skills/savepoint/schemas/savepoint-v1.schema.json`; marker semantics live in `skills/savepoint/references/savepoint-contract.md`.
 
-## Korean Usage
+## Usage
 
 ```text
-복붙용 세이브포인트 만들어줘. 다음 세션은 PR 리뷰만 하면 돼.
-```
-
-Creates a Text Savepoint. It must not claim `RESUME_READY: yes`.
-By default it does not emit a marker block.
-
-```text
-새 세션에서 안전하게 이어갈 SAVEPOINT.md 만들어줘. 현재 git 상태와 validation 결과 포함해줘.
+Create a savepoint.
 ```
 
 Creates a File Savepoint at `.savepoint/SAVEPOINT.md`.
 
 ```text
-세이브포인트 읽고 현재 repo 상태 확인한 다음 이어서 작업해줘.
+Load the savepoint.
+Resume from SAVEPOINT.md.
 ```
 
-Reads the savepoint, compares it with current disk/Git state, reports consistency or drift, and continues only when safe and explicitly requested.
+Reads the file savepoint, verifies current disk/Git state, reports consistency or drift, and continues only when safe and explicitly requested.
+
+```text
+Create a copy-paste text savepoint.
+```
+
+Creates a Text Savepoint for one-off or simple transfer without file recovery guarantees.
 
 ## Canonical Contract
 
@@ -67,6 +71,7 @@ The root-level `examples/`, `evals/`, `orchestrators/`, and `scripts/validate-re
 ```text
 .
 ├── README.md
+├── README.ko.md
 ├── SECURITY.md
 ├── AGENTS.md
 ├── skills/

@@ -2,7 +2,7 @@
 
 ## Scenario
 
-The user asks: "세이브포인트 읽고 이어서 해줘." The savepoint is safe, consistent with disk state, generated at `.savepoint/SAVEPOINT.md`, and selected for continuation rather than inspect-only loading.
+The user asks: "세이브포인트 이어서 해줘." The savepoint is safe, consistent with disk state, generated at `.savepoint/SAVEPOINT.md`, and selected for continuation rather than inspect-only loading.
 
 ## Expected
 

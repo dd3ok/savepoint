@@ -1,6 +1,6 @@
 ---
 name: savepoint
-description: "Use when explicitly transferring coding-session state: create/update/load/inspect/resume .savepoint/SAVEPOINT.md by default, or create an explicit text/copy-paste savepoint. Not for SQL SAVEPOINT, ordinary summaries, docs, code changes, /new, /status, PTY, or session rotation. Triggers include 세이브포인트 만들어줘, 세이브포인트 읽고 이어서 해줘."
+description: "Use when explicitly transferring coding-session state: create/update/load/inspect/resume .savepoint/SAVEPOINT.md by default, or create an explicit text/copy-paste savepoint. Not for SQL SAVEPOINT, ordinary summaries, docs, code changes, /new, /status, PTY, or session rotation. Triggers include 세이브포인트 만들어줘, 세이브포인트 로드해줘, 세이브포인트 읽어줘, 세이브포인트 이어서 해줘."
 ---
 
 # Savepoint
