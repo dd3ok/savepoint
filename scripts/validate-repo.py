@@ -54,14 +54,14 @@ CANONICAL_REFERENCES = [
     "savepoint-template.md",
 ]
 README_ALLOWED_HANDOFF_PHRASE = (
-    "A savepoint is a handoff-style checkpoint for when a coding agent's context is full and a new "
-    "session needs to continue from saved repo state; canonical commands and files use `savepoint` "
-    "and `.savepoint/SAVEPOINT.md`."
+    "`savepoint` is a text/file checkpoint skill for coding agents such as Codex and Claude. It helps "
+    "hand off full-context coding sessions, preserve repo/Git state, and safely resume from "
+    "`.savepoint/SAVEPOINT.md` without relying on prior chat context."
 )
 README_KO_ALLOWED_HANDOFF_PHRASE = (
-    "Savepoint는 코딩 에이전트의 컨텍스트가 다 찼을 때 새 세션이 저장된 저장소/Git 상태에서 "
-    "이어갈 수 있게 하는 핸드오프 스타일 체크포인트입니다. 정식 이름과 파일 경로는 `savepoint`와 "
-    "`.savepoint/SAVEPOINT.md`입니다."
+    "`savepoint`는 Codex, Claude 같은 코딩 에이전트를 위한 text/file 체크포인트 스킬입니다. "
+    "컨텍스트가 다 찬 세션을 새 세션으로 인계하고, 저장소/Git 상태를 보존해 "
+    "`.savepoint/SAVEPOINT.md`에서 안전하게 이어갈 수 있게 합니다."
 )
 MARKER_ENUMS = {
     "SAVEPOINT_MODE": {"text", "file"},
@@ -330,6 +330,10 @@ class Validator:
             "Create a no-file savepoint",
             "Load the savepoint",
             "Resume from SAVEPOINT.md",
+            "## Use Cases",
+            "Resume a coding-agent session after the context window is full.",
+            "Hand off repo/Git state from one Codex or Claude session to another.",
+            "Create a copy-paste Text Savepoint for a quick one-off transfer.",
             "skills/savepoint/references/context-packaging.md",
             "Text Savepoint",
             "File Savepoint",
@@ -346,6 +350,10 @@ class Validator:
             "File Savepoint",
             "Load / Resume Savepoint",
             "Text Savepoint",
+            "## 사용 사례",
+            "컨텍스트가 다 찬 코딩 에이전트 세션을 새 세션에서 이어가기",
+            "Codex 또는 Claude 세션 간 저장소/Git 상태 인계하기",
+            "단발성 작업을 위한 복붙용 Text Savepoint 만들기",
             "복붙용 세이브포인트 만들어줘",
             "세이브포인트 텍스트로 만들어줘",
             "파일 없이 세이브포인트 만들어줘",
