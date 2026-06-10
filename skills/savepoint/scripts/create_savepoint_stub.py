@@ -21,8 +21,8 @@ from savepoint_contract import (
 
 
 DEFAULT_OUTPUT = Path(".savepoint") / "SAVEPOINT.md"
-MAX_COMMAND_LINES = 40
-MAX_COMMAND_CHARS = 4000
+MAX_COMMAND_LINES = 10
+MAX_COMMAND_CHARS = 600
 MAX_FOCUS_CHARS = 500
 
 
@@ -137,7 +137,7 @@ def build_savepoint(output_path: Path, focus: str | None) -> str:
     focus_text = compact_focus(focus)
     return f"""# Savepoint Manifest
 
-Generated deterministic draft. Replace placeholders before RESUME_READY=yes.
+Generated deterministic draft. Fill placeholders before `RESUME_READY: yes`.
 
 ## TL;DR / Operational Summary
 
@@ -184,6 +184,8 @@ Generated deterministic draft. Replace placeholders before RESUME_READY=yes.
 3. `SAVEPOINT.md` sections: all
 4. Focused detail artifacts, if any: none
 5. Files to inspect first: <agent-fill>
+
+Relative detail paths resolve from this file.
 
 ## Change Manifest
 

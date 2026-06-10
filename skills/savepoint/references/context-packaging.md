@@ -27,8 +27,8 @@ Prefer the smallest recoverable package:
    - If more is needed, create a file savepoint instead.
 2. File savepoint:
    - One `.savepoint/SAVEPOINT.md` with disk/Git snapshot and validation state.
-   - Aim for 1200-1800 tokens for routine clean-state or single-change recoverable transfers.
-   - Default to 1500-2500 tokens when active changes, validation detail, or multi-file state need more context.
+   - Aim for 1200-1800 tokens for clean-state, completed, or low-risk single-change recoverable transfers.
+   - Default to 1500-2500 tokens when changes are multi-file, unresolved, risky, validation-heavy, or the working tree state is not straightforward.
    - Allow 2500-4000 tokens for complex ops, DB, PR, CI, or multi-agent work.
    - If top-level `SAVEPOINT.md` would exceed about 4000 tokens, move focused details to `details/*.md`.
 3. Detail spillover:

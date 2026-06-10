@@ -1,6 +1,6 @@
 # Savepoint Manifest
 
-File budget: aim for 1200-1800 tokens for routine clean-state or single-change transfers; default to 1500-2500 tokens when active changes or risk need detail; allow 2500-4000 tokens for complex ops, DB, PR, CI, or multi-agent work. If the top-level file would exceed about 4000 tokens, move focused details to `details/*.md` instead of bloating this file.
+File budget: aim for 1200-1800 tokens for clean-state, completed, or low-risk single-change transfers; default to 1500-2500 tokens when changes are multi-file, unresolved, risky, validation-heavy, or the working tree state is not straightforward; allow 2500-4000 tokens for complex ops, DB, PR, CI, or multi-agent work. If the top-level file would exceed about 4000 tokens, move focused details to `details/*.md` instead of bloating this file.
 
 Use this skeleton for file `.savepoint/SAVEPOINT.md`. Consult `references/savepoint-contract.md` only when marker semantics, `RESUME_READY`, cleanup, staleness, or detail-spillover rules are unclear.
 
