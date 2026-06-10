@@ -9,7 +9,7 @@ Preserve coding-session state for continuation without prior chat context.
 
 ## Paths
 
-- **Text savepoint**: response-only, copy-paste transfer for `복붙용`, `텍스트`, `파일 없이`, `붙여넣을`, `copy-paste`, `text`, `no-file`, `no files`, `in-response`, or `in the response` requests. Aim for about 1200 characters unless the user requests more. Do not claim repo recovery, disk/Git verification, `SAVEPOINT.md`, or `RESUME_READY: yes`. Omit markers by default; if markers are requested, use `SAVEPOINT_MODE: text`.
+- **Text savepoint**: response-only, copy-paste transfer for `복붙용`, `텍스트`, `파일 없이`, `붙여넣을`, `copy-paste`, `text`, `no-file`, `no files`, `in-response`, or `in the response` requests. Aim for about 800-1200 tokens for coding handoffs, shorter for simple text savepoints; if safe transfer needs much more than about 2000 tokens, compress or ask before writing a file. Do not claim repo recovery, disk/Git verification, `SAVEPOINT.md`, or `RESUME_READY: yes`. Omit markers by default; if markers are requested, use `SAVEPOINT_MODE: text`.
 - **File savepoint**: default path for generic savepoint requests, `SAVEPOINT.md`, repo/Git state, validation, safe resume, or recovery by another coding agent. Write `.savepoint/SAVEPOINT.md`, include `## Resume Prompt`, and exactly one `SAVEPOINT_V1` block with `SAVEPOINT_MODE: file`.
 
 ## Rules

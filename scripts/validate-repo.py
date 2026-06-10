@@ -271,7 +271,7 @@ class Validator:
             ".savepoint/SAVEPOINT.md",
             "SAVEPOINT_V1",
             "RESUME_READY: yes",
-            "Aim for about 1200 characters unless the user requests more.",
+            "Aim for about 800-1200 tokens for coding handoffs",
             "`no-file`, `no files`, `in-response`, or `in the response`",
             "## Load / Resume",
             "For text savepoints, do not read references unless asked.",
@@ -306,7 +306,7 @@ class Validator:
         for phrase in [
             "## Resume Prompt",
             "- Next-session focus:",
-            "120 lines / 5000 characters",
+            "1500-2500 tokens",
             "Consult `references/savepoint-contract.md` only when marker semantics",
             "SAVEPOINT_MODE: text|file",
             "continue only if the user requested continuation and RESUME_READY is yes",
@@ -314,6 +314,20 @@ class Validator:
         ]:
             if phrase not in template_text:
                 self.fail(f"savepoint-template.md missing phrase: {phrase}")
+        context_text = self.read(SKILL_DIR / "references" / "context-packaging.md")
+        for phrase in [
+            "Budget guidance is advisory, not a validation rule.",
+            "Path selection happens before budget",
+            "explicit text/copy-paste/no-file/no files/in-response/in the response requests remain text",
+            "800-1200 tokens",
+            "much more than about 2000 tokens",
+            "1500-2500 tokens",
+            "up to about 4000 tokens",
+            "Use `details/*.md` only for focused spillover after compression.",
+            "The top-level `SAVEPOINT.md` must still contain required markers",
+        ]:
+            if phrase not in context_text:
+                self.fail(f"context-packaging.md missing phrase: {phrase}")
 
     def validate_readme_format(self) -> None:
         readme_text = self.read(ROOT / "README.md")
