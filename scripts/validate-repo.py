@@ -242,6 +242,33 @@ class Validator:
             if phrase not in readme_text:
                 self.fail(f"README.md missing entry: {phrase}")
 
+    def validate_agent_metadata(self) -> None:
+        path = SKILL_DIR / "agents" / "openai.yaml"
+        text = self.read(path)
+        for phrase in [
+            'display_name: "Savepoint"',
+            "short_description:",
+            "default_prompt:",
+        ]:
+            if phrase not in text:
+                self.fail(f"agents/openai.yaml missing phrase: {phrase}")
+        match = re.search(r'(?m)^\s*default_prompt:\s*"([^"]+)"\s*$', text)
+        if not match:
+            self.fail("agents/openai.yaml default_prompt must be a quoted single-line string")
+            return
+        prompt = match.group(1)
+        for phrase in [
+            "$savepoint",
+            "create",
+            "inspect",
+            "resume",
+            "lightweight",
+            "verified",
+            ".savepoint/SAVEPOINT.md",
+        ]:
+            if phrase not in prompt:
+                self.fail(f"agents/openai.yaml default_prompt missing phrase: {phrase}")
+
     def validate_trigger_evals(self) -> None:
         path = ROOT / "evals" / "trigger-queries.json"
         self.require_exists(path)
@@ -597,6 +624,7 @@ class Validator:
             "frontmatter": self.validate_frontmatter,
             "references": self.validate_references,
             "readme-format": self.validate_readme_format,
+            "agent-metadata": self.validate_agent_metadata,
             "trigger-evals": self.validate_trigger_evals,
             "schema": self.validate_schema_contract,
             "markers": self.validate_marker_blocks,
@@ -630,7 +658,7 @@ def main() -> int:
         "--check",
         action="append",
         default=[],
-        help="Check to run: frontmatter, references, readme-format, trigger-evals, schema, markers, examples, lightweight-example, detail-artifacts, legacy-prompt-file, skill-links, legacy-terms, secrets, all",
+        help="Check to run: frontmatter, references, readme-format, agent-metadata, trigger-evals, schema, markers, examples, lightweight-example, detail-artifacts, legacy-prompt-file, skill-links, legacy-terms, secrets, all",
     )
     args = parser.parse_args()
     checks = set(args.check or ["all"])
