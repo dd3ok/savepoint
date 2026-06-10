@@ -342,6 +342,10 @@ class Validator:
         for phrase in [
             README_KO_ALLOWED_HANDOFF_PHRASE,
             "[English README](README.md)",
+            "세이브포인트 만들어줘",
+            "File Savepoint",
+            "Load / Resume Savepoint",
+            "Text Savepoint",
             "복붙용 세이브포인트 만들어줘",
             "세이브포인트 텍스트로 만들어줘",
             "파일 없이 세이브포인트 만들어줘",
