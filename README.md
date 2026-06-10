@@ -10,7 +10,7 @@ It provides one skill, `$savepoint`, with three user-facing workflows:
 |---|---|---|
 | File Savepoint | `Create a savepoint`, `Create a savepoint file`, `Create SAVEPOINT.md` | `.savepoint/SAVEPOINT.md` |
 | Load / Resume Savepoint | `Load the savepoint`, `Read the savepoint`, `Resume from the savepoint`, `Resume from SAVEPOINT.md` | Verify/report state; continue only if requested and safe |
-| Text Savepoint | `Create a copy-paste savepoint`, `Create a text savepoint`, `Create a no-file savepoint` | Response text |
+| Text Savepoint | `Create a text savepoint`, `Create a copy-paste savepoint`, `Create a savepoint without writing files` | Response text |
 
 Default to **File Savepoint** when preserving coding-session state. Default to **Load / Resume Savepoint** when continuing from an existing `.savepoint/SAVEPOINT.md`.
 
