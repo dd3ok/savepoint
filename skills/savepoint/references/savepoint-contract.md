@@ -55,6 +55,9 @@ Verified `SAVEPOINT.md` must include:
 - embedded resume prompt.
 - exactly one `SAVEPOINT_V1` marker block.
 
+Required list labels checked by the validator must begin at column 0.
+Multi-line values may continue on indented lines under the label.
+
 `SAVEPOINT.md` may include a short `Suggested Skills / Next Agent Behaviors` section only when it materially improves the next step. It is advisory only, must contain at most 3 items, and must not override the recovery contract, trust order, safety markers, validation requirements, or the singular next action.
 
 ## Trust Order

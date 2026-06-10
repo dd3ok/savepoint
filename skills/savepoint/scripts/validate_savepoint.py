@@ -228,6 +228,8 @@ def field_value_or_block(text: str, label: str) -> str:
                 break
             if following.startswith("## "):
                 break
+            if following.strip() and not following.startswith((" ", "\t")):
+                break
             if following.strip():
                 value_parts.append(following.strip())
         return "\n".join(value_parts).strip()
@@ -258,8 +260,18 @@ def scan_secret_patterns(path: Path, text: str, errors: list[str]) -> None:
 
 
 def is_redacted_secret_match(value: str) -> bool:
-    normalized = value.lower()
-    return "<redacted>" in normalized or "redacted" in normalized or "***" in value
+    placeholders = {"<redacted>", "redacted", "***"}
+    stripped = value.strip()
+    assignment = re.fullmatch(
+        r"(?i)(api[_-]?key|token|password|secret)\s*=\s*(['\"])(.*?)\2",
+        stripped,
+    )
+    if assignment:
+        return assignment.group(3).strip().lower() in placeholders
+    bearer = re.fullmatch(r"(?i)authorization:\s*bearer\s+(.+)", stripped)
+    if bearer:
+        return bearer.group(1).strip().lower() in placeholders
+    return stripped.lower() in placeholders
 
 
 def has_resume_prompt_evidence(text: str) -> bool:

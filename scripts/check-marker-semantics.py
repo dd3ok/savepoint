@@ -127,8 +127,12 @@ def main() -> int:
     errors.extend(check_resume_ready_requires_substantive_values())
     errors.extend(check_resume_ready_rejects_none_for_required_value())
     errors.extend(check_resume_ready_allows_none_for_absence_value())
+    errors.extend(check_resume_ready_rejects_indented_required_labels())
+    errors.extend(check_resume_ready_rejects_unindented_continuation())
+    errors.extend(check_resume_ready_accepts_indented_continuation())
     errors.extend(check_secret_scanner_flags_common_tokens())
     errors.extend(check_secret_scanner_allows_redacted_values())
+    errors.extend(check_secret_scanner_rejects_non_placeholder_redacted_values())
 
     if errors:
         for error in errors:
@@ -381,6 +385,63 @@ def check_resume_ready_allows_none_for_absence_value() -> list[str]:
     return []
 
 
+def check_resume_ready_rejects_indented_required_labels() -> list[str]:
+    source = ROOT / "examples" / "verified-bugfix" / "SAVEPOINT.md"
+    text = source.read_text(encoding="utf-8").replace(
+        "- Goal: Fix a null-token crash in login without changing the auth API.",
+        "  - Goal: Fix a null-token crash in login without changing the auth API.",
+        1,
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "SAVEPOINT.md"
+        path.write_text(text, encoding="utf-8")
+        errors = validate_savepoint(path, allow_example_paths=True)
+    if not any("substantive value for - Goal:" in error for error in errors):
+        return [
+            "RESUME_READY=yes should reject indented required labels, "
+            f"got errors={errors}"
+        ]
+    return []
+
+
+def check_resume_ready_rejects_unindented_continuation() -> list[str]:
+    source = ROOT / "examples" / "verified-bugfix" / "SAVEPOINT.md"
+    text = source.read_text(encoding="utf-8").replace(
+        "- Goal: Fix a null-token crash in login without changing the auth API.",
+        "- Goal:\nMalformed unindented continuation accepted as a value.",
+        1,
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "SAVEPOINT.md"
+        path.write_text(text, encoding="utf-8")
+        errors = validate_savepoint(path, allow_example_paths=True)
+    if not any("substantive value for - Goal:" in error for error in errors):
+        return [
+            "RESUME_READY=yes should reject unindented continuation after an empty label, "
+            f"got errors={errors}"
+        ]
+    return []
+
+
+def check_resume_ready_accepts_indented_continuation() -> list[str]:
+    source = ROOT / "examples" / "verified-bugfix" / "SAVEPOINT.md"
+    text = source.read_text(encoding="utf-8").replace(
+        "- Goal: Fix a null-token crash in login without changing the auth API.",
+        "- Goal:\n  Fix a null-token crash in login without changing the auth API.",
+        1,
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "SAVEPOINT.md"
+        path.write_text(text, encoding="utf-8")
+        errors = validate_savepoint(path, allow_example_paths=True)
+    if any("substantive value for - Goal:" in error for error in errors):
+        return [
+            "RESUME_READY=yes should accept indented continuation after a required label, "
+            f"got errors={errors}"
+        ]
+    return []
+
+
 def check_secret_scanner_flags_common_tokens() -> list[str]:
     samples = {
         "github fine-grained token": "github_pat_" + "A" * 24,
@@ -406,6 +467,8 @@ def check_secret_scanner_allows_redacted_values() -> list[str]:
         [
             'token="<REDACTED>"',
             "api_key='<REDACTED>'",
+            'password="REDACTED"',
+            'secret="***"',
             "Authorization: Bearer <REDACTED>",
         ]
     )
@@ -414,6 +477,20 @@ def check_secret_scanner_allows_redacted_values() -> list[str]:
     if errors:
         return [f"redacted secret placeholders should not be flagged, got errors={errors}"]
     return []
+
+
+def check_secret_scanner_rejects_non_placeholder_redacted_values() -> list[str]:
+    samples = {
+        "redacted substring": 'token="redacted-but-not-placeholder"',
+        "starred substring": 'password="abc***def"',
+    }
+    errors: list[str] = []
+    for name, text in samples.items():
+        scan_errors: list[str] = []
+        scan_secret_patterns(Path(f"{name}.txt"), text, scan_errors)
+        if not scan_errors:
+            errors.append(f"secret scanner should reject non-placeholder {name}")
+    return errors
 
 
 if __name__ == "__main__":
