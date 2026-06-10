@@ -23,6 +23,7 @@ from savepoint_contract import (
 DEFAULT_OUTPUT = Path(".savepoint") / "SAVEPOINT.md"
 MAX_COMMAND_LINES = 40
 MAX_COMMAND_CHARS = 4000
+MAX_FOCUS_CHARS = 500
 
 
 def run_command(args: list[str], cwd: Path) -> tuple[int, str]:
@@ -34,8 +35,8 @@ def run_command(args: list[str], cwd: Path) -> tuple[int, str]:
             capture_output=True,
             check=False,
         )
-    except FileNotFoundError:
-        return 127, "command not found"
+    except OSError as exc:
+        return 127, f"command failed: {exc}"
     output = result.stdout.strip() or result.stderr.strip()
     return result.returncode, output
 
@@ -68,9 +69,21 @@ def compact_output(output: str | None) -> str:
 
 def find_git_root(cwd: Path) -> Path | None:
     output = git_output(["rev-parse", "--show-toplevel"], cwd)
-    if output is None:
+    if not output:
         return None
-    return Path(output.splitlines()[0]).resolve()
+    lines = output.splitlines()
+    return Path(lines[0]).resolve() if lines else None
+
+
+def compact_focus(value: str | None) -> str:
+    if not value:
+        return "<agent-fill>"
+    text = " ".join(value.split())
+    if not text:
+        return "<agent-fill>"
+    if len(text) > MAX_FOCUS_CHARS:
+        return f"{text[:MAX_FOCUS_CHARS]}..."
+    return text
 
 
 def current_branch(git_cwd: Path) -> str:
@@ -121,7 +134,7 @@ def build_savepoint(output_path: Path, focus: str | None) -> str:
     cwd = Path.cwd()
     snapshot = collect_snapshot(cwd)
     disk_recorded = snapshot["git_root"] != "not a git repository"
-    focus_text = focus or "<agent-fill>"
+    focus_text = compact_focus(focus)
     return f"""# Savepoint Manifest
 
 Generated deterministic draft. Replace placeholder values before marking resume-ready.
@@ -244,6 +257,12 @@ def main(argv: list[str] | None = None) -> int:
     output_path = args.output
     if not output_path.is_absolute():
         output_path = Path.cwd() / output_path
+    if output_path.exists() and output_path.is_dir():
+        print(f"error: output path is a directory: {output_path}", file=sys.stderr)
+        return 1
+    if output_path.name != "SAVEPOINT.md":
+        print("error: output path must end with SAVEPOINT.md", file=sys.stderr)
+        return 1
     if output_path.exists() and not args.force:
         print(f"error: output already exists: {output_path}", file=sys.stderr)
         print("Re-run with --force to overwrite.", file=sys.stderr)

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import subprocess
 import sys
 import tempfile
@@ -13,6 +14,9 @@ ROOT = Path(__file__).resolve().parents[1]
 STUB_HELPER = ROOT / "skills" / "savepoint" / "scripts" / "create_savepoint_stub.py"
 ROOT_HELPER = ROOT / "scripts" / "create_savepoint_stub.py"
 VALIDATOR = ROOT / "skills" / "savepoint" / "scripts" / "validate_savepoint.py"
+HELPER_SCRIPT_DIR = STUB_HELPER.parent
+if str(HELPER_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(HELPER_SCRIPT_DIR))
 
 
 def fail(message: str) -> None:
@@ -27,6 +31,14 @@ def require(condition: bool, message: str) -> None:
 
 def run(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(args, cwd=cwd, text=True, capture_output=True, check=False)
+
+
+def load_stub_helper():
+    spec = importlib.util.spec_from_file_location("create_savepoint_stub_under_test", STUB_HELPER)
+    require(spec is not None and spec.loader is not None, "could not load stub helper module")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def git(repo: Path, *args: str) -> None:
@@ -94,11 +106,92 @@ def test_root_wrapper_forwards_to_portable_helper() -> None:
         require(validation.returncode == 0, validation.stderr or validation.stdout)
 
 
+def test_run_command_handles_oserror() -> None:
+    helper = load_stub_helper()
+    original_run = helper.subprocess.run
+
+    def raise_oserror(*_args, **_kwargs):
+        raise PermissionError("blocked")
+
+    try:
+        helper.subprocess.run = raise_oserror
+        code, output = helper.run_command(["git", "--version"], ROOT)
+    finally:
+        helper.subprocess.run = original_run
+    require(code == 127, "OSError should be reported as command failure")
+    require("command failed:" in output, "OSError failure message missing")
+
+
+def test_find_git_root_handles_empty_output() -> None:
+    helper = load_stub_helper()
+    helper.git_output = lambda _args, _cwd: ""
+    require(helper.find_git_root(ROOT) is None, "empty git root output should not crash")
+
+
+def test_refuses_directory_output() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = repo / ".savepoint"
+        output.mkdir()
+        result = run([sys.executable, str(STUB_HELPER), "--output", str(output), "--force"], repo)
+        require(result.returncode != 0, "stub helper wrote to directory output")
+        require("output path is a directory" in result.stderr, "directory refusal message missing")
+
+
+def test_refuses_savepoint_named_directory_output() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        output.mkdir(parents=True)
+        result = run([sys.executable, str(STUB_HELPER), "--output", str(output), "--force"], repo)
+        require(result.returncode != 0, "stub helper wrote to SAVEPOINT.md directory output")
+        require("output path is a directory" in result.stderr, "SAVEPOINT.md directory refusal message missing")
+
+
+def test_refuses_non_savepoint_output_name() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = repo / "foo.md"
+        result = run([sys.executable, str(STUB_HELPER), "--output", str(output)], repo)
+        require(result.returncode != 0, "stub helper wrote non-SAVEPOINT.md output")
+        require("output path must end with SAVEPOINT.md" in result.stderr, "output name refusal message missing")
+        require(not output.exists(), "invalid output path should not be written")
+
+
+def test_compacts_focus_to_single_line() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        focus = "line one\n## Injected heading\tline three"
+        result = run([sys.executable, str(STUB_HELPER), "--focus", focus], repo)
+        require(result.returncode == 0, result.stderr or result.stdout)
+        text = output.read_text(encoding="utf-8")
+        require("- Next-session focus: line one ## Injected heading line three" in text, "focus was not compacted")
+        require("\n## Injected heading" not in text, "focus inserted raw markdown heading")
+
+
+def test_truncates_long_focus() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run([sys.executable, str(STUB_HELPER), "--focus", "x" * 501], repo)
+        require(result.returncode == 0, result.stderr or result.stdout)
+        text = output.read_text(encoding="utf-8")
+        require(f"- Next-session focus: {'x' * 500}..." in text, "long focus was not truncated")
+
+
 def main() -> int:
     tests = [
         test_portable_helper_writes_valid_draft,
         test_refuses_overwrite_without_force,
         test_root_wrapper_forwards_to_portable_helper,
+        test_run_command_handles_oserror,
+        test_find_git_root_handles_empty_output,
+        test_refuses_directory_output,
+        test_refuses_savepoint_named_directory_output,
+        test_refuses_non_savepoint_output_name,
+        test_compacts_focus_to_single_line,
+        test_truncates_long_focus,
     ]
     for test in tests:
         test()
