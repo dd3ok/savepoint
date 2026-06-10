@@ -1,6 +1,6 @@
 # Savepoint Skill
 
-`savepoint-skill` helps coding agents preserve continuation state for a later session.
+`savepoint` helps coding agents preserve continuation state for a later session.
 
 It provides one skill, `$savepoint`, with two user-facing paths:
 
