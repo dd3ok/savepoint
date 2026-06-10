@@ -283,6 +283,7 @@ class Validator:
             "Read `references/context-packaging.md` only for state-file/context-budget questions.",
             "For inspect-only requests, do not clean up by default.",
             "Continue only when the user requested continuation and `RESUME_READY` is `yes`",
+            "For adopted generated default savepoints",
             "scripts/create_savepoint_stub.py",
         ]
         for phrase in required_skill_phrases:
@@ -303,6 +304,10 @@ class Validator:
             "`git diff --cached --name-status`",
             "SAVEPOINT_V1",
             "required shape describes recovery facts, not prose volume",
+            "After an adopted generated default savepoint has been used for continuation",
+            "Default path plus untracked status is not enough to prove generated authorship",
+            "Never overwrite tracked, user-authored, external-path, inspect-only, stale, unsafe, conflicting, or debug-needed savepoints.",
+            "When preserving a savepoint with generated details, keep the referenced detail files in the same relative layout or update the preserved savepoint references.",
         ]:
             if phrase not in contract_text:
                 self.fail(f"savepoint-contract.md missing policy phrase: {phrase}")
@@ -337,6 +342,7 @@ class Validator:
             "Do not read `scripts/*.py` or `evals/*.json` during normal savepoint create/load.",
             "The top-level `SAVEPOINT.md` must still contain required markers",
             "repo-relative paths for files under the recorded Git root",
+            "Savepoints are current recovery artifacts, not history logs.",
         ]:
             if phrase not in context_text:
                 self.fail(f"context-packaging.md missing phrase: {phrase}")

@@ -24,6 +24,7 @@ For each case:
 - Large work uses focused detail artifacts instead of forced 100-line compression.
 - Load/resume verifies disk state before continuation or implementation.
 - File safe adopted resume deletes only selected untracked generated savepoint artifacts.
+- Later create/update requests refresh adopted generated default savepoints in place unless the user asks to preserve history.
 - Disk state wins over savepoint text.
 - Stale branch, HEAD, status, required-file, detail-artifact, or validation drift is reported before continuation or implementation.
 - Relevant durable state files are listed by path and purpose instead of copied wholesale into `SAVEPOINT.md`.
