@@ -2,7 +2,7 @@
 
 Verified budget: aim for about 120 lines / 5000 characters when possible. Use focused `details/*.md` spillover instead of bloating this file.
 
-Use this skeleton with `references/savepoint-contract.md`. Default to `.savepoint/SAVEPOINT.md`.
+Use this skeleton for verified `.savepoint/SAVEPOINT.md`. Consult `references/savepoint-contract.md` only when marker semantics, `RESUME_READY`, cleanup, staleness, or detail-spillover rules are unclear.
 
 ## TL;DR / Operational Summary
 

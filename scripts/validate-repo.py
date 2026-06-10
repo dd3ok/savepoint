@@ -170,7 +170,7 @@ class Validator:
         if len(description) > 1024:
             self.fail("frontmatter description exceeds 1024 characters")
         lower_description = description.lower()
-        for term in ["explicit", "sql", "/new", "pty"]:
+        for term in ["explicit", "sql", "ordinary summaries", "/new", "pty"]:
             if term not in lower_description:
                 self.fail(f"frontmatter description must include boundary term: {term}")
         for phrase in KOREAN_INVOCATION_PHRASES:
@@ -223,6 +223,7 @@ class Validator:
             "## Resume Prompt",
             "- Next-session focus:",
             "120 lines / 5000 characters",
+            "Consult `references/savepoint-contract.md` only when marker semantics",
             "SAVEPOINT_MODE: lightweight|verified",
             "- `git diff --cached --name-status`:",
         ]:
@@ -239,6 +240,7 @@ class Validator:
             "skills/savepoint/references/context-packaging.md",
             "Lightweight",
             "Verified",
+            "3000자 이내로 간단 세이브포인트 인계 요약해줘",
             "evals/trigger-queries.json",
         ]:
             if phrase not in readme_text:
@@ -262,6 +264,7 @@ class Validator:
         for phrase in [
             "$savepoint",
             "create",
+            "update",
             "inspect",
             "resume",
             "lightweight",

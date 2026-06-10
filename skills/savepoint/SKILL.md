@@ -1,6 +1,6 @@
 ---
 name: savepoint
-description: "Use when explicitly transferring coding-session state: create/update/inspect/resume .savepoint/SAVEPOINT.md or a lightweight note. Not for SQL SAVEPOINT, summaries, docs, code changes, /new, /status, PTY, or session rotation. Triggers include 세이브포인트 만들어줘, 세이브포인트 읽고 이어서 해줘."
+description: "Use when explicitly transferring coding-session state: create/update/inspect/resume .savepoint/SAVEPOINT.md or a lightweight note. Not for SQL SAVEPOINT, ordinary summaries, docs, code changes, /new, /status, PTY, or session rotation. Triggers include 세이브포인트 만들어줘, 세이브포인트 읽고 이어서 해줘."
 ---
 
 # Savepoint

@@ -6,7 +6,7 @@ It provides one skill, `$savepoint`, with two user-facing paths:
 
 | Need | Say | Output |
 |---|---|---|
-| Lightweight transfer | `간단 세이브포인트 만들어줘`, `3000자 이내로 인계 요약해줘` | Response text by default |
+| Lightweight transfer | `간단 세이브포인트 만들어줘`, `3000자 이내로 간단 세이브포인트 인계 요약해줘` | Response text by default |
 | Verified recovery | `SAVEPOINT.md 만들어줘`, `repo/Git 상태 포함해서 세이브포인트 만들어줘` | `.savepoint/SAVEPOINT.md` |
 
 Use **Lightweight** when you want the lowest token/tool cost and do not need repo recovery guarantees.
