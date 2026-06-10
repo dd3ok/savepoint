@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate automation marker block shape."""
+"""Validate marker block shape."""
 
 from pathlib import Path
 import runpy

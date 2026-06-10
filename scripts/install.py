@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Safely preview or install the new-session-handoff skill."""
+"""Safely preview or install the savepoint skill."""
 
 from __future__ import annotations
 
@@ -10,9 +10,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL_NAME = "new-session-handoff"
+SKILL_NAME = "savepoint"
 DEFAULT_SKILL_SOURCE = ROOT / "skills" / SKILL_NAME
-GITIGNORE_ENTRY = ".new-session-handoff/"
+GITIGNORE_ENTRY = ".savepoint/"
 IGNORED_NAMES = {"__pycache__", ".pytest_cache"}
 
 

@@ -20,7 +20,7 @@ jobs:
       - run: python3 scripts/validate-examples.py
       - run: python3 scripts/validate-repo.py
       - run: python3 scripts/check-install-helper.py
-      - run: python3 scripts/validate_handoff.py examples/HANDOFF.filled.example.md examples/compact-bugfix/HANDOFF.md examples/expanded-architecture/HANDOFF.md examples/unsafe-handoff/HANDOFF.md
+      - run: python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/verified-bugfix/SAVEPOINT.md examples/verified-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
       - name: Check committed whitespace
         shell: bash
         run: |

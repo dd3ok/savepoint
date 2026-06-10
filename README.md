@@ -1,54 +1,63 @@
-# New Session Handoff Skill
+# Savepoint Skill
 
-[![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
-[![License](https://img.shields.io/github/license/dd3ok/new-session-handoff-skill)](https://github.com/dd3ok/new-session-handoff-skill/blob/main/LICENSE)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/dd3ok/new-session-handoff-skill/validate.yml?branch=main)](https://github.com/dd3ok/new-session-handoff-skill/actions/workflows/validate.yml)
+`savepoint-skill` helps coding agents preserve continuation state for a later session.
 
-`new-session-handoff-skill`은 **AI 코딩 에이전트(AI Coding Agent)**가 새로운 세션에서 이전 작업을 원활하게 이어갈 수 있도록 검증된 `HANDOFF.md`를 생성하는 경량 스킬입니다. 이 스킬은 이전 채팅 기록에 의존하지 않고도 작업 컨텍스트를 안전하게 전달하여, **에이전트 세션 연속성(Agent Session Continuity)**과 **컨텍스트 관리(Context Management)**를 최적화합니다. `new-session-handoff`는 `/new`를 실행하거나, PTY를 제어하거나, 세션을 로테이션하거나, 핸드오프 생성 중에 애플리케이션 코드를 편집하지 않습니다. 대신 복구 가능한 핸드오프 아티팩트와 기계가 읽을 수 있는 준비 마커만 작성합니다.
+It provides one skill, `$savepoint`, with two user-facing paths:
 
-This skill is not a generic conversation summarizer. It is a compact, verified recovery manifest for coding-agent session transfer.
+| Need | Say | Output |
+|---|---|---|
+| Lightweight transfer | `간단 세이브포인트 만들어줘`, `3000자 이내로 인계 요약해줘` | Response text by default |
+| Verified recovery | `SAVEPOINT.md 만들어줘`, `repo/Git 상태 포함해서 세이브포인트 만들어줘` | `.savepoint/SAVEPOINT.md` |
 
-기본 아티팩트:
+Use **Lightweight** when you want the lowest token/tool cost and do not need repo recovery guarantees.
+
+Use **Verified** when a fresh coding agent must reconstruct current disk/Git state without prior chat history. Verified savepoints record changed files, validation status, risks, relevant instruction/state files, and one narrow next action.
+
+This skill is not a generic conversation summarizer. It does not run `/new`, `/status`, control PTYs, rotate sessions, choose context thresholds, or edit application code while creating a savepoint.
+
+## Default Artifact
+
+Verified savepoints write:
 
 ```text
-.new-session-handoff/HANDOFF.md
+.savepoint/SAVEPOINT.md
 ```
 
-기본 핸드오프에는 `## Resume Prompt` 섹션이 포함됩니다.
+Verified `SAVEPOINT.md` embeds `## Resume Prompt` and ends with a `SAVEPOINT_V1` marker block. The exact field schema lives in `skills/savepoint/schemas/savepoint-v1.schema.json`; marker semantics live in `skills/savepoint/references/savepoint-contract.md`.
 
-Compact handoffs should stay short enough for a fresh session to load quickly. The default target is about 150 lines / 6000 characters. If that would hide recovery-critical facts, use expanded mode with focused `details/*.md` files.
+## Korean Usage
 
-Generated handoffs may include a short `Suggested Skills / Next Agent Behaviors` section. This is advisory only and must not override the recovery contract, validation state, or `SAFE_FOR_NEW_SESSION` marker.
+```text
+간단 세이브포인트 만들어줘. 다음 세션은 PR 리뷰만 하면 돼.
+```
 
-다음 세션이 핸드오프를 읽고 현재 디스크/Git 상태와 비교한 뒤, `SAFE_FOR_NEW_SESSION: yes`인 핸드오프를 실제 resume/continue에 채택한 경우에만 선택된 추적되지 않는 generated handoff artifact를 삭제할 수 있습니다. inspect-only, tracked, stale, unsafe, external-path, user-authored artifact는 보존합니다.
+Creates a Lightweight note. It must not claim `RESUME_READY: yes`.
+By default it does not emit a marker block.
 
-## 한국어 사용 예시 (Usage Examples in Korean)
+```text
+새 세션에서 안전하게 이어갈 SAVEPOINT.md 만들어줘. 현재 git 상태와 validation 결과 포함해줘.
+```
 
-AI 에이전트에게 다음과 같은 프롬프트를 사용하여 `new-session-handoff-skill`을 활용할 수 있습니다:
+Creates a Verified savepoint at `.savepoint/SAVEPOINT.md`.
 
-*   **사용자**: `지금까지 작업한 내용을 바탕으로 핸드오프를 만들어줘.`
-*   **에이전트**: `현재 디스크/Git 상태를 확인하고 .new-session-handoff/HANDOFF.md를 생성하거나 갱신합니다. 작업 컨텍스트가 HANDOFF.md에 저장되었습니다.`
+```text
+세이브포인트 읽고 현재 repo 상태 확인한 다음 이어서 작업해줘.
+```
 
-*   **사용자**: `핸드오프를 읽고 이어서 작업해줘.`
-*   **에이전트**: `HANDOFF.md를 읽고 현재 디스크/Git 상태와 비교합니다. 불일치하는 부분이 있으면 보고하고, SAFE_FOR_NEW_SESSION: yes 상태이며 구현 계속을 요청하시면 다음 작업을 진행합니다.`
-
-*   **사용자**: `다음 세션은 failing test 수정에만 집중하도록 핸드오프 만들어줘.`
-*   **에이전트**: `현재 disk/Git 상태를 확인하고, Next-session focus를 failing test 수정으로 기록한 compact handoff를 생성합니다.`
-
-한국어 프롬프트와 설명/본문 텍스트는 한국어로 작성할 수 있지만, 생성되는 handoff의 섹션 제목, 파일명, automation marker, schema value는 validator와 orchestrator 호환성을 위해 영어 원문을 유지합니다. 예를 들어 `HANDOFF_AUTOMATION_V1`, `SAFE_FOR_NEW_SESSION`, `HANDOFF_READY`, `yes`, `no`, `not-needed`, `compact`, `expanded`, `prompt-only`, `none`, `## Resume Prompt`는 번역하지 않습니다.
+Reads the savepoint, compares it with current disk/Git state, reports consistency or drift, and continues only when safe and explicitly requested.
 
 ## Canonical Contract
 
-런타임 동작은 분산 스킬에 집중되어 있습니다:
+The canonical files are:
 
-- 스킬 라우터: `skills/new-session-handoff/SKILL.md`
-- 아티팩트 계약: `skills/new-session-handoff/references/handoff-contract.md`
-- 핸드오프 스켈레톤: `skills/new-session-handoff/references/handoff-template.md`
-- 컨텍스트 패키징 원칙: `skills/new-session-handoff/references/context-packaging.md`
-- 마커 스키마: `skills/new-session-handoff/schemas/handoff-automation-v1.schema.json`
-- 휴대용 유효성 검사기: `skills/new-session-handoff/scripts/validate_handoff.py`
+- Skill router: `skills/savepoint/SKILL.md`
+- Artifact contract: `skills/savepoint/references/savepoint-contract.md`
+- Savepoint skeleton: `skills/savepoint/references/savepoint-template.md`
+- Context packaging: `skills/savepoint/references/context-packaging.md`
+- Marker schema: `skills/savepoint/schemas/savepoint-v1.schema.json`
+- Portable validator: `skills/savepoint/scripts/validate_savepoint.py`
 
-README는 맵입니다. 위의 계약 파일은 마커 의미론, `SAFE_FOR_NEW_SESSION`, 신뢰 순서, 확장된 아티팩트, 정리 및 재개 동작에 대한 진실의 원천입니다.
+The root-level `examples/`, `evals/`, `orchestrators/`, and `scripts/validate-repo.py` are maintainer assets. The root `scripts/validate_savepoint.py` is a compatibility wrapper around the portable validator.
 
 ## Repository Layout
 
@@ -59,103 +68,76 @@ README는 맵입니다. 위의 계약 파일은 마커 의미론, `SAFE_FOR_NEW_
 ├── CHANGELOG.md
 ├── AGENTS.md
 ├── skills/
-│   └── new-session-handoff/
+│   └── savepoint/
 │       ├── SKILL.md
 │       ├── LICENSE.txt
 │       ├── agents/openai.yaml
 │       ├── references/
 │       │   ├── context-packaging.md
-│       │   ├── handoff-contract.md
-│       │   └── handoff-template.md
-│       ├── schemas/handoff-automation-v1.schema.json
+│       │   ├── savepoint-contract.md
+│       │   └── savepoint-template.md
+│       ├── schemas/savepoint-v1.schema.json
 │       └── scripts/
-│           ├── handoff_contract.py
-│           └── validate_handoff.py
+│           ├── savepoint_contract.py
+│           └── validate_savepoint.py
 ├── examples/
 ├── evals/
 ├── orchestrators/
 └── scripts/
 ```
 
-`skills/new-session-handoff/`는 휴대용 스킬 패키지입니다. 루트 레벨의 `examples/`, `evals`, `orchestrators/`, `scripts/validate-repo.py`는 유지보수자 자산입니다. 루트 `scripts/validate_handoff.py`는 휴대용 유효성 검사기 주변의 호환성 래퍼입니다.
+## Installation
 
-## Installation / Vendoring
+Typical skill locations:
 
-정식 스킬을 에이전트 환경에서 사용하는 위치로 복사, 벤더링 또는 심볼릭 링크하세요.
+- Codex user skill: `$HOME/.agents/skills/savepoint/`
+- Codex repo skill: `<repo>/.agents/skills/savepoint/`
+- Claude user skill: `$HOME/.claude/skills/savepoint/`
+- Claude project skill: `<repo>/.claude/skills/savepoint/`
 
-일반적인 위치:
-
-- Codex 개인 스킬: `$HOME/.agents/skills/new-session-handoff/`
-- Codex 리포지토리 스킬: `<repo>/.agents/skills/new-session-handoff/`
-- Claude 개인 스킬: `$HOME/.claude/skills/new-session-handoff/`
-- Claude 프로젝트 스킬: `<repo>/.claude/skills/new-session-handoff/`
-
-예시 프로젝트 심볼릭 링크:
+Repo symlink example:
 
 ```bash
 mkdir -p .agents/skills .claude/skills
-ln -s ../../skills/new-session-handoff .agents/skills/new-session-handoff
-ln -s ../../skills/new-session-handoff .claude/skills/new-session-handoff
+ln -s ../../skills/savepoint .agents/skills/savepoint
+ln -s ../../skills/savepoint .claude/skills/savepoint
 ```
 
-### Safe Install Helper
-
-설치 helper는 기본적으로 dry-run이며, `--apply` 없이는 파일을 쓰지 않습니다. 초기 버전은 copy 설치만 지원하고 agent config 파일은 수정하지 않습니다.
-
-Preview:
+Safe install helper:
 
 ```bash
 python3 scripts/install.py --target claude --scope user
-```
-
-Apply:
-
-```bash
-python3 scripts/install.py --target claude --scope user --apply
-```
-
-Repo-scoped Codex install with optional handoff artifact ignore entry:
-
-```bash
 python3 scripts/install.py --target codex --scope repo --apply --add-gitignore
 ```
 
-`--add-gitignore`는 repo scope에서만 사용할 수 있으며, `--apply`가 있을 때만 `.new-session-handoff/`를 `.gitignore`에 추가합니다.
-
-Repo scope는 기존 repository root만 대상으로 하며, 잘못 입력한 `--repo-root` 경로를 새로 만들지 않습니다.
+The helper defaults to dry-run. It writes files only with `--apply`; `--add-gitignore` is repo-scope only and appends `.savepoint/`.
 
 ## Examples
 
-- `examples/compact-bugfix/`: 작은 버그 수정을 위한 컴팩트 핸드오프.
-- `examples/expanded-architecture/`: 집중된 세부 아티팩트가 포함된 확장된 핸드오프.
-- `examples/prompt-only/`: 파일을 쓰지 않는 self-contained continuation prompt 예시.
-- `examples/unsafe-handoff/`: `SAFE_FOR_NEW_SESSION: no`가 중요한 이유를 보여주는 의도적으로 안전하지 않은 핸드오프.
-
-예시는 유지보수자/데모 자료입니다. 분산 스킬 패키지에는 필요하지 않습니다.
+- `examples/verified-bugfix/`: small verified savepoint.
+- `examples/verified-architecture/`: verified savepoint with focused `details/*.md` spillover.
+- `examples/lightweight-note/`: response-only lightweight savepoint note.
+- `examples/unsafe-savepoint/`: intentionally unsafe savepoint with `RESUME_READY: no`.
 
 ## Evals
 
-`evals/`에는 스킬 계약을 유지하기 위한 경량 수동 시나리오가 포함되어 있습니다. `SKILL.md`, 템플릿, 마커 의미론, 예시, 유효성 검사기 또는 오케스트레이터 지침을 변경할 때 사용하세요.
+`evals/trigger-queries.json` records should-trigger and should-not-trigger prompts, including SQL/database `SAVEPOINT` near misses.
 
-- `evals/trigger-queries.json`: 스킬이 언제 trigger되어야 하고 언제 trigger되지 않아야 하는지 검증하는 query set.
-- `evals/cases/context-state-bridge.md`: durable state file과 `HANDOFF.md`의 역할 분리를 검증합니다.
-- `evals/cases/trigger-boundaries.md`: ordinary summary, docs, instruction-file authoring, session-control, code-fix 요청에서 skill이 과잉 trigger되지 않는지 검증합니다.
+Core expectations:
 
-핵심 기대치:
-
-- 생성 모드는 애플리케이션 코드를 수정하지 않습니다.
-- 생성된 아티팩트에는 검증된 사실 또는 명시적인 미확인 정보가 포함됩니다.
-- 기본 생성 모드는 `.new-session-handoff/HANDOFF.md`를 작성합니다.
-- 기본 생성 모드는 `HANDOFF.md` 안에 `## Resume Prompt`를 임베드합니다.
-- 재개 모드는 코딩 전에 디스크 상태를 확인합니다.
-- 확장 모드는 컨텍스트 덤프 대신 집중된 세부 아티팩트를 사용합니다.
-- 안전하지 않은 상태는 `SAFE_FOR_NEW_SESSION: yes`를 내보내지 않습니다.
-- 비밀은 수정되거나 생략됩니다.
-- 검증된 안전한 재개는 추적되지 않는 생성된 핸드오프 아티팩트만 삭제할 수 있습니다.
+- Lightweight output is short and does not claim repo recovery.
+- Verified output writes `.savepoint/SAVEPOINT.md`.
+- Verified output embeds `## Resume Prompt`.
+- Large verified work uses focused detail artifacts instead of bloating `SAVEPOINT.md`.
+- Resume verifies disk state before implementation.
+- Disk state wins over savepoint text.
+- Secrets are redacted.
+- Verified `SAVEPOINT_V1` marker block is present and honest.
+- Unsafe state never emits `RESUME_READY: yes`.
 
 ## Validation
 
-변경 사항을 커밋하기 전에 다음을 실행하세요:
+Before committing changes to this repository, run:
 
 ```bash
 python3 scripts/check-frontmatter.py
@@ -164,30 +146,18 @@ python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
 python3 scripts/check-install-helper.py
-python3 scripts/validate_handoff.py examples/HANDOFF.filled.example.md examples/compact-bugfix/HANDOFF.md examples/expanded-architecture/HANDOFF.md examples/unsafe-handoff/HANDOFF.md
+python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/verified-bugfix/SAVEPOINT.md examples/verified-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
 git diff --check
 ```
 
-생성된 핸드오프 아티팩트를 직접 유효성 검사하려면:
+To validate a generated verified savepoint:
 
 ```bash
-python3 scripts/validate_handoff.py .new-session-handoff/HANDOFF.md
+python3 scripts/validate_savepoint.py .savepoint/SAVEPOINT.md
 ```
-
-루트 유효성 검사 명령은 `skills/new-session-handoff/scripts/` 내의 휴대용 유효성 검사기에 위임합니다.
 
 ## Orchestrators
 
-외부 PTY 컨트롤러는 최종 마커 블록을 읽고 세션을 로테이션할지 여부를 결정할 수 있습니다. `orchestrators/session-rotation.md`를 참조하세요.
+External PTY controllers may parse the final `SAVEPOINT_V1` block and decide whether to rotate sessions. This skill only prepares artifacts or lightweight notes; orchestration remains outside the skill.
 
-이 스킬은 핸드오프 아티팩트만 준비하고 소비합니다. 세션 재설정 명령, 컨텍스트 임계값 정책, PTY 입력 및 에이전트 CLI 오케스트레이션은 스킬 외부에 유지됩니다.
-
-## Versioning
-
-현재 핸드오프 스키마는 다음과 같습니다:
-
-```text
-HANDOFF_SCHEMA_VERSION: 1
-```
-
-마커 이름, 필수 섹션, 마커 의미 또는 세부 경로 해결에 대한 호환되지 않는 변경 사항은 스키마 버전을 증가시키고 예시, 평가, README, 유효성 검사기 및 오케스트레이터 지침을 함께 업데이트해야 합니다.
+See `orchestrators/session-rotation.md`.

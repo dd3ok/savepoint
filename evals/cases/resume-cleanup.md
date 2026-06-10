@@ -2,23 +2,23 @@
 
 ## Scenario
 
-The user asks: "핸드오프 읽고 이어서 해줘." The handoff is safe, consistent with disk state, generated at `.new-session-handoff/HANDOFF.md`, and selected for continuation rather than inspect-only loading.
+The user asks: "세이브포인트 읽고 이어서 해줘." The savepoint is safe, consistent with disk state, generated at `.savepoint/SAVEPOINT.md`, and selected for continuation rather than inspect-only loading.
 
 ## Expected
 
 - Verifies cwd, Git root, branch, short HEAD, `git status --short`, and `git diff --stat`.
-- Reads applicable instruction files and the handoff.
-- Reports handoff consistency before editing.
-- Deletes generated handoff artifacts only after adoption.
+- Reads applicable instruction files and the savepoint.
+- Reports savepoint consistency before editing.
+- Deletes generated savepoint artifacts only after adoption.
 - Deletes only untracked artifacts.
-- Preserves inspect-only, tracked, stale, unsafe, external-path, or user-requested audit handoff files.
+- Preserves inspect-only, tracked, stale, unsafe, external-path, or user-requested audit savepoint files.
 - Reports removed paths, kept paths, and reasons.
 
 ## Failure Conditions
 
-- Deletes the handoff before disk verification.
-- Deletes the handoff after read/verification but before adoption.
+- Deletes the savepoint before disk verification.
+- Deletes the savepoint after read/verification but before adoption.
 - Deletes during an inspect-only request.
-- Deletes a tracked handoff file.
-- Deletes an unsafe or stale handoff.
+- Deletes a tracked savepoint file.
+- Deletes an unsafe or stale savepoint.
 - Continues implementation without reporting a mismatch.
