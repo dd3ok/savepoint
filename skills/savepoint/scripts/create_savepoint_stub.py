@@ -239,6 +239,16 @@ Read this savepoint, verify cwd/Git state/status/diff, read listed instruction/s
 """
 
 
+def write_output(output_path: Path, text: str) -> bool:
+    try:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(text, encoding="utf-8", newline="\n")
+    except OSError as exc:
+        print(f"error: failed to write output: {exc}", file=sys.stderr)
+        return False
+    return True
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -267,9 +277,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: output already exists: {output_path}", file=sys.stderr)
         print("Re-run with --force to overwrite.", file=sys.stderr)
         return 1
-    output_path.parent.mkdir(parents=True, exist_ok=True)
     text = build_savepoint(output_path, args.focus)
-    output_path.write_text(text, encoding="utf-8", newline="\n")
+    if not write_output(output_path, text):
+        return 1
     print(f"wrote: {output_path}")
     return 0
 

@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import subprocess
 import sys
 import tempfile
@@ -158,6 +160,43 @@ def test_refuses_non_savepoint_output_name() -> None:
         require(not output.exists(), "invalid output path should not be written")
 
 
+def test_reports_parent_mkdir_oserror() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        parent = repo / "not-a-directory"
+        parent.write_text("file blocks mkdir\n", encoding="utf-8")
+        output = parent / "SAVEPOINT.md"
+        result = run([sys.executable, str(STUB_HELPER), "--output", str(output)], repo)
+        require(result.returncode != 0, "stub helper wrote through file parent")
+        require("failed to write output" in result.stderr, "mkdir failure message missing")
+        require("Traceback" not in result.stderr, "mkdir failure should not print traceback")
+
+
+def test_reports_write_text_oserror() -> None:
+    helper = load_stub_helper()
+
+    class Parent:
+        def mkdir(self, *, parents: bool, exist_ok: bool) -> None:
+            require(parents and exist_ok, "write_output should create parent directories safely")
+
+    class Output:
+        parent = Parent()
+
+        def write_text(self, _text: str, *, encoding: str, newline: str) -> None:
+            require(encoding == "utf-8", "write_output should use utf-8")
+            require(newline == "\n", "write_output should preserve lf newlines")
+            raise PermissionError("blocked")
+
+        def __str__(self) -> str:
+            return "failing-output"
+
+    stderr = io.StringIO()
+    with contextlib.redirect_stderr(stderr):
+        wrote = helper.write_output(Output(), "draft")
+    require(not wrote, "write_output should report write_text failure")
+    require("failed to write output" in stderr.getvalue(), "write_text failure message missing")
+
+
 def test_compacts_focus_to_single_line() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo(Path(tmp))
@@ -190,6 +229,8 @@ def main() -> int:
         test_refuses_directory_output,
         test_refuses_savepoint_named_directory_output,
         test_refuses_non_savepoint_output_name,
+        test_reports_parent_mkdir_oserror,
+        test_reports_write_text_oserror,
         test_compacts_focus_to_single_line,
         test_truncates_long_focus,
     ]
