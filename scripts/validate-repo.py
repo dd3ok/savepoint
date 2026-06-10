@@ -117,6 +117,9 @@ REMOVED_FORBIDDEN_PATTERNS = [
     r"SAVEPOINT_MODE:\s*(?:lightweight|verified)\b",
     r"SAVEPOINT_MODE:\s*lightweight\|verified",
     r"\blightweight\|verified\b",
+    r"(?m)^- Resume Contract$",
+    r"(?m)^## Resume Contract$",
+    r"\bBefore implementation\b",
     r"prompt-only",
     r"compact\|expanded\|prompt-only",
     r"compact mode",
@@ -198,6 +201,8 @@ class Validator:
             "SAVEPOINT_V1",
             "RESUME_READY: yes",
             "Aim for about 1200 characters unless the user requests more.",
+            "`no-file`, `no files`, `in-response`, or `in the response`",
+            "## Load / Resume",
             "For text savepoints, do not read references unless asked.",
             "read `references/savepoint-contract.md` only for unclear marker",
             "Read `references/context-packaging.md` only for state-file/context-budget questions.",
@@ -212,6 +217,8 @@ class Validator:
         for phrase in [
             ".savepoint/SAVEPOINT.md",
             "SAVEPOINT_MODE: text|file",
+            "Load / Resume Contract",
+            "no-file/no files, in-response/in the response",
             "Detail Spillover",
             "Do not delete tracked files",
             "Durable state files are not generated detail artifacts",
@@ -246,8 +253,9 @@ class Validator:
             "skills/savepoint/references/context-packaging.md",
             "Text Savepoint",
             "File Savepoint",
-            "Load Savepoint",
+            "Load / Resume Savepoint",
             "복붙용 세이브포인트 만들어줘",
+            "Load/resume verifies disk state before continuation or implementation.",
             "evals/trigger-queries.json",
         ]:
             if phrase not in readme_text:
@@ -311,6 +319,8 @@ class Validator:
         has_secret_positive = False
         has_focus_positive = False
         has_short_file_positive = False
+        has_no_files_text_positive = False
+        has_in_response_text_positive = False
         has_korean_load_positive = False
         has_english_load_positive = False
         has_sql_negative = False
@@ -344,6 +354,10 @@ class Validator:
                     has_focus_positive = True
                 if query_id == "trigger-ko-file-short-01":
                     has_short_file_positive = True
+                if category == "text" and isinstance(query_text, str) and "no files" in query_text.lower():
+                    has_no_files_text_positive = True
+                if category == "text" and isinstance(query_text, str) and "in the response" in query_text.lower():
+                    has_in_response_text_positive = True
                 if category == "load" and query.get("language") == "ko":
                     has_korean_load_positive = True
                 if category == "load" and query.get("language") == "en":
@@ -379,6 +393,10 @@ class Validator:
             self.fail("trigger evals should include next-session focus savepoint requests")
         if not has_short_file_positive:
             self.fail("trigger evals should include short generic savepoint requests that still default to file")
+        if not has_no_files_text_positive:
+            self.fail("trigger evals should include no-files text savepoint requests")
+        if not has_in_response_text_positive:
+            self.fail("trigger evals should include in-response text savepoint requests")
         if not has_korean_load_positive:
             self.fail("trigger evals should include Korean load-only savepoint requests")
         if not has_english_load_positive:

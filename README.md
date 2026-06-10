@@ -2,19 +2,19 @@
 
 `savepoint` helps coding agents preserve continuation state for a later session.
 
-It provides one skill, `$savepoint`, with three user-facing actions:
+It provides one skill, `$savepoint`, with three user-facing workflows:
 
 | Need | Say | Output |
 |---|---|---|
 | File Savepoint | `세이브포인트 만들어줘`, `세이브포인트 파일 만들어줘`, `SAVEPOINT.md 만들어줘` | `.savepoint/SAVEPOINT.md` |
 | Text Savepoint | `복붙용 세이브포인트 만들어줘`, `파일 없이 텍스트 세이브포인트 만들어줘` | Response text |
-| Load Savepoint | `세이브포인트 로드해줘`, `세이브포인트 읽고 이어서 해줘` | Verify/report state; continue only if requested and safe |
+| Load / Resume Savepoint | `세이브포인트 로드해줘`, `세이브포인트 읽고 이어서 해줘` | Verify/report state; continue only if requested and safe |
 
 Use **File Savepoint** by default when preserving coding-session state.
 
 Use **Text Savepoint** only when you explicitly want copy-paste response text and do not need repo recovery guarantees.
 
-Use **Load Savepoint** when a fresh coding agent must read `.savepoint/SAVEPOINT.md`, compare it with current disk/Git state, and continue only if requested and safe.
+Use **Load / Resume Savepoint** when a fresh coding agent must read `.savepoint/SAVEPOINT.md`, compare it with current disk/Git state, and continue only if requested and safe.
 
 This skill is not a generic conversation summarizer. It does not run `/new`, `/status`, control PTYs, rotate sessions, choose context thresholds, or edit application code while creating a savepoint.
 
@@ -131,7 +131,7 @@ Core expectations:
 - File output writes `.savepoint/SAVEPOINT.md`.
 - File output embeds `## Resume Prompt`.
 - Large file savepoints use focused detail artifacts instead of bloating `SAVEPOINT.md`.
-- Resume verifies disk state before implementation.
+- Load/resume verifies disk state before continuation or implementation.
 - Disk state wins over savepoint text.
 - Secrets are redacted.
 - File `SAVEPOINT_V1` marker block is present and honest.

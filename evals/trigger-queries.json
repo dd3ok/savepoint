@@ -24,7 +24,7 @@
       "should_trigger": true,
       "language": "ko",
       "category": "load",
-      "rationale": "Korean Load Savepoint request should verify and report state without continuing unless requested and safe."
+      "rationale": "Korean load-only savepoint request should verify and report state without continuing unless requested and safe."
     },
     {
       "id": "trigger-ko-text-01",
@@ -48,7 +48,7 @@
       "should_trigger": true,
       "language": "ko",
       "category": "create",
-      "rationale": "Generic short savepoint request still defaults to a file unless text, no-file, or copy-paste output is explicit."
+      "rationale": "Generic short savepoint request still defaults to a file unless text, no-file/no files, in-response/in the response, or copy-paste output is explicit."
     },
     {
       "id": "trigger-en-create-01",
@@ -65,6 +65,14 @@
       "language": "en",
       "category": "text",
       "rationale": "Explicit text savepoint request."
+    },
+    {
+      "id": "trigger-en-in-response-text-01",
+      "query": "Create a savepoint in the response only, no file.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "text",
+      "rationale": "Explicit in-response text savepoint request."
     },
     {
       "id": "trigger-en-update-01",

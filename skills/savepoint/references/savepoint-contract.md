@@ -10,7 +10,7 @@
 - Trust Order
 - Create Contract
 - Text Contract
-- Resume Contract
+- Load / Resume Contract
 - Detail Spillover
 - Cleanup
 - Secret Hygiene
@@ -94,13 +94,13 @@ Read only enough files to verify recovery state. Prefer instruction files, relev
 
 ## Text Contract
 
-Use text output only when the user explicitly asks for copy-paste, text, no-file, in-response, or similar transfer. It may summarize current conversation/work context, but it must not claim repo recovery.
+Use text output only when the user explicitly asks for copy-paste, text, no-file/no files, in-response/in the response, or similar transfer. It may summarize current conversation/work context, but it must not claim repo recovery.
 
 Omit markers by default. If the user asks for machine-readable text output, set `SAVEPOINT_MODE: text`, `SAVEPOINT_PATH: not-written`, and `RESUME_READY: no`.
 
-## Resume Contract
+## Load / Resume Contract
 
-Before implementation, confirm current disk state, read applicable instructions, read the selected savepoint, resolve relative detail artifact paths against the savepoint directory, inspect required files, and compare savepoint claims with the working tree.
+Before continuation or implementation, confirm current disk state, read applicable instructions, read the selected savepoint, resolve relative detail artifact paths against the savepoint directory, inspect required files, and compare savepoint claims with the working tree.
 
 Report the loaded instructions, repo state, savepoint consistency, detail artifacts read, missing or conflicting paths, and smallest next step before editing.
 
