@@ -303,7 +303,9 @@ class Validator:
             "`git diff --cached --name-status`",
             "SAVEPOINT_V1",
             "After an adopted generated default savepoint has been used for continuation",
+            "Default path plus untracked status is not enough to prove generated authorship",
             "Never overwrite tracked, user-authored, external-path, inspect-only, stale, unsafe, conflicting, or debug-needed savepoints.",
+            "When preserving a savepoint with generated details, keep the referenced detail files in the same relative layout or update the preserved savepoint references.",
         ]:
             if phrase not in contract_text:
                 self.fail(f"savepoint-contract.md missing policy phrase: {phrase}")
