@@ -24,6 +24,10 @@
 - Codex 또는 Claude 세션 간 저장소/Git 상태 인계하기
 - 단발성 작업을 위한 복붙용 Text Savepoint 만들기
 
+## 왜 Savepoint인가
+
+Savepoint는 자유 형식 handoff에서 발생하는 열린 탐색, 추론, 실패 재시도 비용을 Git/디스크 상태 검증과 savepoint consistency check라는 짧고 구조화된 비용으로 바꿉니다.
+
 ## 기본 아티팩트
 
 File Savepoint는 아래 파일을 씁니다.

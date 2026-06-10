@@ -24,6 +24,10 @@ This skill is not a generic conversation summarizer. It does not run `/new`, `/s
 - Hand off repo/Git state from one Codex or Claude session to another.
 - Create a copy-paste Text Savepoint for a quick one-off transfer.
 
+## Why Savepoint
+
+Savepoint turns open-ended discovery, inference, and retry work from free-form handoffs into a short, structured check of Git/disk state and savepoint consistency.
+
 ## Default Artifact
 
 File savepoints write:
