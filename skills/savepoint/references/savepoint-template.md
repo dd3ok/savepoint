@@ -35,6 +35,7 @@ Use this skeleton with `references/savepoint-contract.md`. Default to `.savepoin
 - `git diff --stat`:
 - `git diff --name-status`:
 - `git diff --cached --stat`:
+- `git diff --cached --name-status`:
 - Latest commit:
 - Instruction files loaded:
 - Durable state files checked:

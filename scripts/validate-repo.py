@@ -71,6 +71,11 @@ TRUST_ORDER_LINES = [
 KOREAN_INVOCATION_PHRASES = [
     "세이브포인트 만들어줘",
     "세이브포인트 읽고 이어서 해줘",
+    "핸드오프 만들어줘",
+]
+ALIAS_INVOCATION_PHRASES = [
+    "handoff",
+    "HANDOFF.md",
 ]
 SKILL_LINK_TARGETS = {
     ROOT / ".agents" / "skills" / "savepoint": "../../skills/savepoint",
@@ -110,7 +115,6 @@ LEGACY_FORBIDDEN_PATTERNS = [
     r"compact\|expanded\|prompt-only",
     r"compact mode",
     r"expanded mode",
-    r"핸드오프",
 ]
 
 
@@ -169,6 +173,9 @@ class Validator:
         for phrase in KOREAN_INVOCATION_PHRASES:
             if phrase not in description:
                 self.fail(f"frontmatter description must include Korean invocation phrase: {phrase}")
+        for phrase in ALIAS_INVOCATION_PHRASES:
+            if phrase not in description:
+                self.fail(f"frontmatter description must include alias invocation phrase: {phrase}")
         body = "\n".join(lines[end + 1 :])
         if not body.strip().startswith("# Savepoint"):
             self.fail("SKILL.md body should start with '# Savepoint'")
@@ -201,6 +208,7 @@ class Validator:
             "Do not delete tracked files",
             "Durable state files are not generated detail artifacts",
             "cleanup happens only after adoption",
+            "`git diff --cached --name-status`",
             "SAVEPOINT_V1",
         ]:
             if phrase not in contract_text:
@@ -212,6 +220,7 @@ class Validator:
             "- Next-session focus:",
             "120 lines / 5000 characters",
             "SAVEPOINT_MODE: lightweight|verified",
+            "- `git diff --cached --name-status`:",
         ]:
             if phrase not in template_text:
                 self.fail(f"savepoint-template.md missing phrase: {phrase}")
@@ -260,6 +269,10 @@ class Validator:
         has_korean_negative = False
         has_secret_positive = False
         has_focus_positive = False
+        has_legacy_alias_positive = False
+        has_legacy_handoff_word = False
+        has_legacy_handoff_file = False
+        has_korean_handoff_alias = False
         has_sql_negative = False
         negative_categories: set[str] = set()
         for index, query in enumerate(queries):
@@ -289,6 +302,14 @@ class Validator:
                     has_secret_positive = True
                 if category == "focus-argument":
                     has_focus_positive = True
+                if category == "legacy-alias":
+                    has_legacy_alias_positive = True
+                    if isinstance(query_text, str) and "handoff" in query_text.lower():
+                        has_legacy_handoff_word = True
+                    if isinstance(query_text, str) and "HANDOFF.md" in query_text:
+                        has_legacy_handoff_file = True
+                    if isinstance(query_text, str) and "핸드오프" in query_text:
+                        has_korean_handoff_alias = True
             elif should_trigger is False:
                 negatives += 1
                 if query.get("language") == "ko":
@@ -318,6 +339,14 @@ class Validator:
             self.fail("trigger evals should include secret-bearing savepoint requests")
         if not has_focus_positive:
             self.fail("trigger evals should include next-session focus savepoint requests")
+        if not has_legacy_alias_positive:
+            self.fail("trigger evals should include legacy handoff alias requests")
+        if not has_legacy_handoff_word:
+            self.fail("trigger evals should include a handoff alias query")
+        if not has_legacy_handoff_file:
+            self.fail("trigger evals should include a HANDOFF.md alias query")
+        if not has_korean_handoff_alias:
+            self.fail("trigger evals should include a Korean 핸드오프 alias query")
         if not has_sql_negative:
             self.fail("trigger evals should include database/SQL SAVEPOINT negative queries")
 
@@ -418,6 +447,8 @@ class Validator:
                     self.fail(f"{path.relative_to(ROOT)} must contain exactly one TL;DR field {field}")
             if "Expected drift from captured state:" not in text:
                 self.fail(f"{path.relative_to(ROOT)} missing expected drift field")
+            if "- `git diff --cached --name-status`:" not in text:
+                self.fail(f"{path.relative_to(ROOT)} missing staged name-status field")
             if "- Next-session focus:" not in text:
                 self.fail(f"{path.relative_to(ROOT)} missing next-session focus field")
             if "SAVEPOINT_MODE: verified" in text and "SAVEPOINT_PATH: /" in text:

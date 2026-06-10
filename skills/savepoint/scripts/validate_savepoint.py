@@ -51,6 +51,7 @@ REQUIRED_REPO_SNAPSHOT_FIELDS = [
     "- `git diff --stat`:",
     "- `git diff --name-status`:",
     "- `git diff --cached --stat`:",
+    "- `git diff --cached --name-status`:",
     "- Latest commit:",
     "- Instruction files loaded:",
     "- Durable state files checked:",
@@ -79,6 +80,24 @@ REQUIRED_RECOVERY_NOTE_FIELDS = [
     "- Unresolved questions or approval blockers:",
 ]
 EMPTY_VALUES = {"", "unknown", "tbd", "todo", "n/a?", "?"}
+ABSENCE_ONLY_VALUES = {"none", "no", "not-needed", "not needed"}
+ABSENCE_ALLOWED_LABELS = {
+    "- Blocker:",
+    "- `git diff --cached --stat`:",
+    "- `git diff --cached --name-status`:",
+    "- Durable state files checked:",
+    "- Expected drift from captured state:",
+    "- Changed:",
+    "- Created:",
+    "- Deleted:",
+    "- Moved:",
+    "- Staged:",
+    "- Inspected without change:",
+    "- Unknown or unverified:",
+    "- Failed approaches:",
+    "- Unresolved questions or approval blockers:",
+    "- State-file conflicts:",
+}
 
 
 def validate_savepoint(path: Path, allow_example_paths: bool = False) -> list[str]:
@@ -185,7 +204,7 @@ def validate_resume_ready_content(path: Path, text: str) -> list[str]:
     ]
     for label in labels:
         value = field_value_or_block(text, label)
-        if is_placeholder_value(value):
+        if is_placeholder_value(value, allow_absence=label in ABSENCE_ALLOWED_LABELS):
             errors.append(f"{path}: RESUME_READY=yes requires substantive value for {label}")
     if not re.search(r"(?is)(trust (the )?(current )?(working tree|disk state|disk)|disk state wins)", text):
         errors.append(f"{path}: RESUME_READY=yes requires explicit disk-state-wins conflict handling")
@@ -209,10 +228,15 @@ def field_value_or_block(text: str, label: str) -> str:
     return ""
 
 
-def is_placeholder_value(value: str) -> bool:
+def is_placeholder_value(value: str, *, allow_absence: bool = False) -> bool:
     normalized = value.strip().strip("`").lower()
+    normalized_plain = normalized.strip(" .")
     if normalized in EMPTY_VALUES:
         return True
+    if normalized_plain in EMPTY_VALUES:
+        return True
+    if normalized_plain in ABSENCE_ONLY_VALUES:
+        return not allow_absence
     if "<" in value:
         return True
     return False

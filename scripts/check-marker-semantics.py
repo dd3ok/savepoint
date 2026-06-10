@@ -125,6 +125,8 @@ def main() -> int:
     errors.extend(check_marker_must_be_final())
     errors.extend(check_verified_path_must_exist_without_example_flag())
     errors.extend(check_resume_ready_requires_substantive_values())
+    errors.extend(check_resume_ready_rejects_none_for_required_value())
+    errors.extend(check_resume_ready_allows_none_for_absence_value())
 
     if errors:
         for error in errors:
@@ -335,6 +337,43 @@ def check_resume_ready_requires_substantive_values() -> list[str]:
     if not any("RESUME_READY=yes requires substantive value" in error for error in errors):
         return [
             "RESUME_READY=yes with empty recovery fields should fail, "
+            f"got errors={errors}"
+        ]
+    return []
+
+
+def check_resume_ready_rejects_none_for_required_value() -> list[str]:
+    source = ROOT / "examples" / "verified-bugfix" / "SAVEPOINT.md"
+    text = source.read_text(encoding="utf-8")
+    text = text.replace(
+        "- Goal: Fix a null-token crash in login without changing the auth API.",
+        "- Goal: none",
+        1,
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "SAVEPOINT.md"
+        path.write_text(text, encoding="utf-8")
+        errors = validate_savepoint(path, allow_example_paths=True)
+    if not any("substantive value for - Goal:" in error for error in errors):
+        return [
+            "RESUME_READY=yes should reject 'none' for required Goal, "
+            f"got errors={errors}"
+        ]
+    return []
+
+
+def check_resume_ready_allows_none_for_absence_value() -> list[str]:
+    source = ROOT / "examples" / "verified-bugfix" / "SAVEPOINT.md"
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "SAVEPOINT.md"
+        path.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+        errors = validate_savepoint(path, allow_example_paths=True)
+    blocker_errors = [
+        error for error in errors if "substantive value for - Blocker:" in error
+    ]
+    if blocker_errors:
+        return [
+            "RESUME_READY=yes should allow 'none' for absence-only Blocker, "
             f"got errors={errors}"
         ]
     return []

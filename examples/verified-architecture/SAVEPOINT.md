@@ -31,6 +31,7 @@
 - `git diff --stat`: `src/billing/controller.ts | 18 ++++++------------`; `src/billing/invoiceService.ts | 74 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++`; `tests/billing/invoice.integration.test.ts | 16 ++++++++++++++++`
 - `git diff --name-status`: `M src/billing/controller.ts`; `A src/billing/invoiceService.ts`; `M tests/billing/invoice.integration.test.ts`
 - `git diff --cached --stat`: none
+- `git diff --cached --name-status`: none
 - Latest commit: `b17f00d Add invoice integration coverage`
 - Instruction files loaded: `AGENTS.md`, `PLAN.md`
 - Durable state files checked: `PLAN.md`

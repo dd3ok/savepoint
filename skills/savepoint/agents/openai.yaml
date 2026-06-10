@@ -1,4 +1,4 @@
 interface:
   display_name: "Savepoint"
   short_description: "Create lightweight or verified coding-session savepoints"
-  default_prompt: "Use $savepoint to create a lightweight transfer note or verified .savepoint/SAVEPOINT.md for a fresh coding-agent session. Use extra argument text only to narrow the next-session focus. For verified output, include disk/Git state, relevant instruction/state files, validation status, risks, and one narrow next action. Avoid duplicating existing PRDs, plans, ADRs, issues, commits, diffs, or durable state files. Do not run /new, /status, control PTYs, rotate sessions, or modify application code while creating a savepoint."
+  default_prompt: "Use $savepoint to create a verified .savepoint/SAVEPOINT.md for this coding session, with Git/disk state, validation status, risks, and one narrow next action."

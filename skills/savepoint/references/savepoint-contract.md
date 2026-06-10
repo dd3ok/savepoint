@@ -24,18 +24,20 @@
 - Default lightweight output: response text unless the user asks to write a file.
 - Default prompt: an embedded `## Resume Prompt` section inside verified `SAVEPOINT.md`.
 - Create `details/*.md` only as internal spillover when verified `SAVEPOINT.md` cannot stay both concise and recoverable.
+- Treat `handoff`, `HANDOFF.md`, and `핸드오프` as legacy aliases for savepoint requests. New artifacts still use `.savepoint/SAVEPOINT.md`.
 
 Resume lookup order:
 
 1. User-provided savepoint path.
 2. `.savepoint/SAVEPOINT.md`.
+3. Migration-only `HANDOFF.md` when the user explicitly asks for a handoff artifact.
 
 ## Paths
 
 - `lightweight`: short note for another agent; no disk/Git recovery guarantee and no marker by default.
 - `verified`: recoverable `SAVEPOINT.md` with disk/Git snapshot, validation state, secret-redaction state, and marker block.
 
-For generic "savepoint" or "세이브포인트 만들어줘" requests, default to verified.
+For generic "savepoint", "handoff", "세이브포인트 만들어줘", or "핸드오프 만들어줘" requests, default to verified.
 
 ## Required `SAVEPOINT.md` Shape
 
@@ -44,7 +46,7 @@ Verified `SAVEPOINT.md` must include:
 - `TL;DR / Operational Summary` with exactly one `Goal`, `Current state`, `Next action`, and `Blocker`.
 - recovery contract with schema version, mode, safety state, blockers, trust order, and disk-verification requirement.
 - session target, done criteria, out-of-scope notes, and smallest executable next step.
-- repo snapshot: captured time, cwd, Git root, branch, short HEAD, status, diff stat, name-status, staged state, latest commit, loaded instruction files, and expected drift.
+- repo snapshot: captured time, cwd, Git root, branch, short HEAD, status, diff stat, name-status, staged stat, staged name-status, latest commit, loaded instruction files, and expected drift.
 - context/state source manifest listing relevant instruction files and durable state files by path and purpose.
 - required reading order and files to inspect first.
 - change manifest for changed, created, deleted, moved, staged, inspected, and unknown files.
@@ -80,6 +82,7 @@ Before writing a verified savepoint, inspect and record:
 - `git diff --stat`
 - `git diff --name-status`
 - `git diff --cached --stat`
+- `git diff --cached --name-status`
 - latest commit
 - relevant instruction files
 - relevant durable state files

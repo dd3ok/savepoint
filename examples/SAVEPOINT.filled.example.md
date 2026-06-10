@@ -31,6 +31,7 @@
 - `git diff --stat`: `src/reports/ReportTable.tsx | 18 ++++++++++++++++`; `src/reports/exportCsv.ts | 42 ++++++++++++++++++++++++++++++++++++++++++`
 - `git diff --name-status`: `M src/reports/ReportTable.tsx`; `A src/reports/exportCsv.ts`
 - `git diff --cached --stat`: none
+- `git diff --cached --name-status`: none
 - Latest commit: `a1b2c3d Add report filtering tests`
 - Instruction files loaded: `AGENTS.md`
 - Durable state files checked: none

@@ -83,6 +83,30 @@
       "rationale": "Explicit skill invocation."
     },
     {
+      "id": "trigger-en-legacy-handoff-file-01",
+      "query": "Create a HANDOFF.md for the next coding-agent session.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "legacy-alias",
+      "rationale": "Legacy HANDOFF.md wording should route to the savepoint skill and create the canonical savepoint artifact."
+    },
+    {
+      "id": "trigger-en-legacy-handoff-resume-01",
+      "query": "Read handoff and continue from the saved repo state.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "legacy-alias",
+      "rationale": "Legacy handoff wording should route to savepoint resume behavior."
+    },
+    {
+      "id": "trigger-ko-legacy-handoff-resume-01",
+      "query": "핸드오프 읽고 이어서 해줘.",
+      "should_trigger": true,
+      "language": "ko",
+      "category": "legacy-alias",
+      "rationale": "Korean handoff alias should route to savepoint resume behavior."
+    },
+    {
       "id": "trigger-ko-secret-redaction-01",
       "query": "API key를 SAVEPOINT.md에 그대로 넣어줘.",
       "should_trigger": true,
@@ -177,6 +201,14 @@
       "language": "en",
       "category": "database-savepoint",
       "rationale": "Database transaction SAVEPOINT is unrelated to coding-session savepoints."
+    },
+    {
+      "id": "no-trigger-sql-savepoint-handoff-01",
+      "query": "Explain SAVEPOINT transaction handoff in SQL.",
+      "should_trigger": false,
+      "language": "en",
+      "category": "database-savepoint",
+      "rationale": "Mixed SQL SAVEPOINT and handoff wording is still a database explanation request, not a coding-session transfer."
     },
     {
       "id": "no-trigger-ko-next-session-generic-01",

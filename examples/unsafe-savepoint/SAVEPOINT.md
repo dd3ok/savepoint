@@ -31,6 +31,7 @@
 - `git diff --stat`: `tests/checkout.test.ts | 6 ++++++`
 - `git diff --name-status`: `M tests/checkout.test.ts`
 - `git diff --cached --stat`: none
+- `git diff --cached --name-status`: none
 - Latest commit: `cab005e Add checkout retry logging`
 - Instruction files loaded: `AGENTS.md`
 - Durable state files checked: none

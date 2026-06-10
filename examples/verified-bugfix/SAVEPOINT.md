@@ -31,6 +31,7 @@
 - `git diff --stat`: `src/auth/session.ts | 4 +++-`; `tests/auth/session.test.ts | 12 ++++++++++++`
 - `git diff --name-status`: `M src/auth/session.ts`; `M tests/auth/session.test.ts`
 - `git diff --cached --stat`: none
+- `git diff --cached --name-status`: none
 - Latest commit: `d34db33 Add auth session tests`
 - Instruction files loaded: `AGENTS.md`
 - Durable state files checked: none
@@ -68,7 +69,7 @@
 
 - Savepoint validation: `python3 scripts/validate_savepoint.py .savepoint/SAVEPOINT.md` passed.
 - Project validation: `npm run lint` passed.
-- Skipped checks / next validation: none.
+- Skipped checks / next validation: no skipped focused checks; next run `npm test -- tests/auth/session.test.ts`.
 - Secret redaction check: manual artifact scan
 - Observable completion criteria: focused test and lint pass.
 
