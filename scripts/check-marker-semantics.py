@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILL_SCRIPTS = ROOT / "skills" / "savepoint" / "scripts"
 sys.path.insert(0, str(SKILL_SCRIPTS))
 
-from savepoint_contract import validate_marker_semantics  # noqa: E402
+from savepoint_contract import extract_marker_values, validate_marker_semantics  # noqa: E402
 from validate_savepoint import scan_secret_patterns, validate_savepoint  # noqa: E402
 
 
@@ -123,6 +123,7 @@ def main() -> int:
     errors.extend(check_prompt_ready_requires_prompt_evidence())
     errors.extend(check_embedded_resume_prompt_satisfies_prompt_ready())
     errors.extend(check_marker_must_be_final())
+    errors.extend(check_marker_parser_accepts_crlf())
     errors.extend(check_verified_path_must_exist_without_example_flag())
     errors.extend(check_resume_ready_requires_substantive_values())
     errors.extend(check_resume_ready_rejects_none_for_required_value())
@@ -301,6 +302,14 @@ def check_marker_must_be_final() -> list[str]:
             "savepoint with content after marker should fail, "
             f"got errors={errors}"
         ]
+    return []
+
+
+def check_marker_parser_accepts_crlf() -> list[str]:
+    text = f"```text\n{marker_block()}\n```\n".replace("\n", "\r\n")
+    values, errors = extract_marker_values(Path("crlf-savepoint.md"), text)
+    if errors or values.get("SAVEPOINT_MODE") != "verified":
+        return [f"CRLF marker block should parse, got values={values}, errors={errors}"]
     return []
 
 

@@ -54,7 +54,7 @@ def marker_template_lines(schema: dict[str, Any] | None = None) -> list[str]:
 def extract_marker_values(path: Path, text: str) -> tuple[dict[str, str], list[str]]:
     errors: list[str] = []
     pattern = re.compile(
-        rf"```text\n({MARKER_BLOCK_START}\n.*?{MARKER_BLOCK_END})\n```",
+        rf"```text\r?\n({MARKER_BLOCK_START}\r?\n.*?{MARKER_BLOCK_END})\r?\n```",
         re.DOTALL,
     )
     matches = list(pattern.finditer(text))

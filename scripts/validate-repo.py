@@ -407,7 +407,7 @@ class Validator:
 
     def extract_marker_block(self, text: str, path: Path) -> list[str] | None:
         pattern = re.compile(
-            rf"```text\n({MARKER_BLOCK_START}\n.*?{MARKER_BLOCK_END})\n```",
+            rf"```text\r?\n({MARKER_BLOCK_START}\r?\n.*?{MARKER_BLOCK_END})\r?\n```",
             re.DOTALL,
         )
         blocks = pattern.findall(text)
