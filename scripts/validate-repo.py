@@ -262,6 +262,8 @@ class Validator:
         for name in CANONICAL_REFERENCES:
             self.require_exists(SKILL_DIR / "references" / name)
         self.require_exists(SKILL_DIR / "schemas" / "savepoint-v1.schema.json")
+        self.require_exists(SKILL_DIR / "scripts" / "create_savepoint_stub.py")
+        self.require_exists(ROOT / "scripts" / "create_savepoint_stub.py")
 
         required_skill_phrases = [
             "Text savepoint",
@@ -269,7 +271,7 @@ class Validator:
             ".savepoint/SAVEPOINT.md",
             "SAVEPOINT_V1",
             "RESUME_READY: yes",
-            "Aim for about 1200 characters unless the user requests more.",
+            "Aim for about 800-1200 tokens for coding handoffs",
             "`no-file`, `no files`, `in-response`, or `in the response`",
             "## Load / Resume",
             "For text savepoints, do not read references unless asked.",
@@ -277,6 +279,7 @@ class Validator:
             "Read `references/context-packaging.md` only for state-file/context-budget questions.",
             "For inspect-only requests, do not clean up by default.",
             "Continue only when the user requested continuation and `RESUME_READY` is `yes`",
+            "scripts/create_savepoint_stub.py",
         ]
         for phrase in required_skill_phrases:
             if phrase not in skill_text:
@@ -303,7 +306,7 @@ class Validator:
         for phrase in [
             "## Resume Prompt",
             "- Next-session focus:",
-            "120 lines / 5000 characters",
+            "1500-2500 tokens",
             "Consult `references/savepoint-contract.md` only when marker semantics",
             "SAVEPOINT_MODE: text|file",
             "continue only if the user requested continuation and RESUME_READY is yes",
@@ -311,6 +314,20 @@ class Validator:
         ]:
             if phrase not in template_text:
                 self.fail(f"savepoint-template.md missing phrase: {phrase}")
+        context_text = self.read(SKILL_DIR / "references" / "context-packaging.md")
+        for phrase in [
+            "Budget guidance is advisory, not a validation rule.",
+            "Path selection happens before budget",
+            "explicit text/copy-paste/no-file/no files/in-response/in the response requests remain text",
+            "800-1200 tokens",
+            "much more than about 2000 tokens",
+            "1500-2500 tokens",
+            "up to about 4000 tokens",
+            "Use `details/*.md` only for focused spillover after compression.",
+            "The top-level `SAVEPOINT.md` must still contain required markers",
+        ]:
+            if phrase not in context_text:
+                self.fail(f"context-packaging.md missing phrase: {phrase}")
 
     def validate_readme_format(self) -> None:
         readme_text = self.read(ROOT / "README.md")
@@ -334,6 +351,7 @@ class Validator:
             "Resume a coding-agent session after the context window is full.",
             "Hand off repo/Git state from one Codex or Claude session to another.",
             "Create a copy-paste Text Savepoint for a quick one-off transfer.",
+            "Token-efficient draft helper: `skills/savepoint/scripts/create_savepoint_stub.py`",
             "skills/savepoint/references/context-packaging.md",
             "Text Savepoint",
             "File Savepoint",
@@ -354,6 +372,7 @@ class Validator:
             "컨텍스트가 다 찬 코딩 에이전트 세션을 새 세션에서 이어가기",
             "Codex 또는 Claude 세션 간 저장소/Git 상태 인계하기",
             "단발성 작업을 위한 복붙용 Text Savepoint 만들기",
+            "토큰 절약형 초안 helper: `skills/savepoint/scripts/create_savepoint_stub.py`",
             "복붙용 세이브포인트 만들어줘",
             "세이브포인트 텍스트로 만들어줘",
             "파일 없이 세이브포인트 만들어줘",

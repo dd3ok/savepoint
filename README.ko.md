@@ -41,6 +41,7 @@ File Savepoint는 아래 파일을 씁니다.
 - Skill router: `skills/savepoint/SKILL.md`
 - Artifact contract: `skills/savepoint/references/savepoint-contract.md`
 - Savepoint skeleton: `skills/savepoint/references/savepoint-template.md`
+- 토큰 절약형 초안 helper: `skills/savepoint/scripts/create_savepoint_stub.py`
 - Context packaging: `skills/savepoint/references/context-packaging.md`
 - Marker schema: `skills/savepoint/schemas/savepoint-v1.schema.json`
 - Portable validator: `skills/savepoint/scripts/validate_savepoint.py`
@@ -57,6 +58,7 @@ python3 scripts/check-marker-block.py
 python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
+python3 scripts/check-savepoint-stub.py
 python3 scripts/check-install-helper.py
 python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
 git diff --check

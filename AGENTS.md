@@ -32,6 +32,7 @@ python3 scripts/check-marker-block.py
 python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
+python3 scripts/check-savepoint-stub.py
 python3 scripts/check-install-helper.py
 python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
 git diff --check

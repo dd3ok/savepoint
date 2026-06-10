@@ -22,7 +22,11 @@ Prefer the smallest recoverable package:
 2. File savepoint: one `.savepoint/SAVEPOINT.md` with disk/Git snapshot and validation state.
 3. Detail spillover: focused `details/*.md` files only when file `SAVEPOINT.md` cannot stay both concise and recoverable.
 
-For file `SAVEPOINT.md`, aim for about 120 lines or 5000 characters. For text savepoints, aim for about 20 lines or 1200 characters. Do not omit recovery-critical facts to fit the budget.
+Budget guidance is advisory, not a validation rule. Path selection happens before budget: explicit text/copy-paste/no-file/no files/in-response/in the response requests remain text unless the user agrees to write a file.
+
+Text savepoints should target about 800-1200 tokens for coding handoffs; keep simple text savepoints shorter. If safe transfer needs much more than about 2000 tokens, compress first or ask before writing a file. File `SAVEPOINT.md` should target about 1500-2500 tokens; allow up to about 4000 tokens for complex ops, DB, PR, CI, or multi-agent work.
+
+Use `details/*.md` only for focused spillover after compression. The top-level `SAVEPOINT.md` must still contain required markers, repo snapshot summary, validation status, changed-file summary, risks, and a singular next action. Do not omit recovery-critical facts to fit the budget.
 
 Never preserve raw chat transcripts, full diffs, long logs, shell history, or broad background unless the user explicitly asks and the content is essential and redacted.
 
