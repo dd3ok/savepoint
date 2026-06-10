@@ -1,6 +1,6 @@
 ---
 name: savepoint
-description: "Use when explicitly transferring coding-session state: create/update/load .savepoint/SAVEPOINT.md by default, or create an explicit text/copy-paste savepoint. Not for SQL SAVEPOINT, ordinary summaries, docs, code changes, /new, /status, PTY, or session rotation. Triggers include 세이브포인트 만들어줘, 세이브포인트 읽고 이어서 해줘."
+description: "Use when explicitly transferring coding-session state: create/update/load/inspect/resume .savepoint/SAVEPOINT.md by default, or create an explicit text/copy-paste savepoint. Not for SQL SAVEPOINT, ordinary summaries, docs, code changes, /new, /status, PTY, or session rotation. Triggers include 세이브포인트 만들어줘, 세이브포인트 읽고 이어서 해줘."
 ---
 
 # Savepoint
@@ -30,7 +30,7 @@ Preserve coding-session state for continuation without prior chat context.
 1. Verify cwd, Git root, branch, short HEAD, status, and diff before trusting a savepoint.
 2. Read applicable instructions and the selected savepoint: user path first, then `.savepoint/SAVEPOINT.md`.
 3. Compare claims with the working tree; disk state wins, and drift must be reported before edits.
-4. If `RESUME_READY` is not `yes`, stop after the report unless the user explicitly instructs how to proceed.
+4. Continue only when the user requested continuation and `RESUME_READY` is `yes`; otherwise stop after the report.
 5. Cleanup only adopted, generated, untracked artifacts. For inspect-only requests, do not clean up by default.
 
-For text savepoints, do not read references unless asked. For file create, start with `references/savepoint-template.md`; read `references/savepoint-contract.md` only for unclear marker, `RESUME_READY`, cleanup, staleness, or detail-spillover rules. Read `references/context-packaging.md` only for state-file/context-budget questions.
+For text savepoints, do not read references unless asked. For file create, start with `references/savepoint-template.md`. For file create/load/inspect/resume, read `references/savepoint-contract.md` only for unclear marker, `RESUME_READY`, cleanup, staleness, or detail-spillover rules. Read `references/context-packaging.md` only for state-file/context-budget questions.

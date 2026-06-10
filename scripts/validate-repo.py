@@ -114,6 +114,9 @@ REMOVED_FORBIDDEN_PATTERNS = [
     r"SAFE_FOR_NEW_SESSION",
     r"SAVEPOINT_AUTOMATION",
     r"SAVEPOINT_SCHEMA_VERSION",
+    r"SAVEPOINT_MODE:\s*(?:lightweight|verified)\b",
+    r"SAVEPOINT_MODE:\s*lightweight\|verified",
+    r"\blightweight\|verified\b",
     r"prompt-only",
     r"compact\|expanded\|prompt-only",
     r"compact mode",
@@ -199,6 +202,7 @@ class Validator:
             "read `references/savepoint-contract.md` only for unclear marker",
             "Read `references/context-packaging.md` only for state-file/context-budget questions.",
             "For inspect-only requests, do not clean up by default.",
+            "Continue only when the user requested continuation and `RESUME_READY` is `yes`",
         ]
         for phrase in required_skill_phrases:
             if phrase not in skill_text:
@@ -212,6 +216,7 @@ class Validator:
             "Do not delete tracked files",
             "Durable state files are not generated detail artifacts",
             "cleanup happens only after adoption",
+            "Continue only when the user requested continuation and `RESUME_READY` is `yes`",
             "`git diff --cached --name-status`",
             "SAVEPOINT_V1",
         ]:
@@ -225,6 +230,7 @@ class Validator:
             "120 lines / 5000 characters",
             "Consult `references/savepoint-contract.md` only when marker semantics",
             "SAVEPOINT_MODE: text|file",
+            "continue only if the user requested continuation and RESUME_READY is yes",
             "- `git diff --cached --name-status`:",
         ]:
             if phrase not in template_text:
@@ -304,6 +310,9 @@ class Validator:
         has_korean_negative = False
         has_secret_positive = False
         has_focus_positive = False
+        has_short_file_positive = False
+        has_korean_load_positive = False
+        has_english_load_positive = False
         has_sql_negative = False
         negative_categories: set[str] = set()
         for index, query in enumerate(queries):
@@ -333,6 +342,12 @@ class Validator:
                     has_secret_positive = True
                 if category == "focus-argument":
                     has_focus_positive = True
+                if query_id == "trigger-ko-file-short-01":
+                    has_short_file_positive = True
+                if category == "load" and query.get("language") == "ko":
+                    has_korean_load_positive = True
+                if category == "load" and query.get("language") == "en":
+                    has_english_load_positive = True
             elif should_trigger is False:
                 negatives += 1
                 if query.get("language") == "ko":
@@ -362,6 +377,12 @@ class Validator:
             self.fail("trigger evals should include secret-bearing savepoint requests")
         if not has_focus_positive:
             self.fail("trigger evals should include next-session focus savepoint requests")
+        if not has_short_file_positive:
+            self.fail("trigger evals should include short generic savepoint requests that still default to file")
+        if not has_korean_load_positive:
+            self.fail("trigger evals should include Korean load-only savepoint requests")
+        if not has_english_load_positive:
+            self.fail("trigger evals should include English load-only savepoint requests")
         if not has_sql_negative:
             self.fail("trigger evals should include database/SQL SAVEPOINT negative queries")
 

@@ -94,7 +94,7 @@ Read only enough files to verify recovery state. Prefer instruction files, relev
 
 ## Text Contract
 
-Use text output only when the user explicitly asks for copy-paste, text, no-file, clipboard, in-response, or similar transfer. It may summarize current conversation/work context, but it must not claim repo recovery.
+Use text output only when the user explicitly asks for copy-paste, text, no-file, in-response, or similar transfer. It may summarize current conversation/work context, but it must not claim repo recovery.
 
 Omit markers by default. If the user asks for machine-readable text output, set `SAVEPOINT_MODE: text`, `SAVEPOINT_PATH: not-written`, and `RESUME_READY: no`.
 
@@ -104,7 +104,7 @@ Before implementation, confirm current disk state, read applicable instructions,
 
 Report the loaded instructions, repo state, savepoint consistency, detail artifacts read, missing or conflicting paths, and smallest next step before editing.
 
-If `RESUME_READY` is not `yes`, stop after the report unless the user explicitly instructs how to proceed.
+Continue only when the user requested continuation and `RESUME_READY` is `yes`; inspect/load-only requests stop after the report.
 
 ## Detail Spillover
 
