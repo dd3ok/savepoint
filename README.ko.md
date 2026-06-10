@@ -1,8 +1,6 @@
 # Savepoint Skill
 
-`savepoint`는 코딩 에이전트가 다음 세션에서 이어갈 상태를 보존하도록 돕습니다.
-
-Savepoint는 코딩 에이전트의 컨텍스트가 다 찼을 때 새 세션이 저장된 저장소/Git 상태에서 이어갈 수 있게 하는 핸드오프 스타일 체크포인트입니다. 정식 이름과 파일 경로는 `savepoint`와 `.savepoint/SAVEPOINT.md`입니다.
+`savepoint`는 Codex, Claude 같은 코딩 에이전트를 위한 text/file 체크포인트 스킬입니다. 컨텍스트가 다 찬 세션을 새 세션으로 인계하고, 저장소/Git 상태를 보존해 `.savepoint/SAVEPOINT.md`에서 안전하게 이어갈 수 있게 합니다.
 
 [English README](README.md)
 
@@ -19,6 +17,12 @@ Savepoint는 코딩 에이전트의 컨텍스트가 다 찼을 때 새 세션이
 `복붙용`, `텍스트`, `파일 없이`처럼 파일 없는 전달을 명시한 경우에만 **Text Savepoint**를 사용합니다.
 
 이 스킬은 일반 대화 요약기가 아닙니다. `/new`, `/status`, PTY 제어, 세션 회전, 컨텍스트 임계값 선택, 애플리케이션 코드 수정을 수행하지 않습니다.
+
+## 사용 사례
+
+- 컨텍스트가 다 찬 코딩 에이전트 세션을 새 세션에서 이어가기
+- Codex 또는 Claude 세션 간 저장소/Git 상태 인계하기
+- 단발성 작업을 위한 복붙용 Text Savepoint 만들기
 
 ## 기본 아티팩트
 

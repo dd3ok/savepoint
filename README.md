@@ -1,8 +1,6 @@
 # Savepoint Skill
 
-`savepoint` helps coding agents preserve continuation state for a later session.
-
-A savepoint is a handoff-style checkpoint for when a coding agent's context is full and a new session needs to continue from saved repo state; canonical commands and files use `savepoint` and `.savepoint/SAVEPOINT.md`.
+`savepoint` is a text/file checkpoint skill for coding agents such as Codex and Claude. It helps hand off full-context coding sessions, preserve repo/Git state, and safely resume from `.savepoint/SAVEPOINT.md` without relying on prior chat context.
 
 [한국어 README](README.ko.md)
 
@@ -19,6 +17,12 @@ Default to **File Savepoint** when preserving coding-session state. Default to *
 Use **Text Savepoint** only for explicit copy-paste, text, or no-file requests that do not need file recovery guarantees.
 
 This skill is not a generic conversation summarizer. It does not run `/new`, `/status`, control PTYs, rotate sessions, choose context thresholds, or edit application code while creating a savepoint.
+
+## Use Cases
+
+- Resume a coding-agent session after the context window is full.
+- Hand off repo/Git state from one Codex or Claude session to another.
+- Create a copy-paste Text Savepoint for a quick one-off transfer.
 
 ## Default Artifact
 
