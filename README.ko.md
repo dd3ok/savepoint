@@ -2,7 +2,7 @@
 
 `savepoint`는 코딩 에이전트가 다음 세션에서 이어갈 상태를 보존하도록 돕습니다.
 
-Savepoint는 코딩 에이전트의 컨텍스트가 다 찼을 때 새 세션이 저장된 repo 상태에서 이어갈 수 있게 하는 핸드오프 스타일 체크포인트입니다. canonical 명령과 파일은 `savepoint`와 `.savepoint/SAVEPOINT.md`입니다.
+Savepoint는 코딩 에이전트의 컨텍스트가 다 찼을 때 새 세션이 저장된 저장소/Git 상태에서 이어갈 수 있게 하는 핸드오프 스타일 체크포인트입니다. 정식 이름과 파일 경로는 `savepoint`와 `.savepoint/SAVEPOINT.md`입니다.
 
 [English README](README.md)
 
@@ -28,7 +28,7 @@ File Savepoint는 아래 파일을 씁니다.
 .savepoint/SAVEPOINT.md
 ```
 
-`SAVEPOINT.md`는 `## Resume Prompt`와 파일 끝의 `SAVEPOINT_V1` marker block을 포함합니다. 정확한 필드 스키마는 `skills/savepoint/schemas/savepoint-v1.schema.json`에 있고, marker 의미는 `skills/savepoint/references/savepoint-contract.md`에 있습니다.
+`SAVEPOINT.md`는 `## Resume Prompt`와 파일 끝의 `SAVEPOINT_V1` 블록을 포함합니다. 정확한 필드 스키마는 `skills/savepoint/schemas/savepoint-v1.schema.json`에 있고, `SAVEPOINT_V1` 필드 의미는 `skills/savepoint/references/savepoint-contract.md`에 있습니다.
 
 ## 사용 예시
 
@@ -42,17 +42,17 @@ File Savepoint는 아래 파일을 씁니다.
 세이브포인트 이어서 해줘.
 ```
 
-savepoint를 읽고 현재 disk/Git 상태와 비교한 뒤, 일치/드리프트를 보고합니다. 명시적으로 이어서 작업하라고 요청됐고 안전할 때만 계속합니다.
+savepoint를 읽고 현재 디스크/Git 상태와 비교한 뒤, 일치/드리프트를 보고합니다. 명시적으로 이어서 작업하라고 요청됐고 안전할 때만 계속합니다.
 
 ```text
 단발성 작업용으로 복붙용 세이브포인트 만들어줘. 다음 세션은 PR 리뷰만 하면 돼.
 ```
 
-Text Savepoint를 만듭니다. `RESUME_READY: yes`를 주장하면 안 됩니다. 기본적으로 marker block을 출력하지 않습니다.
+Text Savepoint를 만듭니다. `RESUME_READY: yes`를 주장하면 안 됩니다. 기본적으로 `SAVEPOINT_V1` 블록을 출력하지 않습니다.
 
 ## Canonical Contract
 
-canonical 파일은 다음과 같습니다.
+정식 계약 파일은 다음과 같습니다.
 
 - Skill router: `skills/savepoint/SKILL.md`
 - Artifact contract: `skills/savepoint/references/savepoint-contract.md`
@@ -61,7 +61,7 @@ canonical 파일은 다음과 같습니다.
 - Marker schema: `skills/savepoint/schemas/savepoint-v1.schema.json`
 - Portable validator: `skills/savepoint/scripts/validate_savepoint.py`
 
-root의 `examples/`, `evals/`, `orchestrators/`, `scripts/validate-repo.py`는 maintainer asset입니다. root의 `scripts/validate_savepoint.py`는 portable validator로 전달합니다.
+root의 `examples/`, `evals/`, `orchestrators/`, `scripts/validate-repo.py`는 프로젝트 유지보수에 쓰는 파일입니다. root의 `scripts/validate_savepoint.py`는 portable validator로 전달합니다.
 
 ## Validation
 

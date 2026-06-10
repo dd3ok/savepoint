@@ -59,8 +59,8 @@ README_ALLOWED_HANDOFF_PHRASE = (
     "and `.savepoint/SAVEPOINT.md`."
 )
 README_KO_ALLOWED_HANDOFF_PHRASE = (
-    "Savepoint는 코딩 에이전트의 컨텍스트가 다 찼을 때 새 세션이 저장된 repo 상태에서 이어갈 수 "
-    "있게 하는 핸드오프 스타일 체크포인트입니다. canonical 명령과 파일은 `savepoint`와 "
+    "Savepoint는 코딩 에이전트의 컨텍스트가 다 찼을 때 새 세션이 저장된 저장소/Git 상태에서 "
+    "이어갈 수 있게 하는 핸드오프 스타일 체크포인트입니다. 정식 이름과 파일 경로는 `savepoint`와 "
     "`.savepoint/SAVEPOINT.md`입니다."
 )
 MARKER_ENUMS = {
