@@ -18,7 +18,7 @@ The goal is to give a fresh coding-agent session just enough checked context to 
 
 Prefer the smallest recoverable package:
 
-1. Text savepoint: response text for explicit copy-paste/no-file transfer; no repo recovery guarantee.
+1. Text savepoint: response text for explicit text/copy-paste/no-file/no files/in-response/in the response transfer; no repo recovery guarantee.
 2. File savepoint: one `.savepoint/SAVEPOINT.md` with disk/Git snapshot and validation state.
 3. Detail spillover: focused `details/*.md` files only when file `SAVEPOINT.md` cannot stay both concise and recoverable.
 

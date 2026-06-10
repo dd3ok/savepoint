@@ -15,7 +15,7 @@ The agent receives near-miss prompts:
 
 Only the explicit savepoint requests trigger `savepoint`.
 
-A focus argument should narrow the savepoint only when the prompt also asks for savepoint creation, update, inspect, or resume.
+A focus argument should narrow the savepoint only when the prompt also asks for savepoint creation, update, load, inspect, or resume.
 
 ## Failure Conditions
 

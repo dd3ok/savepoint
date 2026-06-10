@@ -22,10 +22,10 @@ For each case:
 - `SAVEPOINT.md` is an entry manifest, not a transcript dump.
 - `SAVEPOINT.md` embeds a `## Resume Prompt`.
 - Large work uses focused detail artifacts instead of forced 100-line compression.
-- Resume mode verifies disk state before implementation.
+- Load/resume verifies disk state before continuation or implementation.
 - File safe adopted resume deletes only selected untracked generated savepoint artifacts.
 - Disk state wins over savepoint text.
-- Stale branch, HEAD, status, required-file, detail-artifact, or validation drift is reported before implementation.
+- Stale branch, HEAD, status, required-file, detail-artifact, or validation drift is reported before continuation or implementation.
 - Relevant durable state files are listed by path and purpose instead of copied wholesale into `SAVEPOINT.md`.
 - Secrets are redacted.
 - `SKILL.md` frontmatter parses as valid YAML.

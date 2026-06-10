@@ -13,7 +13,7 @@
 - Reports mismatch before editing.
 - Trusts disk over savepoint text.
 - Marks the savepoint stale if branch, HEAD, status, required files, or validation assumptions drift without an expected-drift note.
-- Stops after the report unless the user explicitly asked to continue implementation and the next step is safe.
+- Stops after the report unless the user explicitly asked to continue the task and the next step is safe.
 
 ## Failure Conditions
 
