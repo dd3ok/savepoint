@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate deterministic savepoint stub generation."""
+"""Validate deterministic savepoint renderer generation."""
 
 from __future__ import annotations
 
@@ -14,12 +14,10 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STUB_HELPER = ROOT / "skills" / "savepoint" / "scripts" / "create_savepoint_stub.py"
 RENDER_HELPER = ROOT / "skills" / "savepoint" / "scripts" / "render_savepoint.py"
-ROOT_HELPER = ROOT / "scripts" / "create_savepoint_stub.py"
 ROOT_RENDERER = ROOT / "scripts" / "render_savepoint.py"
 VALIDATOR = ROOT / "skills" / "savepoint" / "scripts" / "validate_savepoint.py"
-HELPER_SCRIPT_DIR = STUB_HELPER.parent
+HELPER_SCRIPT_DIR = RENDER_HELPER.parent
 if str(HELPER_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(HELPER_SCRIPT_DIR))
 
@@ -38,17 +36,20 @@ def run(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(args, cwd=cwd, text=True, capture_output=True, check=False)
 
 
-def load_stub_helper():
-    spec = importlib.util.spec_from_file_location("create_savepoint_stub_under_test", STUB_HELPER)
-    require(spec is not None and spec.loader is not None, "could not load stub helper module")
+def load_render_helper():
+    spec = importlib.util.spec_from_file_location("render_savepoint_under_test", RENDER_HELPER)
+    require(spec is not None and spec.loader is not None, "could not load render helper module")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-def load_render_helper():
-    spec = importlib.util.spec_from_file_location("render_savepoint_under_test", RENDER_HELPER)
-    require(spec is not None and spec.loader is not None, "could not load render helper module")
+def load_contract_helper():
+    spec = importlib.util.spec_from_file_location(
+        "savepoint_contract_under_test",
+        HELPER_SCRIPT_DIR / "savepoint_contract.py",
+    )
+    require(spec is not None and spec.loader is not None, "could not load savepoint contract module")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -89,19 +90,19 @@ def semantic_input(repo: Path) -> Path:
   "next_action": "run the focused validation commands",
   "done_when": "savepoint validation and project validation are both recorded",
   "out_of_scope": "marker schema changes",
-  "smallest_next_step": "run python scripts/check-savepoint-stub.py",
+  "smallest_next_step": "run python scripts/check-savepoint-renderer.py",
   "decisions": ["keep SAVEPOINT_V1 marker fields and order unchanged"],
   "risks": ["disk state can drift after the snapshot is captured"],
   "failed_approaches": "none",
   "unresolved_blockers": "none",
   "project_validation": [
     {
-      "command": "python scripts/check-savepoint-stub.py",
+      "command": "python scripts/check-savepoint-renderer.py",
       "result": "passed",
       "summary": "renderer fixture validation recorded"
     }
   ],
-  "observable_completion": "check-savepoint-stub exits 0",
+  "observable_completion": "check-savepoint-renderer exits 0",
   "inspected_without_change": ["README.md"],
   "files_to_inspect_first": ["app.py"]
 }
@@ -123,7 +124,7 @@ def minimal_semantic_input(
     project_validation = "" if not include_project_validation else """,
   "project_validation": [
     {
-      "command": "python scripts/check-savepoint-stub.py",
+      "command": "python scripts/check-savepoint-renderer.py",
       "result": "%s",
       "summary": "minimal renderer fixture validation recorded"
     }
@@ -143,32 +144,6 @@ def minimal_semantic_input(
     return path
 
 
-def test_portable_helper_writes_valid_draft() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        repo = make_repo(Path(tmp))
-        output = repo / ".savepoint" / "SAVEPOINT.md"
-        result = run([sys.executable, str(STUB_HELPER), "--focus", "review the draft"], repo)
-        require(result.returncode == 0, result.stderr or result.stdout)
-        require(output.exists(), "stub helper did not write .savepoint/SAVEPOINT.md")
-
-        text = output.read_text(encoding="utf-8")
-        require("Generated deterministic draft." in text, "draft origin note missing")
-        require("- Next-session focus: review the draft" in text, "focus was not written")
-        require("- `git status --short`: ?? app.py" in text, "git status snapshot missing")
-        require("SAVEPOINT_MODE: file" in text, "file marker missing")
-        require("RESUME_READY: no" in text, "draft must not be resume-ready")
-        require("BLOCKERS: draft-needs-agent-review" in text, "draft blocker missing")
-        require(
-            "Do not rely on prior chat context unless the user explicitly provides it." in text,
-            "draft resume prompt should warn against relying on prior chat",
-        )
-        require(text.rstrip().endswith("END_SAVEPOINT_V1\n```"), "marker block must be final")
-        require(len(text) <= 3400, "stub draft should stay compact")
-
-        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
-        require(validation.returncode == 0, validation.stderr or validation.stdout)
-
-
 def test_truncates_large_git_snapshot() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo(Path(tmp))
@@ -181,12 +156,24 @@ def test_truncates_large_git_snapshot() -> None:
         for index in range(50):
             (src / f"file_{index:02}.py").write_text("print('new')\n", encoding="utf-8")
 
+        input_path = semantic_input(repo)
         output = repo / ".savepoint" / "SAVEPOINT.md"
-        result = run([sys.executable, str(STUB_HELPER)], repo)
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
         require(result.returncode == 0, result.stderr or result.stdout)
         text = output.read_text(encoding="utf-8")
         require("truncated, rerun command for full output" in text, "large snapshot was not truncated")
-        require(len(text) <= 5600, "large fixture stub draft should stay compact")
+        require(len(text) <= 5600, "large fixture renderer output should stay compact")
 
         validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
         require(validation.returncode == 0, validation.stderr or validation.stdout)
@@ -195,27 +182,40 @@ def test_truncates_large_git_snapshot() -> None:
 def test_refuses_overwrite_without_force() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo(Path(tmp))
+        input_path = semantic_input(repo)
         output = repo / ".savepoint" / "SAVEPOINT.md"
-        first = run([sys.executable, str(STUB_HELPER)], repo)
-        require(first.returncode == 0, first.stderr or first.stdout)
-        second = run([sys.executable, str(STUB_HELPER)], repo)
-        require(second.returncode != 0, "stub helper overwrote without --force")
+        first = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require("wrote:" in first.stdout, first.stderr or first.stdout)
+        second = run([sys.executable, str(RENDER_HELPER), "--input", str(input_path)], repo)
+        require(second.returncode != 0, "renderer overwrote without --force")
         require("output already exists" in second.stderr, "overwrite refusal message missing")
 
-        forced = run([sys.executable, str(STUB_HELPER), "--force"], repo)
-        require(forced.returncode == 0, forced.stderr or forced.stdout)
+        forced = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--force",
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require("wrote:" in forced.stdout, forced.stderr or forced.stdout)
         require(output.exists(), "forced write removed output")
-
-
-def test_root_wrapper_forwards_to_portable_helper() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        repo = make_repo(Path(tmp))
-        output = repo / "custom" / "SAVEPOINT.md"
-        result = run([sys.executable, str(ROOT_HELPER), "--output", str(output)], repo)
-        require(result.returncode == 0, result.stderr or result.stdout)
-        require(output.exists(), "root wrapper did not write requested output")
-        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
-        require(validation.returncode == 0, validation.stderr or validation.stdout)
 
 
 def test_renderer_writes_resume_ready_savepoint_from_json_input() -> None:
@@ -238,8 +238,8 @@ def test_renderer_writes_resume_ready_savepoint_from_json_input() -> None:
         require(result.returncode == 0, result.stderr or result.stdout)
         text = output.read_text(encoding="utf-8")
         require("Generated deterministic final savepoint." in text, "renderer origin note missing")
-        require("<agent-fill>" not in text, "renderer should not leave stub placeholders")
-        require("- Next action: run python scripts/check-savepoint-stub.py" in text, "smallest next step should drive rendered next action")
+        require("<agent-fill>" not in text, "renderer should not leave placeholders")
+        require("- Next action: run python scripts/check-savepoint-renderer.py" in text, "smallest next step should drive rendered next action")
         require("- Changed:" in text and "app.py - modified" in text, "changed file was not derived")
         require("- Created: none" in text, "renderer-generated files should not be listed as created work")
         require("- Inspected without change: README.md" in text, "semantic inspected file missing")
@@ -375,7 +375,7 @@ def test_renderer_records_recovery_uncertainty_inputs() -> None:
   "unknown_unverified": "nested CLAUDE.md for app.py was not read after compaction",
   "project_validation": [
     {
-      "command": "python scripts/check-savepoint-stub.py",
+      "command": "python scripts/check-savepoint-renderer.py",
       "result": "passed",
       "summary": "uncertainty renderer fixture validation recorded"
     }
@@ -860,7 +860,7 @@ def test_renderer_revalidates_final_rewrite_before_success() -> None:
 
 
 def test_run_command_handles_oserror() -> None:
-    helper = load_stub_helper()
+    helper = load_contract_helper()
     original_run = helper.subprocess.run
 
     def raise_oserror(*_args, **_kwargs):
@@ -876,7 +876,7 @@ def test_run_command_handles_oserror() -> None:
 
 
 def test_find_git_root_handles_empty_output() -> None:
-    helper = load_stub_helper()
+    helper = load_contract_helper()
     helper.git_output = lambda _args, _cwd: ""
     require(helper.find_git_root(ROOT) is None, "empty git root output should not crash")
 
@@ -884,29 +884,32 @@ def test_find_git_root_handles_empty_output() -> None:
 def test_refuses_directory_output() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo(Path(tmp))
+        input_path = semantic_input(repo)
         output = repo / ".savepoint"
         output.mkdir()
-        result = run([sys.executable, str(STUB_HELPER), "--output", str(output), "--force"], repo)
-        require(result.returncode != 0, "stub helper wrote to directory output")
+        result = run([sys.executable, str(RENDER_HELPER), "--input", str(input_path), "--output", str(output), "--force"], repo)
+        require(result.returncode != 0, "renderer wrote to directory output")
         require("output path is a directory" in result.stderr, "directory refusal message missing")
 
 
 def test_refuses_savepoint_named_directory_output() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo(Path(tmp))
+        input_path = semantic_input(repo)
         output = repo / ".savepoint" / "SAVEPOINT.md"
         output.mkdir(parents=True)
-        result = run([sys.executable, str(STUB_HELPER), "--output", str(output), "--force"], repo)
-        require(result.returncode != 0, "stub helper wrote to SAVEPOINT.md directory output")
+        result = run([sys.executable, str(RENDER_HELPER), "--input", str(input_path), "--output", str(output), "--force"], repo)
+        require(result.returncode != 0, "renderer wrote to SAVEPOINT.md directory output")
         require("output path is a directory" in result.stderr, "SAVEPOINT.md directory refusal message missing")
 
 
 def test_refuses_non_savepoint_output_name() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo(Path(tmp))
+        input_path = semantic_input(repo)
         output = repo / "foo.md"
-        result = run([sys.executable, str(STUB_HELPER), "--output", str(output)], repo)
-        require(result.returncode != 0, "stub helper wrote non-SAVEPOINT.md output")
+        result = run([sys.executable, str(RENDER_HELPER), "--input", str(input_path), "--output", str(output)], repo)
+        require(result.returncode != 0, "renderer wrote non-SAVEPOINT.md output")
         require("output path must end with SAVEPOINT.md" in result.stderr, "output name refusal message missing")
         require(not output.exists(), "invalid output path should not be written")
 
@@ -914,77 +917,46 @@ def test_refuses_non_savepoint_output_name() -> None:
 def test_reports_parent_mkdir_oserror() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo(Path(tmp))
+        input_path = semantic_input(repo)
         parent = repo / "not-a-directory"
         parent.write_text("file blocks mkdir\n", encoding="utf-8")
         output = parent / "SAVEPOINT.md"
-        result = run([sys.executable, str(STUB_HELPER), "--output", str(output)], repo)
-        require(result.returncode != 0, "stub helper wrote through file parent")
+        result = run([sys.executable, str(RENDER_HELPER), "--input", str(input_path), "--output", str(output)], repo)
+        require(result.returncode != 0, "renderer wrote through file parent")
         require("failed to write output" in result.stderr, "mkdir failure message missing")
         require("Traceback" not in result.stderr, "mkdir failure should not print traceback")
 
 
 def test_write_output_uses_portable_lf_open() -> None:
-    helpers = [load_stub_helper(), load_render_helper()]
+    helper = load_render_helper()
+    original_open = getattr(helper, "open", None)
+    calls: list[tuple[str, str, str, str]] = []
 
-    for helper in helpers:
-        original_open = getattr(helper, "open", None)
-        calls: list[tuple[str, str, str, str]] = []
+    def fake_open(path: Path, mode: str, *, encoding: str, newline: str):
+        calls.append((str(path), mode, encoding, newline))
+        raise PermissionError("blocked")
 
-        def fake_open(path: Path, mode: str, *, encoding: str, newline: str):
-            calls.append((str(path), mode, encoding, newline))
-            raise PermissionError("blocked")
-
-        with tempfile.TemporaryDirectory() as tmp:
-            output = Path(tmp) / "SAVEPOINT.md"
-            stderr = io.StringIO()
-            try:
-                helper.open = fake_open
-                with contextlib.redirect_stderr(stderr):
-                    result = helper.write_output(output, "draft")
-            finally:
-                if original_open is None:
-                    del helper.open
-                else:
-                    helper.open = original_open
-
-        wrote = result[0] if isinstance(result, tuple) else result
-        error = result[1] if isinstance(result, tuple) else ""
-        require(not wrote, "write_output should report open failure")
-        require(calls == [(str(output), "w", "utf-8", "\n")], "write_output should use portable open with LF newlines")
-        if isinstance(result, tuple):
-            require("failed to write output" in (error or ""), "render write failure message missing")
-        else:
-            require("failed to write output" in stderr.getvalue(), "stub write failure message missing")
-
-
-def test_compacts_focus_to_single_line() -> None:
     with tempfile.TemporaryDirectory() as tmp:
-        repo = make_repo(Path(tmp))
-        output = repo / ".savepoint" / "SAVEPOINT.md"
-        focus = "line one\n## Injected heading\tline three"
-        result = run([sys.executable, str(STUB_HELPER), "--focus", focus], repo)
-        require(result.returncode == 0, result.stderr or result.stdout)
-        text = output.read_text(encoding="utf-8")
-        require("- Next-session focus: line one ## Injected heading line three" in text, "focus was not compacted")
-        require("\n## Injected heading" not in text, "focus inserted raw markdown heading")
+        output = Path(tmp) / "SAVEPOINT.md"
+        try:
+            helper.open = fake_open
+            result = helper.write_output(output, "draft")
+        finally:
+            if original_open is None:
+                del helper.open
+            else:
+                helper.open = original_open
 
-
-def test_truncates_long_focus() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        repo = make_repo(Path(tmp))
-        output = repo / ".savepoint" / "SAVEPOINT.md"
-        result = run([sys.executable, str(STUB_HELPER), "--focus", "x" * 501], repo)
-        require(result.returncode == 0, result.stderr or result.stdout)
-        text = output.read_text(encoding="utf-8")
-        require(f"- Next-session focus: {'x' * 500}..." in text, "long focus was not truncated")
+    wrote, error = result
+    require(not wrote, "write_output should report open failure")
+    require(calls == [(str(output), "w", "utf-8", "\n")], "write_output should use portable open with LF newlines")
+    require("failed to write output" in (error or ""), "render write failure message missing")
 
 
 def main() -> int:
     tests = [
-        test_portable_helper_writes_valid_draft,
         test_truncates_large_git_snapshot,
         test_refuses_overwrite_without_force,
-        test_root_wrapper_forwards_to_portable_helper,
         test_renderer_writes_resume_ready_savepoint_from_json_input,
         test_renderer_does_not_mark_first_unstaged_file_as_staged,
         test_renderer_classifies_status_codes_without_losing_columns,
@@ -1014,8 +986,6 @@ def main() -> int:
         test_refuses_non_savepoint_output_name,
         test_reports_parent_mkdir_oserror,
         test_write_output_uses_portable_lf_open,
-        test_compacts_focus_to_single_line,
-        test_truncates_long_focus,
     ]
     for test in tests:
         test()

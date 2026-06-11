@@ -40,7 +40,7 @@
       "should_trigger": true,
       "language": "ko",
       "category": "text",
-      "rationale": "Korean text savepoint request."
+      "rationale": "Korean Quick Save request."
     },
     {
       "id": "trigger-ko-text-direct-01",
@@ -48,7 +48,7 @@
       "should_trigger": true,
       "language": "ko",
       "category": "text",
-      "rationale": "Korean explicit text savepoint request."
+      "rationale": "Korean explicit Quick Save request."
     },
     {
       "id": "trigger-ko-state-files-01",
@@ -72,7 +72,7 @@
       "should_trigger": true,
       "language": "en",
       "category": "create",
-      "rationale": "Explicit file savepoint artifact request."
+      "rationale": "Explicit Savepoint artifact request."
     },
     {
       "id": "trigger-en-text-01",
@@ -80,7 +80,7 @@
       "should_trigger": true,
       "language": "en",
       "category": "text",
-      "rationale": "Explicit text savepoint request."
+      "rationale": "Explicit Quick Save request."
     },
     {
       "id": "trigger-en-text-direct-01",
@@ -88,7 +88,7 @@
       "should_trigger": true,
       "language": "en",
       "category": "text",
-      "rationale": "Explicit text savepoint request."
+      "rationale": "Explicit Quick Save request."
     },
     {
       "id": "trigger-en-in-response-text-01",
@@ -96,7 +96,7 @@
       "should_trigger": true,
       "language": "en",
       "category": "text",
-      "rationale": "Explicit in-response text savepoint request."
+      "rationale": "Explicit in-response Quick Save request."
     },
     {
       "id": "trigger-en-update-01",

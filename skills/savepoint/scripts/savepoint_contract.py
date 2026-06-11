@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -11,10 +13,87 @@ from typing import Any, Mapping
 MARKER_BLOCK_START = "SAVEPOINT_V1"
 MARKER_BLOCK_END = "END_SAVEPOINT_V1"
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "schemas" / "savepoint-v1.schema.json"
+DEFAULT_OUTPUT = Path(".savepoint") / "SAVEPOINT.md"
+MAX_COMMAND_LINES = 10
+MAX_COMMAND_CHARS = 600
 STRING_PLACEHOLDERS = {
     "SAVEPOINT_PATH": "<absolute path or not-written>",
     "BLOCKERS": "none|<short reason>",
 }
+
+
+def run_command(args: list[str], cwd: Path) -> tuple[int, str]:
+    try:
+        result = subprocess.run(
+            args,
+            cwd=cwd,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        return 127, f"command failed: {exc}"
+    output = result.stdout.strip() or result.stderr.strip()
+    return result.returncode, output
+
+
+def git_output(args: list[str], cwd: Path) -> str | None:
+    code, output = run_command(["git", *args], cwd)
+    if code != 0:
+        return None
+    return output
+
+
+def compact_output(output: str | None) -> str:
+    if output is None:
+        return "not available"
+    if not output.strip():
+        return "none"
+    lines = output.splitlines()
+    truncated = False
+    if len(lines) > MAX_COMMAND_LINES:
+        lines = lines[:MAX_COMMAND_LINES]
+        truncated = True
+    text = "; ".join(line.strip() for line in lines if line.strip())
+    if len(text) > MAX_COMMAND_CHARS:
+        text = text[:MAX_COMMAND_CHARS].rstrip()
+        truncated = True
+    if truncated:
+        text = f"{text}; ... truncated, rerun command for full output"
+    return text or "none"
+
+
+def find_git_root(cwd: Path) -> Path | None:
+    output = git_output(["rev-parse", "--show-toplevel"], cwd)
+    if not output:
+        return None
+    lines = output.splitlines()
+    return Path(lines[0]).resolve() if lines else None
+
+
+def current_branch(git_cwd: Path) -> str:
+    branch = git_output(["branch", "--show-current"], git_cwd)
+    if branch and branch.strip():
+        return compact_output(branch)
+    return compact_output(git_output(["rev-parse", "--abbrev-ref", "HEAD"], git_cwd))
+
+
+def collect_snapshot(cwd: Path) -> dict[str, str]:
+    git_root = find_git_root(cwd)
+    git_cwd = git_root or cwd
+    return {
+        "captured_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "working_directory": str(cwd.resolve()),
+        "git_root": str(git_root) if git_root else "not a git repository",
+        "branch": current_branch(git_cwd) if git_root else "not available",
+        "short_head": compact_output(git_output(["rev-parse", "--short", "HEAD"], git_cwd)) if git_root else "not available",
+        "status": compact_output(git_output(["status", "--short"], git_cwd)) if git_root else "not available",
+        "diff_stat": compact_output(git_output(["diff", "--stat"], git_cwd)) if git_root else "not available",
+        "diff_name_status": compact_output(git_output(["diff", "--name-status"], git_cwd)) if git_root else "not available",
+        "cached_stat": compact_output(git_output(["diff", "--cached", "--stat"], git_cwd)) if git_root else "not available",
+        "cached_name_status": compact_output(git_output(["diff", "--cached", "--name-status"], git_cwd)) if git_root else "not available",
+        "latest_commit": compact_output(git_output(["log", "-1", "--oneline"], git_cwd)) if git_root else "not available",
+    }
 
 
 def load_schema(schema_path: Path = SCHEMA_PATH) -> dict[str, Any]:

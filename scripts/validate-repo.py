@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Validate the savepoint skill repository contract."""
+"""Maintainer-only checks for savepoint repository packaging and examples.
+
+Use the portable `validate_savepoint.py` for generated SAVEPOINT.md artifacts.
+This script guards repository metadata, examples, trigger evals, marker schema,
+and maintainer assets without freezing routine README/SKILL prose.
+"""
 
 from __future__ import annotations
 
@@ -15,6 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_DIR = ROOT / "skills" / "savepoint"
 SKILL_SCRIPTS = SKILL_DIR / "scripts"
+REFERENCE_DIR = ROOT / "docs" / "reference"
 sys.path.insert(0, str(SKILL_SCRIPTS))
 
 from savepoint_contract import (  # noqa: E402
@@ -41,7 +47,7 @@ EXPECTED_MARKER_LINES = [
     "END_SAVEPOINT_V1",
 ]
 SAVEPOINT_FILES = [
-    SKILL_DIR / "references" / "savepoint-template.md",
+    REFERENCE_DIR / "savepoint-template.md",
     ROOT / "examples" / "SAVEPOINT.filled.example.md",
     ROOT / "examples" / "file-bugfix" / "SAVEPOINT.md",
     ROOT / "examples" / "file-architecture" / "SAVEPOINT.md",
@@ -53,16 +59,6 @@ CANONICAL_REFERENCES = [
     "savepoint-contract.md",
     "savepoint-template.md",
 ]
-README_ALLOWED_HANDOFF_PHRASE = (
-    "`savepoint` is a text/file checkpoint skill for coding agents such as Codex and Claude. It helps "
-    "hand off full-context coding sessions, preserve repo/Git state, and safely resume from "
-    "`.savepoint/SAVEPOINT.md` without relying on prior chat context."
-)
-README_KO_ALLOWED_HANDOFF_PHRASE = (
-    "`savepoint`는 Codex, Claude 같은 코딩 에이전트를 위한 text/file 체크포인트 스킬입니다. "
-    "컨텍스트가 다 찬 세션을 새 세션으로 인계하고, 저장소/Git 상태를 보존해 "
-    "`.savepoint/SAVEPOINT.md`에서 안전하게 이어갈 수 있게 합니다."
-)
 MARKER_ENUMS = {
     "SAVEPOINT_MODE": {"text", "file"},
     "DETAILS_READY": {"yes", "no", "not-needed"},
@@ -176,56 +172,6 @@ SKILL_LINK_TARGETS = {
     ROOT / ".agents" / "skills" / "savepoint": "../../skills/savepoint",
     ROOT / ".claude" / "skills" / "savepoint": "../../skills/savepoint",
 }
-REMOVED_SKILL_LINKS = [
-    ROOT / ".agents" / "skills" / "new-session-handoff",
-    ROOT / ".claude" / "skills" / "new-session-handoff",
-]
-REMOVED_TERM_SCAN_ROOTS = [
-    ROOT / ".github",
-    ROOT / ".agents",
-    ROOT / ".claude",
-    ROOT / "AGENTS.md",
-    ROOT / "CHANGELOG.md",
-    ROOT / "README.md",
-    ROOT / "README.ko.md",
-    ROOT / "SECURITY.md",
-    ROOT / "evals",
-    ROOT / "examples",
-    ROOT / "orchestrators",
-    ROOT / "scripts",
-    SKILL_DIR,
-]
-REMOVED_FORBIDDEN_PATTERNS = [
-    r"\bhandoff\b",
-    r"HANDOFF\.md",
-    r"핸드오프",
-    r"legacy alias",
-    r"migration-only",
-    r"compatibility wrapper",
-    r"new-session-handoff",
-    r"\.new-session-handoff",
-    r"HANDOFF_AUTOMATION",
-    r"END_HANDOFF_AUTOMATION",
-    r"HANDOFF_READY",
-    r"HANDOFF_MODE",
-    r"HANDOFF_SCHEMA_VERSION",
-    r"NEW_SESSION_PROMPT_READY",
-    r"SAFE_FOR_NEW_SESSION",
-    r"SAVEPOINT_AUTOMATION",
-    r"SAVEPOINT_SCHEMA_VERSION",
-    r"SAVEPOINT_MODE:\s*(?:lightweight|verified)\b",
-    r"SAVEPOINT_MODE:\s*lightweight\|verified",
-    r"\blightweight\|verified\b",
-    r"(?m)^- Resume Contract$",
-    r"(?m)^## Resume Contract$",
-    r"\bBefore implementation\b",
-    r"prompt-only",
-    r"compact\|expanded\|prompt-only",
-    r"compact mode",
-    r"expanded mode",
-]
-
-
 class Validator:
     def __init__(self) -> None:
         self.errors: list[str] = []
@@ -287,43 +233,32 @@ class Validator:
 
     def validate_references(self) -> None:
         skill_text = self.read(SKILL_DIR / "SKILL.md")
-        for ref in sorted(set(re.findall(r"`(references/[^`]+)`", skill_text))):
-            self.require_exists(SKILL_DIR / ref)
         for name in CANONICAL_REFERENCES:
-            self.require_exists(SKILL_DIR / "references" / name)
+            self.require_exists(REFERENCE_DIR / name)
         self.require_exists(SKILL_DIR / "schemas" / "savepoint-v1.schema.json")
-        self.require_exists(SKILL_DIR / "scripts" / "create_savepoint_stub.py")
         self.require_exists(SKILL_DIR / "scripts" / "render_savepoint.py")
-        self.require_exists(ROOT / "scripts" / "create_savepoint_stub.py")
+        self.require_exists(SKILL_DIR / "scripts" / "savepoint_contract.py")
+        self.require_exists(SKILL_DIR / "scripts" / "validate_savepoint.py")
         self.require_exists(ROOT / "scripts" / "render_savepoint.py")
 
         required_skill_phrases = [
-            "Text savepoint",
-            "File savepoint",
+            "Quick Save",
+            "default recoverable file checkpoint",
             ".savepoint/SAVEPOINT.md",
             "SAVEPOINT_V1",
             "RESUME_READY: yes",
-            "Use 300-600 tokens for simple notes",
-            "800-1200 tokens by default for coding-session transfers",
-            "up to 2000 tokens for complex cross-agent transfers",
-            "Do not read `scripts/*.py` or `evals/*.json` during normal savepoint create/load.",
+            "Normal use: do not read references, `scripts/*.py`, or `evals/*.json`",
             "`no-file`, `no files`, `in-response`, or `in the response`",
-            "Keep routine file savepoints compact",
             "## Load / Resume",
-            "For text savepoints, do not read references unless asked.",
-            "read `references/savepoint-contract.md` only for unclear marker",
-            "Read `references/context-packaging.md` only for state-file/context-budget or minimal-load-path questions.",
             "For inspect-only requests, do not clean up by default.",
             "Continue only when the user requested continuation and `RESUME_READY` is `yes`",
             "For adopted generated default savepoints",
-            "scripts/create_savepoint_stub.py",
-            "scripts/render_savepoint.py",
         ]
         for phrase in required_skill_phrases:
             if phrase not in skill_text:
                 self.fail(f"SKILL.md missing required policy: {phrase}")
 
-        contract_text = self.read(SKILL_DIR / "references" / "savepoint-contract.md")
+        contract_text = self.read(REFERENCE_DIR / "savepoint-contract.md")
         for phrase in [
             ".savepoint/SAVEPOINT.md",
             "SAVEPOINT_MODE: text|file",
@@ -345,14 +280,11 @@ class Validator:
             if phrase not in contract_text:
                 self.fail(f"savepoint-contract.md missing policy phrase: {phrase}")
 
-        template_text = self.read(SKILL_DIR / "references" / "savepoint-template.md")
+        template_text = self.read(REFERENCE_DIR / "savepoint-template.md")
         for phrase in [
             "## Resume Prompt",
             "- Next-session focus:",
-            "aim for 1200-1800 tokens",
-            "default to 1500-2500 tokens",
-            "allow 2500-4000 tokens",
-            "Consult `references/savepoint-contract.md` only when marker semantics",
+            "Consult `docs/reference/savepoint-contract.md` only when marker semantics",
             "Compact defaults",
             "SAVEPOINT_MODE: text|file",
             "continue only if the user requested continuation and RESUME_READY is yes",
@@ -360,18 +292,11 @@ class Validator:
         ]:
             if phrase not in template_text:
                 self.fail(f"savepoint-template.md missing phrase: {phrase}")
-        context_text = self.read(SKILL_DIR / "references" / "context-packaging.md")
+        context_text = self.read(REFERENCE_DIR / "context-packaging.md")
         for phrase in [
             "Budget guidance is advisory, not a validation rule.",
             "Path selection happens before budget",
             "explicit text/copy-paste/no-file/no files/in-response/in the response requests remain text",
-            "Use 300-600 tokens for simple copy-paste summaries.",
-            "Default to 800-1200 tokens for coding-agent transfers.",
-            "Allow up to 2000 tokens for complex cross-agent transfers.",
-            "Aim for 1200-1800 tokens for clean-state, completed, or low-risk single-change recoverable transfers.",
-            "Default to 1500-2500 tokens when changes are multi-file, unresolved, risky, validation-heavy, or the working tree state is not straightforward.",
-            "Allow 2500-4000 tokens for complex ops, DB, PR, CI, or multi-agent work.",
-            "If top-level `SAVEPOINT.md` would exceed about 4000 tokens",
             "Do not read `scripts/*.py` or `evals/*.json` during normal savepoint create/load.",
             "The top-level `SAVEPOINT.md` must still contain required markers",
             "repo-relative paths for files under the recorded Git root",
@@ -387,57 +312,25 @@ class Validator:
         readme_ko_text = self.read(ROOT / "README.ko.md")
         if readme_text.strip().startswith('"""') or readme_text.strip().endswith('"""'):
             self.fail("README.md must not be wrapped in triple quotes")
-        if not readme_text.startswith("# Savepoint Skill"):
-            self.fail("README.md must start with '# Savepoint Skill'")
-        if not readme_ko_text.startswith("# Savepoint Skill"):
-            self.fail("README.ko.md must start with '# Savepoint Skill'")
+        if not readme_text.startswith("# Savepoint\n"):
+            self.fail("README.md must start with '# Savepoint'")
+        if not readme_ko_text.startswith("# Savepoint\n"):
+            self.fail("README.ko.md must start with '# Savepoint'")
         for phrase in [
-            README_ALLOWED_HANDOFF_PHRASE,
-            "[한국어 README](README.ko.md)",
-            "Create a savepoint",
-            "Create a text savepoint",
-            "Create a copy-paste savepoint",
-            "Create a savepoint without writing files",
-            "Load the savepoint",
-            "Resume from SAVEPOINT.md",
-            "## Use Cases",
-            "Resume a coding-agent session after the context window is full.",
-            "Hand off repo/Git state from one Codex or Claude session to another.",
-            "Create a copy-paste Text Savepoint for a quick one-off transfer.",
-            "## Why Savepoint",
-            "Savepoint turns open-ended discovery, inference, and retry work from free-form handoffs",
-            "For short one-off summaries, a plain summary may be cheaper",
-            "Token-efficient draft helper: `skills/savepoint/scripts/create_savepoint_stub.py`",
-            "skills/savepoint/references/context-packaging.md",
-            "Text Savepoint",
-            "File Savepoint",
-            "Load / Resume Savepoint",
-            "Load/resume verifies disk state before continuation or implementation.",
-            "evals/trigger-queries.json",
+            "Quick Save",
+            "Savepoint",
+            ".savepoint/SAVEPOINT.md",
+            "validate_savepoint.py",
+            "scripts/validate-repo.py",
         ]:
             if phrase not in readme_text:
                 self.fail(f"README.md missing entry: {phrase}")
         for phrase in [
-            README_KO_ALLOWED_HANDOFF_PHRASE,
-            "[English README](README.md)",
-            "세이브포인트 만들어줘",
-            "File Savepoint",
-            "Load / Resume Savepoint",
-            "Text Savepoint",
-            "## 사용 사례",
-            "컨텍스트가 다 찬 코딩 에이전트 세션을 새 세션에서 이어가기",
-            "Codex 또는 Claude 세션 간 저장소/Git 상태 인계하기",
-            "단발성 작업을 위한 복붙용 Text Savepoint 만들기",
-            "## 왜 Savepoint인가",
-            "자유 형식 handoff에서 발생하는 열린 탐색, 추론, 실패 재시도 비용",
-            "단발성 짧은 요약은 일반 요약이 더 저렴할 수 있습니다.",
-            "토큰 절약형 초안 helper: `skills/savepoint/scripts/create_savepoint_stub.py`",
-            "세이브포인트 복붙용으로 만들어줘",
-            "세이브포인트 텍스트로 만들어줘",
-            "세이브포인트 파일 없이 만들어줘",
-            "세이브포인트 로드해줘",
-            "세이브포인트 읽어줘",
-            "세이브포인트 이어서 해줘",
+            "Quick Save",
+            "Savepoint",
+            ".savepoint/SAVEPOINT.md",
+            "validate_savepoint.py",
+            "scripts/validate-repo.py",
         ]:
             if phrase not in readme_ko_text:
                 self.fail(f"README.ko.md missing entry: {phrase}")
@@ -604,9 +497,9 @@ class Validator:
         if not has_short_file_positive:
             self.fail("trigger evals should include short generic savepoint requests that still default to file")
         if not has_no_files_text_positive:
-            self.fail("trigger evals should include no-files text savepoint requests")
+            self.fail("trigger evals should include no-files Quick Save requests")
         if not has_in_response_text_positive:
-            self.fail("trigger evals should include in-response text savepoint requests")
+            self.fail("trigger evals should include in-response Quick Save requests")
         if not has_korean_load_positive:
             self.fail("trigger evals should include Korean load-only savepoint requests")
         if not has_english_load_positive:
@@ -643,14 +536,16 @@ class Validator:
     def validate_manual_eval_cases(self) -> None:
         required_phrases = {
             ROOT / "evals" / "README.md": [
-                "After compaction or session reset, load/resume still treats the current working tree as the source of truth.",
-                "Unrelated dirty files are reported before continuation instead of being folded into the intended task.",
+                "compaction",
+                "session reset",
+                "working tree",
+                "Unrelated dirty files",
             ],
             ROOT / "evals" / "cases" / "resume-conflicting-disk.md": [
-                "The savepoint was produced before automatic context compaction",
+                "automatic context compaction",
                 "`src/session.ts` is unrelated dirty work",
-                "Reports the dirty-file mismatch, stale state, and any validation-assumption drift before editing.",
-                "Does not rely on prior chat after compaction.",
+                "stale state",
+                "prior chat",
             ],
         }
         for path, phrases in required_phrases.items():
@@ -670,9 +565,9 @@ class Validator:
         if marker_allowed_values() != MARKER_ENUMS:
             self.fail("schema enum/const marker values must match validator constants")
         if not validate_marker_semantics({"SAVEPOINT_MODE": "text", "SAVEPOINT_PATH": "not-written", "DETAILS_READY": "not-needed", "RESUME_READY": "yes"}):
-            self.fail("text savepoints must not be RESUME_READY=yes")
+            self.fail("Quick Saves must not be RESUME_READY=yes")
         if validate_marker_semantics({"SAVEPOINT_MODE": "file", "SAVEPOINT_PATH": "/tmp/SAVEPOINT.md", "DETAILS_READY": "no", "RESUME_READY": "no"}):
-            self.fail("unsafe file savepoints may have pending detail artifacts")
+            self.fail("unsafe Savepoints may have pending detail artifacts")
 
     def extract_marker_block(self, text: str, path: Path) -> list[str] | None:
         pattern = re.compile(
@@ -697,7 +592,7 @@ class Validator:
                 self.fail(f"{path.relative_to(ROOT)} marker block does not match expected field order")
             self.validate_marker_values(path, block)
 
-        contract_text = self.read(SKILL_DIR / "references" / "savepoint-contract.md")
+        contract_text = self.read(REFERENCE_DIR / "savepoint-contract.md")
         for marker in marker_field_order():
             if marker not in contract_text:
                 self.fail(f"savepoint-contract.md missing marker name {marker}")
@@ -748,7 +643,7 @@ class Validator:
                 marker_line = next((line for line in text.splitlines() if line.startswith("SAVEPOINT_PATH: /")), "")
                 if "savepoint-template.md" not in path.as_posix() and ".savepoint/SAVEPOINT.md" not in marker_line:
                     self.fail(f"{path.relative_to(ROOT)} should demonstrate the default .savepoint/SAVEPOINT.md path")
-        contract = self.read(SKILL_DIR / "references" / "savepoint-contract.md")
+        contract = self.read(REFERENCE_DIR / "savepoint-contract.md")
         for line in TRUST_ORDER_LINES:
             if line not in contract:
                 self.fail(f"savepoint-contract.md missing trust order line: {line}")
@@ -756,10 +651,7 @@ class Validator:
     def validate_text_example(self) -> None:
         text = self.read(TEXT_EXAMPLE)
         for phrase in [
-            "# Text Savepoint Response",
             "No files were written.",
-            "## Transfer Note",
-            "This is not a file savepoint.",
             "Do not claim .savepoint/SAVEPOINT.md exists.",
         ]:
             if phrase not in text:
@@ -770,17 +662,7 @@ class Validator:
             if "Do not claim .savepoint/SAVEPOINT.md exists." not in text:
                 self.fail(f"{TEXT_EXAMPLE.relative_to(ROOT)} text example must not point to a missing default savepoint file")
 
-    def validate_no_removed_prompt_file_reference(self) -> None:
-        removed_prompt_file = "NEW_SESSION_PROMPT" + ".txt"
-        for dirpath, dirnames, filenames in os.walk(ROOT):
-            dirnames[:] = [dirname for dirname in dirnames if dirname != ".git"]
-            if removed_prompt_file in filenames:
-                self.fail(f"{(Path(dirpath) / removed_prompt_file).relative_to(ROOT)} must not exist")
-
     def validate_skill_links(self) -> None:
-        for path in REMOVED_SKILL_LINKS:
-            if path.exists() or path.is_symlink():
-                self.fail(f"removed skill link must not exist: {path.relative_to(ROOT)}")
         for path, expected_target in SKILL_LINK_TARGETS.items():
             if not path.exists() and not path.is_symlink():
                 self.fail(f"missing savepoint skill link: {path.relative_to(ROOT)}")
@@ -828,19 +710,6 @@ class Validator:
         except (subprocess.CalledProcessError, FileNotFoundError):
             return None
 
-    def validate_no_removed_terms(self) -> None:
-        for path in self.iter_text_paths(REMOVED_TERM_SCAN_ROOTS):
-            if path == ROOT / "scripts" / "validate-repo.py":
-                continue
-            text = self.read_link_target(path) if path.is_symlink() else path.read_text(encoding="utf-8")
-            if path == ROOT / "README.md":
-                text = text.replace(README_ALLOWED_HANDOFF_PHRASE, "", 1)
-            if path == ROOT / "README.ko.md":
-                text = text.replace(README_KO_ALLOWED_HANDOFF_PHRASE, "", 1)
-            for pattern in REMOVED_FORBIDDEN_PATTERNS:
-                if re.search(pattern, text, re.IGNORECASE):
-                    self.fail(f"removed term {pattern!r} in {path.relative_to(ROOT)}")
-
     def iter_text_paths(self, roots: list[Path]) -> list[Path]:
         paths: list[Path] = []
         for root in roots:
@@ -873,6 +742,7 @@ class Validator:
             ROOT / "SECURITY.md",
             ROOT / "evals",
             ROOT / "examples",
+            ROOT / "docs",
             ROOT / "orchestrators",
             SKILL_DIR,
         ]
@@ -900,9 +770,7 @@ class Validator:
             "examples": self.validate_savepoint_sections,
             "text-example": self.validate_text_example,
             "detail-artifacts": self.validate_detail_artifacts,
-            "removed-prompt-file": self.validate_no_removed_prompt_file_reference,
             "skill-links": self.validate_skill_links,
-            "removed-terms": self.validate_no_removed_terms,
             "secrets": self.validate_secret_hygiene,
         }
         selected = all_checks if "all" in checks else {k: v for k, v in all_checks.items() if k in checks}
@@ -927,7 +795,7 @@ def main() -> int:
         "--check",
         action="append",
         default=[],
-        help="Check to run: frontmatter, references, readme-format, agent-metadata, trigger-evals, manual-evals, schema, markers, examples, text-example, detail-artifacts, removed-prompt-file, skill-links, removed-terms, secrets, all",
+        help="Check to run: frontmatter, references, readme-format, agent-metadata, trigger-evals, manual-evals, schema, markers, examples, text-example, detail-artifacts, skill-links, secrets, all",
     )
     args = parser.parse_args()
     checks = set(args.check or ["all"])

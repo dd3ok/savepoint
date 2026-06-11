@@ -147,19 +147,19 @@ def validate_savepoint(path: Path, allow_example_paths: bool = False) -> list[st
     if mode == "file":
         for section in REQUIRED_FILE_SECTIONS:
             if section not in text:
-                errors.append(f"{path}: file savepoint missing section {section}")
+                errors.append(f"{path}: Savepoint missing section {section}")
         for field in REQUIRED_REPO_SNAPSHOT_FIELDS:
             if field not in text:
-                errors.append(f"{path}: file savepoint missing repo snapshot field {field}")
+                errors.append(f"{path}: Savepoint missing repo snapshot field {field}")
         for field in REQUIRED_CHANGE_FIELDS:
             if field not in text:
-                errors.append(f"{path}: file savepoint missing change field {field}")
+                errors.append(f"{path}: Savepoint missing change field {field}")
         for field in REQUIRED_VALIDATION_FIELDS:
             if field not in text:
-                errors.append(f"{path}: file savepoint missing validation field {field}")
+                errors.append(f"{path}: Savepoint missing validation field {field}")
         for field in REQUIRED_RECOVERY_NOTE_FIELDS:
             if field not in text:
-                errors.append(f"{path}: file savepoint missing recovery note field {field}")
+                errors.append(f"{path}: Savepoint missing recovery note field {field}")
         if resume_ready == "yes":
             errors.extend(validate_resume_ready_content(path, text))
 

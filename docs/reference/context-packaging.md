@@ -20,14 +20,14 @@ Savepoints are current recovery artifacts, not history logs. Preserve older save
 
 Prefer the smallest recoverable package:
 
-1. Text savepoint:
+1. Quick Save:
    - Response text for explicit text/copy-paste/no-file/no files/in-response/in the response transfer.
    - No repo recovery guarantee.
    - Use 300-600 tokens for simple copy-paste summaries.
    - Default to 800-1200 tokens for coding-agent transfers.
    - Allow up to 2000 tokens for complex cross-agent transfers.
-   - If more is needed, create a file savepoint instead.
-2. File savepoint:
+   - If more is needed, create a Savepoint instead.
+2. Savepoint:
    - One `.savepoint/SAVEPOINT.md` with disk/Git snapshot and validation state.
    - Aim for 1200-1800 tokens for clean-state, completed, or low-risk single-change recoverable transfers.
    - Default to 1500-2500 tokens when changes are multi-file, unresolved, risky, validation-heavy, or the working tree state is not straightforward.
@@ -90,7 +90,7 @@ After automatic context compaction, an intentional session reset, or an agent tr
 
 ## Minimal Load Path
 
-When loading a file savepoint after compaction, reset, or agent transfer, read only the shortest path needed to verify recovery state:
+When loading a Savepoint after compaction, reset, or agent transfer, read only the shortest path needed to verify recovery state:
 
 1. `Markers`, especially `RESUME_READY` / `BLOCKERS`.
 2. `TL;DR / Operational Summary`.

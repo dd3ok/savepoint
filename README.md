@@ -1,6 +1,14 @@
-# Savepoint Skill
+# Savepoint
 
-`savepoint` is a text/file checkpoint skill for coding agents such as Codex and Claude. It helps hand off full-context coding sessions, preserve repo/Git state, and safely resume from `.savepoint/SAVEPOINT.md` without relying on prior chat context.
+A continue/load system for coding agents.
+
+Savepoint helps a fresh agent session load the current coding run without relying on prior chat context.
+
+- **Quick Save**: response-only text for lightweight transfer.
+- **Savepoint**: recoverable file checkpoint for repo/Git state.
+
+Use Quick Save when the transfer is small.
+Use Savepoint when disk state, validation, redaction, or safe resume matters.
 
 [한국어 README](README.ko.md)
 
@@ -8,51 +16,48 @@ It provides one skill, `$savepoint`, with three user-facing workflows:
 
 | Need | Say | Output |
 |---|---|---|
-| File Savepoint | `Create a savepoint`, `Create a savepoint file`, `Create SAVEPOINT.md` | `.savepoint/SAVEPOINT.md` |
+| Savepoint | `Create a savepoint`, `Create a savepoint file`, `Create SAVEPOINT.md` | `.savepoint/SAVEPOINT.md` |
 | Load / Resume Savepoint | `Load the savepoint`, `Read the savepoint`, `Resume from the savepoint`, `Resume from SAVEPOINT.md` | Verify/report state; continue only if requested and safe |
-| Text Savepoint | `Create a text savepoint`, `Create a copy-paste savepoint`, `Create a savepoint without writing files` | Response text |
+| Quick Save | `Create a text savepoint`, `Create a copy-paste savepoint`, `Create a savepoint without writing files` | Response text |
 
-Default to **File Savepoint** when preserving coding-session state. Default to **Load / Resume Savepoint** when continuing from an existing `.savepoint/SAVEPOINT.md`.
+Default to **Savepoint** when preserving coding-session state. Default to **Load / Resume Savepoint** when continuing from an existing `.savepoint/SAVEPOINT.md`.
 
-Use **Text Savepoint** only for explicit copy-paste, text, or no-file requests that do not need file recovery guarantees.
+Use **Quick Save** only for explicit copy-paste, text, or no-file requests that do not need file recovery guarantees.
 
 ## Use Cases
 
 - Resume a coding-agent session after the context window is full.
 - Recover coding state after automatic context compaction or before an intentional session reset.
-- Hand off repo/Git state from one Codex or Claude session to another.
-- Create a copy-paste Text Savepoint for a quick one-off transfer.
+- Transfer repo/Git state from one Codex or Claude session to another.
+- Create a copy-paste Quick Save for a quick one-off transfer.
 
 For short one-off summaries, a plain summary may be cheaper; use savepoint when structured coding transfer or recovery matters.
 
 ## Why Savepoint
 
-Savepoint turns open-ended discovery, inference, and retry work from free-form handoffs into a short, structured check of Git/disk state and savepoint consistency.
+Savepoint turns open-ended discovery, inference, and retry work from free-form transfer notes into a short, structured check of Git/disk state and savepoint consistency.
 
-## Default Artifact
+## Savepoint Artifact
 
-File savepoints write:
+Savepoints write:
 
 ```text
 .savepoint/SAVEPOINT.md
 ```
 
-File `SAVEPOINT.md` embeds `## Resume Prompt` and ends with a `SAVEPOINT_V1` marker block. The exact field schema lives in `skills/savepoint/schemas/savepoint-v1.schema.json`; marker semantics live in `skills/savepoint/references/savepoint-contract.md`.
+`SAVEPOINT.md` embeds `## Resume Prompt` and ends with a `SAVEPOINT_V1` marker block. The field schema lives in `skills/savepoint/schemas/savepoint-v1.schema.json`; marker semantics live in `docs/reference/savepoint-contract.md`.
 
-## Canonical Contract
+## Runtime Boundary
 
-The canonical files are:
+Normal create/load uses:
 
 - Skill router: `skills/savepoint/SKILL.md`
-- Artifact contract: `skills/savepoint/references/savepoint-contract.md`
-- Savepoint skeleton: `skills/savepoint/references/savepoint-template.md`
-- Token-efficient draft helper: `skills/savepoint/scripts/create_savepoint_stub.py`
-- Token-efficient renderer/finalizer: `skills/savepoint/scripts/render_savepoint.py`
-- Context packaging: `skills/savepoint/references/context-packaging.md`
-- Marker schema: `skills/savepoint/schemas/savepoint-v1.schema.json`
+- Renderer/finalizer: `skills/savepoint/scripts/render_savepoint.py`
 - Portable validator: `skills/savepoint/scripts/validate_savepoint.py`
+- Shared marker/snapshot helpers: `skills/savepoint/scripts/savepoint_contract.py`
+- Marker schema: `skills/savepoint/schemas/savepoint-v1.schema.json`
 
-The root-level `examples/`, `evals/`, `orchestrators/`, and `scripts/validate-repo.py` are maintainer assets. The root `scripts/validate_savepoint.py` forwards to the portable validator.
+Reference docs, templates, examples, evals, orchestrators, and `scripts/validate-repo.py` are maintainer/debug assets, not normal agent context. The root `scripts/validate_savepoint.py` and `scripts/render_savepoint.py` forward to the portable runtime tools.
 
 ## Repository Layout
 
@@ -67,15 +72,16 @@ The root-level `examples/`, `evals/`, `orchestrators/`, and `scripts/validate-re
 │       ├── SKILL.md
 │       ├── LICENSE.txt
 │       ├── agents/openai.yaml
-│       ├── references/
-│       │   ├── context-packaging.md
-│       │   ├── savepoint-contract.md
-│       │   └── savepoint-template.md
 │       ├── schemas/savepoint-v1.schema.json
 │       └── scripts/
-│           ├── create_savepoint_stub.py
+│           ├── render_savepoint.py
 │           ├── savepoint_contract.py
 │           └── validate_savepoint.py
+├── docs/
+│   └── reference/
+│       ├── context-packaging.md
+│       ├── savepoint-contract.md
+│       └── savepoint-template.md
 ├── examples/
 ├── evals/
 ├── orchestrators/
@@ -110,30 +116,34 @@ The helper defaults to dry-run. It writes files only with `--apply`; `--add-giti
 
 ## Examples
 
-- `examples/file-bugfix/`: small file savepoint.
-- `examples/file-architecture/`: file savepoint with focused `details/*.md` spillover.
-- `examples/text-note/`: response-only text savepoint note.
-- `examples/unsafe-savepoint/`: intentionally unsafe file savepoint with `RESUME_READY: no`.
+- `examples/file-bugfix/`: small Savepoint.
+- `examples/file-architecture/`: Savepoint with focused `details/*.md` spillover.
+- `examples/text-note/`: response-only Quick Save note.
+- `examples/unsafe-savepoint/`: intentionally unsafe Savepoint with `RESUME_READY: no`.
 
-## Evals
+## Maintainer Evals
 
 `evals/trigger-queries.json` records should-trigger and should-not-trigger prompts, including SQL/database `SAVEPOINT` near misses.
 
 Core expectations:
 
-- Text output is short and does not claim repo recovery.
-- File output writes `.savepoint/SAVEPOINT.md`.
-- File output embeds `## Resume Prompt`.
-- Large file savepoints use focused detail artifacts instead of bloating `SAVEPOINT.md`.
+- Quick Save output is short and does not claim repo recovery.
+- Savepoint output writes `.savepoint/SAVEPOINT.md`.
+- Savepoint output embeds `## Resume Prompt`.
+- Large Savepoints use focused detail artifacts instead of bloating `SAVEPOINT.md`.
 - Load/resume verifies disk state before continuation or implementation.
 - Disk state wins over savepoint text.
 - Secrets are redacted.
-- File `SAVEPOINT_V1` marker block is present and honest.
+- `SAVEPOINT_V1` marker block is present and honest.
 - Unsafe state never emits `RESUME_READY: yes`.
 
-## Validation
+## Maintainer Validation
 
-Before committing changes to this repository, run:
+Use `scripts/validate_savepoint.py` for generated Savepoint artifacts. It validates a `SAVEPOINT.md` file and is the portable runtime check.
+
+Use `scripts/validate-repo.py` only for maintaining this repository. It checks packaging, examples, trigger evals, and marker/schema contracts.
+
+Before committing repository changes, run:
 
 ```bash
 python3 scripts/check-frontmatter.py
@@ -141,13 +151,13 @@ python3 scripts/check-marker-block.py
 python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
-python3 scripts/check-savepoint-stub.py
+python3 scripts/check-savepoint-renderer.py
 python3 scripts/check-install-helper.py
 python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
 git diff --check
 ```
 
-To validate a generated file savepoint:
+To validate a generated Savepoint:
 
 ```bash
 python3 scripts/validate_savepoint.py .savepoint/SAVEPOINT.md

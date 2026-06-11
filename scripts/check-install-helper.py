@@ -114,8 +114,9 @@ def test_apply_copies_skill() -> None:
         destination = repo / ".agents" / "skills" / "savepoint"
         require(result.returncode == 0, result.stderr or result.stdout)
         require((destination / "SKILL.md").exists(), "SKILL.md was not copied")
-        require((destination / "references" / "savepoint-template.md").exists(), "references were not copied")
-        require((destination / "scripts" / "create_savepoint_stub.py").exists(), "stub helper was not copied")
+        require(not (destination / "references").exists(), "maintainer references should not be copied into runtime skill")
+        require((destination / "scripts" / "render_savepoint.py").exists(), "renderer was not copied")
+        require((destination / "scripts" / "savepoint_contract.py").exists(), "contract helper was not copied")
         require((destination / "scripts" / "validate_savepoint.py").exists(), "scripts were not copied")
         require((destination / "schemas" / "savepoint-v1.schema.json").exists(), "schemas were not copied")
         require(not list(destination.rglob("__pycache__")), "__pycache__ directories were copied")

@@ -11,8 +11,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from create_savepoint_stub import DEFAULT_OUTPUT, collect_snapshot, find_git_root, git_output
-from savepoint_contract import render_marker_block
+from savepoint_contract import DEFAULT_OUTPUT, collect_snapshot, find_git_root, render_marker_block
 from validate_savepoint import SECRET_PATTERNS, is_redacted_secret_match, scan_secret_patterns
 
 
@@ -264,7 +263,7 @@ def marker_block(output_path: Path, values: dict[str, str]) -> str:
         "VALIDATION_RECORDED": values.get("VALIDATION_RECORDED", "no"),
         "REDACTION_CHECKED": values.get("REDACTION_CHECKED", "no"),
         "RESUME_READY": values.get("RESUME_READY", "no"),
-        "BLOCKERS": values.get("BLOCKERS", "draft-needs-agent-review"),
+        "BLOCKERS": values.get("BLOCKERS", "not-ready"),
     })
 
 
