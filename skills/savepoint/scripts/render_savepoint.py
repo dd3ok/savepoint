@@ -424,7 +424,8 @@ def redact_secret_patterns(text: str) -> tuple[str, bool]:
 def write_output(output_path: Path, text: str) -> tuple[bool, str | None]:
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(text, encoding="utf-8", newline="\n")
+        with open(output_path, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(text)
     except OSError as exc:
         return False, f"failed to write output: {exc}"
     return True, None
@@ -472,12 +473,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {input_error}", file=sys.stderr)
         return 1
 
+    pending_validation_status = (
+        "pending: renderer will run final savepoint validation"
+        if args.run_savepoint_validation
+        else "not-run: renderer was not asked to run savepoint validation"
+    )
     initial = build_savepoint(
         output_path,
         data,
         args,
         redaction_ok=True,
-        validation_status="pending: renderer will run final savepoint validation",
+        validation_status=pending_validation_status,
     )
     _redacted_initial, no_secret_patterns = redact_secret_patterns(initial)
     redaction_ok = args.scan_redaction and no_secret_patterns
@@ -496,7 +502,7 @@ def main(argv: list[str] | None = None) -> int:
             data,
             args,
             redaction_ok=redaction_ok,
-            validation_status="passed: renderer final validation command recorded",
+            validation_status=pending_validation_status,
         )
         rendered, _ = redact_secret_patterns(rendered)
 

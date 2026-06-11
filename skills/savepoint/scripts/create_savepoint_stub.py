@@ -230,7 +230,8 @@ Read this savepoint, verify cwd/Git state/status/diff, read listed instruction/s
 def write_output(output_path: Path, text: str) -> bool:
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(text, encoding="utf-8", newline="\n")
+        with open(output_path, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(text)
     except OSError as exc:
         print(f"error: failed to write output: {exc}", file=sys.stderr)
         return False

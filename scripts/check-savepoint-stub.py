@@ -351,6 +351,32 @@ def test_renderer_accepts_minimal_ready_json_input() -> None:
         require(validation.returncode == 0, validation.stderr or validation.stdout)
 
 
+def test_renderer_records_not_run_when_savepoint_validation_is_omitted() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = minimal_semantic_input(repo)
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "missing savepoint validation should keep artifact unsafe")
+        text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
+        require(
+            "- Savepoint validation: not-run: renderer was not asked to run savepoint validation" in text,
+            "omitted savepoint validation should be recorded as not-run",
+        )
+        require("passed: renderer final validation command recorded" not in text, "omitted validation must not be marked passed")
+        require("VALIDATION_RECORDED: no" in text, "marker should not record savepoint validation when omitted")
+        require("savepoint-validation-not-run" in text, "missing validation blocker should be recorded")
+
+
 def test_renderer_minimal_json_without_project_validation_stays_unsafe() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo_with_modified_app(Path(tmp))
@@ -823,29 +849,38 @@ def test_reports_parent_mkdir_oserror() -> None:
         require("Traceback" not in result.stderr, "mkdir failure should not print traceback")
 
 
-def test_reports_write_text_oserror() -> None:
-    helper = load_stub_helper()
+def test_write_output_uses_portable_lf_open() -> None:
+    helpers = [load_stub_helper(), load_render_helper()]
 
-    class Parent:
-        def mkdir(self, *, parents: bool, exist_ok: bool) -> None:
-            require(parents and exist_ok, "write_output should create parent directories safely")
+    for helper in helpers:
+        original_open = getattr(helper, "open", None)
+        calls: list[tuple[str, str, str, str]] = []
 
-    class Output:
-        parent = Parent()
-
-        def write_text(self, _text: str, *, encoding: str, newline: str) -> None:
-            require(encoding == "utf-8", "write_output should use utf-8")
-            require(newline == "\n", "write_output should preserve lf newlines")
+        def fake_open(path: Path, mode: str, *, encoding: str, newline: str):
+            calls.append((str(path), mode, encoding, newline))
             raise PermissionError("blocked")
 
-        def __str__(self) -> str:
-            return "failing-output"
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "SAVEPOINT.md"
+            stderr = io.StringIO()
+            try:
+                helper.open = fake_open
+                with contextlib.redirect_stderr(stderr):
+                    result = helper.write_output(output, "draft")
+            finally:
+                if original_open is None:
+                    del helper.open
+                else:
+                    helper.open = original_open
 
-    stderr = io.StringIO()
-    with contextlib.redirect_stderr(stderr):
-        wrote = helper.write_output(Output(), "draft")
-    require(not wrote, "write_output should report write_text failure")
-    require("failed to write output" in stderr.getvalue(), "write_text failure message missing")
+        wrote = result[0] if isinstance(result, tuple) else result
+        error = result[1] if isinstance(result, tuple) else ""
+        require(not wrote, "write_output should report open failure")
+        require(calls == [(str(output), "w", "utf-8", "\n")], "write_output should use portable open with LF newlines")
+        if isinstance(result, tuple):
+            require("failed to write output" in (error or ""), "render write failure message missing")
+        else:
+            require("failed to write output" in stderr.getvalue(), "stub write failure message missing")
 
 
 def test_compacts_focus_to_single_line() -> None:
@@ -881,6 +916,7 @@ def main() -> int:
         test_renderer_classifies_status_codes_without_losing_columns,
         test_renderer_default_output_stays_compact,
         test_renderer_accepts_minimal_ready_json_input,
+        test_renderer_records_not_run_when_savepoint_validation_is_omitted,
         test_renderer_minimal_json_without_project_validation_stays_unsafe,
         test_renderer_failed_project_validation_stays_unsafe,
         test_renderer_missing_next_action_stays_unsafe,
@@ -902,7 +938,7 @@ def main() -> int:
         test_refuses_savepoint_named_directory_output,
         test_refuses_non_savepoint_output_name,
         test_reports_parent_mkdir_oserror,
-        test_reports_write_text_oserror,
+        test_write_output_uses_portable_lf_open,
         test_compacts_focus_to_single_line,
         test_truncates_long_focus,
     ]

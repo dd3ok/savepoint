@@ -177,7 +177,8 @@ def test_gitignore_is_explicit_and_apply_only() -> None:
         repo = Path(tmp) / "repo"
         repo.mkdir()
         existing = "node_modules/\r\n# keep\r\n"
-        (repo / ".gitignore").write_text(existing, encoding="utf-8", newline="")
+        with open(repo / ".gitignore", "w", encoding="utf-8", newline="") as handle:
+            handle.write(existing)
         applied = run_installer(
             "--target",
             "codex",
