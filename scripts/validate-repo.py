@@ -376,6 +376,8 @@ class Validator:
             "The top-level `SAVEPOINT.md` must still contain required markers",
             "repo-relative paths for files under the recorded Git root",
             "Savepoints are current recovery artifacts, not history logs.",
+            "## Minimal Load Path",
+            "Read details only when the listed next step or a mismatch requires them.",
         ]:
             if phrase not in context_text:
                 self.fail(f"context-packaging.md missing phrase: {phrase}")
