@@ -4,15 +4,13 @@
 
 Savepoint는 새 에이전트 세션이 이전 채팅 context에 의존하지 않고 현재 코딩 작업을 이어서 불러오도록 돕습니다.
 
-## Slash-style prompts
+## Prompts
 
 | Prompt | 의미 |
 |---|---|
 | `/savepoint save` | `.savepoint/SAVEPOINT.md` 생성/갱신 |
 | `/savepoint load` | 기존 Savepoint 검증/로드. 요청됐고 안전할 때만 이어서 작업 |
 | `/savepoint text` | 파일 없이 복붙용 텍스트 인계 생성 |
-
-이 slash-style prompt는 하나의 skill 이름 뒤에 mode를 붙이는 구조입니다.
 
 네이티브 slash-command 지원 여부는 클라이언트마다 다를 수 있습니다. 클라이언트가 custom slash prompt를 모델에 전달하지 않으면 `$savepoint로 저장해줘`, `$savepoint로 로드해줘`, `$savepoint 복붙용 텍스트로 만들어줘`처럼 자연어로 사용합니다.
 

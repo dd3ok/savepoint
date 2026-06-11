@@ -4,15 +4,13 @@ A continue/load system for coding agents.
 
 Savepoint helps a fresh agent session load the current coding run without relying on prior chat context.
 
-## Slash-style prompts
+## Prompts
 
 | Prompt | Meaning |
 |---|---|
 | `/savepoint save` | Create or refresh `.savepoint/SAVEPOINT.md`. |
 | `/savepoint load` | Load and verify an existing Savepoint. Continue only if requested and safe. |
 | `/savepoint text` | Produce a response-only copy-paste handoff. No file, no recovery guarantee. |
-
-These slash-style prompts use one skill name plus a mode.
 
 Native slash-command support depends on the client. If a client does not pass custom slash prompts through to the model, use the natural-language equivalent: `Use $savepoint to save`, `Use $savepoint to load`, or `Use $savepoint to create a text handoff`.
 

@@ -7,7 +7,7 @@ description: "Use when explicitly creating/updating/loading/inspecting/resuming 
 
 Preserve coding-session state for continuation without prior chat context.
 
-## Slash-style prompts
+## Prompts
 
 - `/savepoint save`: create or refresh `.savepoint/SAVEPOINT.md`.
 - `/savepoint load`: load and verify an existing Savepoint.

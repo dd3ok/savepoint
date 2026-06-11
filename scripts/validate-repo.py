@@ -260,7 +260,7 @@ class Validator:
         self.require_exists(ROOT / "scripts" / "render_savepoint.py")
 
         required_skill_phrases = [
-            "Slash-style prompts",
+            "## Prompts",
             "/savepoint save",
             "/savepoint load",
             "/savepoint text",

@@ -8,7 +8,7 @@
       "should_trigger": true,
       "language": "en",
       "category": "create",
-      "rationale": "Slash-style prompt for creating or refreshing a file Savepoint."
+      "rationale": "Prompt for creating or refreshing a file Savepoint."
     },
     {
       "id": "trigger-slash-load-01",
@@ -16,7 +16,7 @@
       "should_trigger": true,
       "language": "en",
       "category": "load",
-      "rationale": "Slash-style prompt for loading and verifying an existing Savepoint."
+      "rationale": "Prompt for loading and verifying an existing Savepoint."
     },
     {
       "id": "trigger-slash-text-01",
@@ -24,7 +24,7 @@
       "should_trigger": true,
       "language": "en",
       "category": "text",
-      "rationale": "Slash-style prompt for response-only copy-paste handoff."
+      "rationale": "Prompt for response-only copy-paste handoff."
     },
     {
       "id": "trigger-ko-file-01",
