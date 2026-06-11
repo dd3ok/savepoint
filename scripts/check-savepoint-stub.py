@@ -6,6 +6,7 @@ from __future__ import annotations
 import contextlib
 import importlib.util
 import io
+import os
 import subprocess
 import sys
 import tempfile
@@ -267,7 +268,7 @@ def test_renderer_does_not_mark_first_unstaged_file_as_staged() -> None:
         require(result.returncode == 0, result.stderr or result.stdout)
         text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
         require("app.py - modified" in text, "unstaged modified file should be recorded as changed")
-        require("app.py - worktree M" in text, "unstaged modified file should preserve worktree status")
+        require("app.py - worktree M" not in text, "ordinary unstaged modification should not be duplicated")
         require("app.py - staged M" not in text, "first unstaged status line was misclassified as staged")
 
 
@@ -285,7 +286,8 @@ def test_renderer_classifies_status_codes_without_losing_columns() -> None:
         changes = helper.derive_change_manifest(ROOT, {})
     finally:
         helper.git_status_lines = original_git_status_lines
-    require("app.py - worktree M" in changes["changed"], "unstaged status should be worktree change")
+    require("app.py - modified" in changes["changed"], "unstaged status should be a single modified entry")
+    require("app.py - worktree M" not in changes["changed"], "unstaged status should not duplicate worktree detail")
     require("app.py - staged M" not in changes["staged"], "unstaged status should not be staged")
     require("staged.py - staged M" in changes["staged"], "staged status should be staged")
     require("new.py - untracked" in changes["created"], "untracked status should be created")
@@ -718,6 +720,45 @@ def test_compact_validator_requires_disk_state_wins_language() -> None:
         require("disk-state-wins" in validation.stderr, "disk-state-wins error not reported")
 
 
+def test_renderer_revalidates_final_rewrite_before_success() -> None:
+    helper = load_render_helper()
+    original_validate_output = helper.validate_output
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = semantic_input(repo)
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        calls: list[str] = []
+
+        def fake_validate(path: Path) -> tuple[bool, str]:
+            calls.append(path.read_text(encoding="utf-8"))
+            if len(calls) == 1:
+                return True, "first validation passed"
+            return False, "second validation failed after final rewrite"
+
+        original_cwd = Path.cwd()
+        try:
+            helper.validate_output = fake_validate
+            os.chdir(repo)
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                code = helper.main([
+                    "--input",
+                    str(input_path),
+                    "--assert-no-active-commands",
+                    "--scan-redaction",
+                    "--run-savepoint-validation",
+                ])
+        finally:
+            os.chdir(original_cwd)
+            helper.validate_output = original_validate_output
+
+        text = output.read_text(encoding="utf-8")
+        require(len(calls) == 2, "renderer should validate again after embedding validation output")
+        require(code == 2, "renderer should not return success when final rewrite validation fails")
+        require("RESUME_READY: no" in text, "failed final validation should leave an unsafe savepoint")
+        require("savepoint-validation-failed" in text, "failed final validation blocker missing")
+
+
 def test_run_command_handles_oserror() -> None:
     helper = load_stub_helper()
     original_run = helper.subprocess.run
@@ -854,6 +895,7 @@ def main() -> int:
         test_compact_validator_requires_redaction_evidence,
         test_compact_validator_requires_next_action_evidence,
         test_compact_validator_requires_disk_state_wins_language,
+        test_renderer_revalidates_final_rewrite_before_success,
         test_run_command_handles_oserror,
         test_find_git_root_handles_empty_output,
         test_refuses_directory_output,

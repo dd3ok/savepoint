@@ -182,7 +182,7 @@ def derive_change_manifest(cwd: Path, data: dict[str, Any], ignored_paths: set[s
             changed.append(f"{path} - modified")
         if index_status not in {" ", "?"}:
             staged.append(f"{path} - staged {index_status}")
-        if worktree_status not in {" ", "?"} and code != "??":
+        if worktree_status not in {" ", "?"} and code != "??" and index_status not in {" ", worktree_status}:
             changed.append(f"{path} - worktree {worktree_status}")
 
     return {
@@ -531,6 +531,18 @@ def main(argv: list[str] | None = None) -> int:
         )
         final_text, _ = redact_secret_patterns(final_text)
         write_output(output_path, final_text)
+        final_validation_ok, final_validation_output = validate_output(output_path)
+        if not final_validation_ok:
+            safe_text = build_savepoint(
+                output_path,
+                data,
+                args,
+                redaction_ok=redaction_ok,
+                validation_status=f"failed: {final_validation_output}",
+                force_unsafe_blocker="savepoint-validation-failed",
+            )
+            safe_text, _ = redact_secret_patterns(safe_text)
+            write_output(output_path, safe_text)
 
     final_text = output_path.read_text(encoding="utf-8")
     final_errors: list[str] = []
