@@ -23,6 +23,6 @@ The user asks: "세이브포인트 만들어줘" after a small bug fix. One sour
 
 - Writes application code during create mode.
 - Omits dirty files.
-- Uses vague next steps such as "continue refactoring".
+- Uses vague standalone next steps such as "continue refactoring", "finish this", or "work on it".
 - Prints loose, unversioned markers only.
 - Omits the embedded `## Resume Prompt`.
