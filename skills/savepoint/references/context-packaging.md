@@ -88,6 +88,20 @@ If a state file conflicts with disk state, disk state wins. Report the conflict 
 
 After automatic context compaction, an intentional session reset, or an agent transfer, preserve only verified recovery facts. Put any uncertainty in `Expected drift`, `Unknown or unverified`, `Required Reading`, or `Recovery Notes`; do not reconstruct missing chat from memory.
 
+## Minimal Load Path
+
+When loading a file savepoint after compaction, reset, or agent transfer, read only the shortest path needed to verify recovery state:
+
+1. `Markers`, especially `RESUME_READY` / `BLOCKERS`.
+2. `TL;DR / Operational Summary`.
+3. `Repo Snapshot`.
+4. `Required Reading`.
+5. `Change Manifest`.
+6. `Validation Manifest`.
+7. `Resume Prompt`.
+
+Read details only when the listed next step or a mismatch requires them. If disk/Git state conflicts with the savepoint, stop and report the mismatch before editing.
+
 ## Compression Rules
 
 Keep only:
