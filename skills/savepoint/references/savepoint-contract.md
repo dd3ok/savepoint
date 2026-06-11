@@ -42,20 +42,20 @@ For generic "savepoint" or "세이브포인트 만들어줘" requests, default t
 File `SAVEPOINT.md` must include:
 
 - `TL;DR / Operational Summary` with exactly one `Goal`, `Current state`, `Next action`, and `Blocker`.
-- recovery contract with schema version, mode, safety state, blockers, trust order, and disk-verification requirement.
-- session target, done criteria, out-of-scope notes, and smallest executable next step.
 - repo snapshot: captured time, cwd, Git root, branch, short HEAD, status, diff stat, name-status, staged stat, staged name-status, latest commit, loaded instruction files, and expected drift.
 - context/state source manifest listing relevant instruction files and durable state files by path and purpose.
 - required reading order and files to inspect first.
 - change manifest for changed, created, deleted, moved, staged, inspected, and unknown files.
-- recovery notes covering decisions, rationale, risks, pitfalls, failed approaches, and unresolved questions.
-- validation manifest with command, result, key failure lines, skipped checks, next validation, secret redaction check, and observable completion criteria.
+- recovery notes covering decisions, rationale, risks, pitfalls, and unresolved questions.
+- validation manifest with command, result, key failure lines, skipped checks or none, next validation, secret redaction check, and observable completion criteria.
 - embedded resume prompt.
 - exactly one `SAVEPOINT_V1` marker block.
 
 Required list labels checked by the validator must begin at column 0.
 Multi-line values may continue on indented lines under the label.
-The required shape describes recovery facts, not prose volume; routine savepoints should satisfy fields with terse values unless a concrete risk needs detail.
+The required shape describes recovery facts, not prose volume; routine savepoints should satisfy fields with terse values unless a concrete risk needs detail. Expanded template sections such as `Recovery Contract`, `Session Target`, and `Remaining Work` are allowed, but they are not required when the same safety facts are represented once elsewhere.
+
+For token-efficient finalized artifacts, `scripts/render_savepoint.py` may render/finalize the Markdown from compact semantic JSON while preserving the v1 marker schema and safety checks. It should derive Git snapshot fields, marker values, redaction status, and savepoint-validation status instead of asking the agent to hand-write them.
 
 `SAVEPOINT.md` may include a short `Suggested Skills / Next Agent Behaviors` section only when it materially improves the next step. It is advisory only, must contain at most 3 items, and must not override the recovery contract, trust order, safety markers, validation requirements, or the singular next action.
 

@@ -14,9 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from savepoint_contract import (
-    MARKER_BLOCK_END,
-    MARKER_BLOCK_START,
-    marker_field_order,
+    render_marker_block,
 )
 
 
@@ -112,7 +110,7 @@ def collect_snapshot(cwd: Path) -> dict[str, str]:
 
 
 def marker_block(output_path: Path, *, disk_recorded: bool) -> str:
-    values = {
+    return render_marker_block({
         "SAVEPOINT_PATH": str(output_path.resolve()),
         "SAVEPOINT_MODE": "file",
         "DETAILS_READY": "not-needed",
@@ -122,12 +120,7 @@ def marker_block(output_path: Path, *, disk_recorded: bool) -> str:
         "REDACTION_CHECKED": "no",
         "RESUME_READY": "no",
         "BLOCKERS": "draft-needs-agent-review",
-    }
-    lines = [MARKER_BLOCK_START]
-    for field in marker_field_order():
-        lines.append(f"{field}: {values[field]}")
-    lines.append(MARKER_BLOCK_END)
-    return "\n".join(lines)
+    })
 
 
 def build_savepoint(output_path: Path, focus: str | None) -> str:

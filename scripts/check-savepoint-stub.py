@@ -14,7 +14,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 STUB_HELPER = ROOT / "skills" / "savepoint" / "scripts" / "create_savepoint_stub.py"
+RENDER_HELPER = ROOT / "skills" / "savepoint" / "scripts" / "render_savepoint.py"
 ROOT_HELPER = ROOT / "scripts" / "create_savepoint_stub.py"
+ROOT_RENDERER = ROOT / "scripts" / "render_savepoint.py"
 VALIDATOR = ROOT / "skills" / "savepoint" / "scripts" / "validate_savepoint.py"
 HELPER_SCRIPT_DIR = STUB_HELPER.parent
 if str(HELPER_SCRIPT_DIR) not in sys.path:
@@ -59,6 +61,45 @@ def make_repo(base: Path) -> Path:
     git(repo, "commit", "-m", "initial")
     (repo / "app.py").write_text("print('draft')\n", encoding="utf-8")
     return repo
+
+
+def make_repo_with_modified_app(base: Path) -> Path:
+    repo = make_repo(base)
+    git(repo, "add", "app.py")
+    git(repo, "commit", "-m", "add app")
+    (repo / "app.py").write_text("print('changed')\n", encoding="utf-8")
+    return repo
+
+
+def semantic_input(repo: Path) -> Path:
+    path = repo / "savepoint-input.json"
+    path.write_text(
+        """{
+  "goal": "finish deterministic savepoint rendering",
+  "current_state": "renderer input has enough semantic fields for a recoverable savepoint",
+  "next_action": "run the focused validation commands",
+  "done_when": "savepoint validation and project validation are both recorded",
+  "out_of_scope": "marker schema changes",
+  "smallest_next_step": "run python scripts/check-savepoint-stub.py",
+  "decisions": ["keep SAVEPOINT_V1 marker fields and order unchanged"],
+  "risks": ["disk state can drift after the snapshot is captured"],
+  "failed_approaches": "none",
+  "unresolved_blockers": "none",
+  "project_validation": [
+    {
+      "command": "python scripts/check-savepoint-stub.py",
+      "result": "passed",
+      "summary": "renderer fixture validation recorded"
+    }
+  ],
+  "observable_completion": "check-savepoint-stub exits 0",
+  "inspected_without_change": ["README.md"],
+  "files_to_inspect_first": ["app.py"]
+}
+""",
+        encoding="utf-8",
+    )
+    return path
 
 
 def test_portable_helper_writes_valid_draft() -> None:
@@ -130,6 +171,310 @@ def test_root_wrapper_forwards_to_portable_helper() -> None:
         require(output.exists(), "root wrapper did not write requested output")
         validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
         require(validation.returncode == 0, validation.stderr or validation.stdout)
+
+
+def test_renderer_writes_resume_ready_savepoint_from_json_input() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = semantic_input(repo)
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 0, result.stderr or result.stdout)
+        text = output.read_text(encoding="utf-8")
+        require("Generated deterministic final savepoint." in text, "renderer origin note missing")
+        require("<agent-fill>" not in text, "renderer should not leave stub placeholders")
+        require("- Changed:" in text and "app.py - modified" in text, "changed file was not derived")
+        require("- Created:" in text and "savepoint-input.json - untracked" in text, "created file was not derived")
+        require("- Inspected without change: README.md" in text, "semantic inspected file missing")
+        require("SAVEPOINT_MODE: file" in text, "file marker missing")
+        require("VALIDATION_RECORDED: yes" in text, "savepoint validation marker missing")
+        require("REDACTION_CHECKED: yes" in text, "redaction marker missing")
+        require("RESUME_READY: yes" in text, "resume-ready marker missing")
+        require("BLOCKERS: none" in text, "ready renderer output should have no marker blockers")
+        require(text.rstrip().endswith("END_SAVEPOINT_V1\n```"), "marker block must be final")
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode == 0, validation.stderr or validation.stdout)
+
+
+def test_renderer_keeps_savepoint_unsafe_without_active_command_assertion() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = semantic_input(repo)
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "renderer should write unsafe artifact and return 2")
+        text = output.read_text(encoding="utf-8")
+        require("RESUME_READY: no" in text, "unsafe render should not be resume-ready")
+        require("BLOCKERS: active-commands-not-asserted" in text, "active command blocker missing")
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode == 0, validation.stderr or validation.stdout)
+
+
+def test_renderer_secret_scan_blocks_resume_ready() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = semantic_input(repo)
+        payload = input_path.read_text(encoding="utf-8")
+        input_path.write_text(
+            payload.replace(
+                "disk state can drift after the snapshot is captured",
+                "token='sk-abcdefghijklmnopqrstuvwxyz123456'",
+            ),
+            encoding="utf-8",
+        )
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "secret-bearing render should return unsafe status")
+        text = output.read_text(encoding="utf-8")
+        require("REDACTION_CHECKED: no" in text, "secret scan failure should not mark redaction checked")
+        require("RESUME_READY: no" in text, "secret scan failure should block resume-ready")
+        require("BLOCKERS: redaction-check-failed" in text, "secret scan blocker missing")
+
+
+def test_renderer_redacts_secret_even_when_scan_flag_is_omitted() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = semantic_input(repo)
+        payload = input_path.read_text(encoding="utf-8")
+        input_path.write_text(
+            payload.replace(
+                "disk state can drift after the snapshot is captured",
+                "token='sk-abcdefghijklmnopqrstuvwxyz123456'",
+            ),
+            encoding="utf-8",
+        )
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "omitted scan flag should keep output unsafe")
+        text = output.read_text(encoding="utf-8")
+        require("sk-abcdefghijklmnopqrstuvwxyz123456" not in text, "raw secret leaked into rendered output")
+        require("<redacted>" in text, "secret should be redacted even when scan flag is omitted")
+        require("REDACTION_CHECKED: no" in text, "omitted scan flag should not mark redaction checked")
+        require("RESUME_READY: no" in text, "omitted scan flag should block resume-ready")
+
+
+def test_root_renderer_forwards_to_portable_renderer() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = semantic_input(repo)
+        output = repo / "custom" / "SAVEPOINT.md"
+        result = run(
+            [
+                sys.executable,
+                str(ROOT_RENDERER),
+                "--input",
+                str(input_path),
+                "--output",
+                str(output),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 0, result.stderr or result.stdout)
+        require(output.exists(), "root renderer did not write requested output")
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode == 0, validation.stderr or validation.stdout)
+
+
+def compact_resume_ready_text(
+    repo: Path,
+    output: Path,
+    *,
+    include_short_head: bool = True,
+    next_action: str = "run the focused validator relaxation check",
+    project_validation: str = "passed: focused compact validator fixture",
+    skipped_checks: str = "none",
+    redaction_check: str = "passed: no secrets in compact fixture",
+    include_disk_wins: bool = True,
+) -> str:
+    short_head = "- Short HEAD: abc1234\n" if include_short_head else ""
+    disk_wins = " because disk state wins when claims conflict" if include_disk_wins else ""
+    return f"""# Savepoint Manifest
+
+Compact savepoint fixture.
+
+## TL;DR / Operational Summary
+
+- Goal: finish compact validator support
+- Current state: compact file has all safety-critical recovery facts
+- Next action: {next_action}
+- Blocker: none
+
+## Repo Snapshot
+
+- Captured at: 2026-06-11T00:00:00+00:00
+- Working directory: {repo.resolve()}
+- Git root: {repo.resolve()}
+- Branch: main
+{short_head}- `git status --short`: M app.py
+- `git diff --stat`: app.py | 1 +
+- `git diff --name-status`: M app.py
+- `git diff --cached --stat`: none
+- `git diff --cached --name-status`: none
+- Latest commit: abc1234 initial
+- Instruction files loaded: AGENTS.md
+- Durable state files checked: none
+- Expected drift from captured state: none
+
+## Required Reading
+
+1. Instruction files: AGENTS.md
+2. Durable state files: none
+3. `SAVEPOINT.md` sections: all
+4. Focused detail artifacts, if any: none
+5. Files to inspect first: app.py
+
+Relative detail paths resolve from this file.
+
+## Change Manifest
+
+- Changed: app.py - compact validation fixture
+- Created: none
+- Deleted: none
+- Moved: none
+- Staged: none
+- Inspected without change: README.md
+- Unknown or unverified: none
+
+## Recovery Notes
+
+- Decisions/rationale: keep v1 marker schema unchanged while allowing compact prose
+- Risks/pitfalls: verify disk state{disk_wins}
+- Unresolved questions or approval blockers: none
+
+## Validation Manifest
+
+- Savepoint validation: passed: python scripts/validate_savepoint.py .savepoint/SAVEPOINT.md
+- Project validation: {project_validation}
+- Skipped checks / next validation: {skipped_checks}
+- Secret redaction check: {redaction_check}
+- Observable completion criteria: validator exits 0
+
+## Resume Prompt
+
+```text
+Read this savepoint, verify cwd/Git state/status/diff, read listed instruction/state files, compare all claims with disk state, report consistency or conflicts, and continue only if the user requested continuation and RESUME_READY is yes.
+```
+
+## Markers
+
+```text
+SAVEPOINT_V1
+SAVEPOINT_PATH: {output.resolve()}
+SAVEPOINT_MODE: file
+DETAILS_READY: not-needed
+PROMPT_READY: yes
+DISK_RECORDED: yes
+VALIDATION_RECORDED: yes
+REDACTION_CHECKED: yes
+RESUME_READY: yes
+BLOCKERS: none
+END_SAVEPOINT_V1
+```
+"""
+
+
+def write_compact_resume_ready_savepoint(repo: Path, **kwargs) -> Path:
+    output = repo / ".savepoint" / "SAVEPOINT.md"
+    output.parent.mkdir()
+    output.write_text(compact_resume_ready_text(repo, output, **kwargs), encoding="utf-8")
+    return output
+
+
+def test_validator_accepts_compact_resume_ready_file_without_repetitive_sections() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = write_compact_resume_ready_savepoint(repo)
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode == 0, validation.stderr or validation.stdout)
+
+
+def test_compact_validator_still_requires_disk_snapshot_fields() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = write_compact_resume_ready_savepoint(repo, include_short_head=False)
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode != 0, "compact validator accepted missing Short HEAD")
+        require("missing repo snapshot field - Short HEAD:" in validation.stderr, "missing snapshot error not reported")
+
+
+def test_compact_validator_rejects_skipped_none_without_project_pass() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = write_compact_resume_ready_savepoint(repo, project_validation="not-run: no project check recorded")
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode != 0, "compact validator accepted skipped none without passed project validation")
+        require("Skipped checks / next validation" in validation.stderr, "skipped validation error not reported")
+
+
+def test_compact_validator_requires_redaction_evidence() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = write_compact_resume_ready_savepoint(repo, redaction_check="")
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode != 0, "compact validator accepted blank redaction evidence")
+        require("Secret redaction check" in validation.stderr, "redaction evidence error not reported")
+
+
+def test_compact_validator_requires_next_action_evidence() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = write_compact_resume_ready_savepoint(repo, next_action="")
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode != 0, "compact validator accepted blank next action")
+        require("RESUME_READY=yes requires substantive value for - Next action:" in validation.stderr, "next action error not reported")
+
+
+def test_compact_validator_requires_disk_state_wins_language() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = write_compact_resume_ready_savepoint(repo, include_disk_wins=False)
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode != 0, "compact validator accepted missing disk-state-wins language")
+        require("disk-state-wins" in validation.stderr, "disk-state-wins error not reported")
 
 
 def test_run_command_handles_oserror() -> None:
@@ -249,6 +594,17 @@ def main() -> int:
         test_truncates_large_git_snapshot,
         test_refuses_overwrite_without_force,
         test_root_wrapper_forwards_to_portable_helper,
+        test_renderer_writes_resume_ready_savepoint_from_json_input,
+        test_renderer_keeps_savepoint_unsafe_without_active_command_assertion,
+        test_renderer_secret_scan_blocks_resume_ready,
+        test_renderer_redacts_secret_even_when_scan_flag_is_omitted,
+        test_root_renderer_forwards_to_portable_renderer,
+        test_validator_accepts_compact_resume_ready_file_without_repetitive_sections,
+        test_compact_validator_still_requires_disk_snapshot_fields,
+        test_compact_validator_rejects_skipped_none_without_project_pass,
+        test_compact_validator_requires_redaction_evidence,
+        test_compact_validator_requires_next_action_evidence,
+        test_compact_validator_requires_disk_state_wins_language,
         test_run_command_handles_oserror,
         test_find_git_root_handles_empty_output,
         test_refuses_directory_output,

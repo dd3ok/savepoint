@@ -10,6 +10,7 @@ The user asks for a savepoint after a multi-file architecture change. The ration
 - Includes a four-line `TL;DR / Operational Summary` with goal, current state, next action, and blocker.
 - Creates focused `details/*.md` artifacts only when needed, relative to `SAVEPOINT.md`.
 - Lists each detail artifact in the required reading order with a short purpose.
+- Keeps the top-level manifest focused on required recovery facts; expanded planning sections are optional when they would repeat the same next action.
 - Keeps raw transcripts, long logs, and full diffs out of artifacts.
 - Sets `SAVEPOINT_MODE: file`.
 - Sets `DETAILS_READY: yes` only after verifying every referenced artifact exists.

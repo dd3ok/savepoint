@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 
 MARKER_BLOCK_START = "SAVEPOINT_V1"
@@ -49,6 +49,22 @@ def marker_template_lines(schema: dict[str, Any] | None = None) -> list[str]:
         lines.append(f"{field}: {value}")
     lines.append(MARKER_BLOCK_END)
     return lines
+
+
+def render_marker_block(values: Mapping[str, str], schema: dict[str, Any] | None = None) -> str:
+    """Render a marker block in schema order."""
+    required_fields = marker_field_order(schema)
+    missing = [field for field in required_fields if field not in values]
+    unknown = [field for field in values if field not in required_fields]
+    if missing:
+        raise ValueError(f"missing marker fields: {', '.join(missing)}")
+    if unknown:
+        raise ValueError(f"unknown marker fields: {', '.join(unknown)}")
+    lines = [MARKER_BLOCK_START]
+    for field in required_fields:
+        lines.append(f"{field}: {values[field]}")
+    lines.append(MARKER_BLOCK_END)
+    return "\n".join(lines)
 
 
 def extract_marker_values(path: Path, text: str) -> tuple[dict[str, str], list[str]]:

@@ -37,14 +37,11 @@ SECRET_PATTERNS = [
 ]
 REQUIRED_FILE_SECTIONS = [
     "## TL;DR / Operational Summary",
-    "## Recovery Contract",
-    "## Session Target",
     "## Repo Snapshot",
     "## Required Reading",
     "## Change Manifest",
     "## Recovery Notes",
     "## Validation Manifest",
-    "## Remaining Work",
     "## Resume Prompt",
     "## Markers",
 ]
@@ -82,7 +79,6 @@ REQUIRED_VALIDATION_FIELDS = [
 REQUIRED_RECOVERY_NOTE_FIELDS = [
     "- Decisions/rationale:",
     "- Risks/pitfalls:",
-    "- Failed approaches:",
     "- Unresolved questions or approval blockers:",
 ]
 EMPTY_VALUES = {"", "unknown", "tbd", "todo", "n/a?", "?"}
@@ -200,9 +196,6 @@ def validate_resume_ready_content(path: Path, text: str) -> list[str]:
         "- Current state:",
         "- Next action:",
         "- Blocker:",
-        "- Next-session focus:",
-        "- Done when:",
-        "- Smallest executable next step:",
         *REQUIRED_REPO_SNAPSHOT_FIELDS,
         *REQUIRED_CHANGE_FIELDS,
         *REQUIRED_VALIDATION_FIELDS,
@@ -210,11 +203,32 @@ def validate_resume_ready_content(path: Path, text: str) -> list[str]:
     ]
     for label in labels:
         value = field_value_or_block(text, label)
-        if is_placeholder_value(value, allow_absence=label in ABSENCE_ALLOWED_LABELS):
+        allow_absence = label in ABSENCE_ALLOWED_LABELS
+        if label == "- Skipped checks / next validation:":
+            allow_absence = project_validation_passed(text)
+        if is_placeholder_value(value, allow_absence=allow_absence):
             errors.append(f"{path}: RESUME_READY=yes requires substantive value for {label}")
+    errors.extend(validate_validation_status(path, text))
     if not re.search(r"(?is)(trust (the )?(current )?(working tree|disk state|disk)|disk state wins)", text):
         errors.append(f"{path}: RESUME_READY=yes requires explicit disk-state-wins conflict handling")
     return errors
+
+
+def validate_validation_status(path: Path, text: str) -> list[str]:
+    errors: list[str] = []
+    skipped = field_value_or_block(text, "- Skipped checks / next validation:")
+    if skipped.strip().strip("`").lower().strip(" .") in ABSENCE_ONLY_VALUES and not project_validation_passed(text):
+        errors.append(
+            f"{path}: Skipped checks / next validation may be none only when Project validation records a passed check"
+        )
+    return errors
+
+
+def project_validation_passed(text: str) -> bool:
+    value = field_value_or_block(text, "- Project validation:").lower()
+    if not re.search(r"\b(pass|passed|ok|success|succeeded)\b", value):
+        return False
+    return not re.search(r"\b(fail|failed|error|not-run|not run|skipped)\b", value)
 
 
 def field_value_or_block(text: str, label: str) -> str:

@@ -23,7 +23,7 @@ Preserve coding-session state for continuation without prior chat context.
 
 1. For text savepoints, keep the response short and include only goal, state, next action, blockers/risks, and relevant paths or links.
 2. For file savepoints, inspect and record cwd, Git root, branch, short HEAD, status, diff stat, name-status, staged stat, staged name-status, latest commit, relevant instruction files, and relevant durable state files.
-3. For file drafts, use `scripts/create_savepoint_stub.py` when available to prefill mechanical structure; otherwise use `references/savepoint-template.md`. Use `details/*.md` only when `SAVEPOINT.md` cannot stay concise and recoverable.
+3. For file drafts, use `scripts/create_savepoint_stub.py` when available to prefill mechanical structure; otherwise use `references/savepoint-template.md`. When compact semantic JSON is enough, use `scripts/render_savepoint.py` to render/finalize Markdown, markers, Git snapshot, redaction status, and validation status deterministically. Use `details/*.md` only when `SAVEPOINT.md` cannot stay concise and recoverable.
 4. For adopted generated default savepoints, later create/update requests refresh `.savepoint/SAVEPOINT.md` in place unless the user asks to preserve history.
 5. Validate written artifacts with `skills/savepoint/scripts/validate_savepoint.py` or `scripts/validate_savepoint.py`; fix errors before setting `RESUME_READY: yes`.
 
