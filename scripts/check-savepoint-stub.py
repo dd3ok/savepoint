@@ -364,6 +364,9 @@ def test_renderer_records_recovery_uncertainty_inputs() -> None:
   "goal": "preserve recovery state after automatic context compaction",
   "current_state": "disk facts are verified but prior chat may be lossy",
   "next_action": "reload nested instructions before editing app.py",
+  "instruction_files_loaded": [
+    "nested CLAUDE.md for app.py - not-read - reload before editing app.py"
+  ],
   "expected_drift": "validation is from before session reset; rerun focused check if files changed",
   "unknown_unverified": "nested CLAUDE.md for app.py was not read after compaction",
   "project_validation": [
@@ -398,6 +401,11 @@ def test_renderer_records_recovery_uncertainty_inputs() -> None:
         require(
             "- Unknown or unverified: nested CLAUDE.md for app.py was not read after compaction" in text,
             "renderer should record optional unknown/unverified facts",
+        )
+        required_reading = text.split("## Required Reading", 1)[1].split("## Change Manifest", 1)[0]
+        require(
+            "nested CLAUDE.md for app.py - not-read - reload before editing app.py" in required_reading,
+            "renderer should carry path-scoped instruction reload into Required Reading",
         )
         require(
             "Do not rely on prior chat context unless the user explicitly provides it." in text,
