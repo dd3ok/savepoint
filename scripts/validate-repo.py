@@ -640,6 +640,24 @@ class Validator:
         if missing:
             self.fail(f"trigger evals missing near-miss negative categories: {sorted(missing)}")
 
+    def validate_manual_eval_cases(self) -> None:
+        required_phrases = {
+            ROOT / "evals" / "README.md": [
+                "After compaction or session reset, load/resume still treats the current working tree as the source of truth.",
+                "Unrelated dirty files are reported before continuation instead of being folded into the intended task.",
+            ],
+            ROOT / "evals" / "cases" / "resume-conflicting-disk.md": [
+                "The savepoint was produced before automatic context compaction",
+                "`src/session.ts` is unrelated dirty work",
+                "Reports compaction-age uncertainty and validation freshness before editing.",
+            ],
+        }
+        for path, phrases in required_phrases.items():
+            text = self.read(path)
+            for phrase in phrases:
+                if phrase not in text:
+                    self.fail(f"{path.relative_to(ROOT)} missing eval phrase: {phrase}")
+
     def validate_schema_contract(self) -> None:
         expected_names = [line.split(":", 1)[0] for line in EXPECTED_MARKER_LINES[1:-1]]
         if marker_field_order() != expected_names:
@@ -873,6 +891,7 @@ class Validator:
             "readme-format": self.validate_readme_format,
             "agent-metadata": self.validate_agent_metadata,
             "trigger-evals": self.validate_trigger_evals,
+            "manual-evals": self.validate_manual_eval_cases,
             "schema": self.validate_schema_contract,
             "markers": self.validate_marker_blocks,
             "examples": self.validate_savepoint_sections,
@@ -905,7 +924,7 @@ def main() -> int:
         "--check",
         action="append",
         default=[],
-        help="Check to run: frontmatter, references, readme-format, agent-metadata, trigger-evals, schema, markers, examples, text-example, detail-artifacts, removed-prompt-file, skill-links, removed-terms, secrets, all",
+        help="Check to run: frontmatter, references, readme-format, agent-metadata, trigger-evals, manual-evals, schema, markers, examples, text-example, detail-artifacts, removed-prompt-file, skill-links, removed-terms, secrets, all",
     )
     args = parser.parse_args()
     checks = set(args.check or ["all"])

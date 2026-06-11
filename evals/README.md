@@ -26,7 +26,9 @@ For each case:
 - File safe adopted resume deletes only selected untracked generated savepoint artifacts.
 - Later create/update requests refresh adopted generated default savepoints in place unless the user asks to preserve history.
 - Disk state wins over savepoint text.
+- After compaction or session reset, load/resume still treats the current working tree as the source of truth.
 - Stale branch, HEAD, status, required-file, detail-artifact, or validation drift is reported before continuation or implementation.
+- Unrelated dirty files are reported before continuation instead of being folded into the intended task.
 - Relevant durable state files are listed by path and purpose instead of copied wholesale into `SAVEPOINT.md`.
 - Secrets are redacted.
 - `SKILL.md` frontmatter parses as valid YAML.
