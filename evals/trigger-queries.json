@@ -147,6 +147,22 @@
       "rationale": "Implicit recovery-state savepoint request."
     },
     {
+      "id": "trigger-en-compaction-recovery-01",
+      "query": "My context was automatically compacted; create a recovery savepoint so a fresh session can continue from the repo state.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "context-loss",
+      "rationale": "Compaction mention should trigger only when the user asks for a recoverable coding-state savepoint."
+    },
+    {
+      "id": "trigger-en-before-new-savepoint-01",
+      "query": "Before I start a new session, create a SAVEPOINT.md with the current Git state and next action.",
+      "should_trigger": true,
+      "language": "en",
+      "category": "create",
+      "rationale": "Intentional session reset should trigger savepoint only when artifact creation is requested."
+    },
+    {
       "id": "trigger-en-explicit-skill-01",
       "query": "Use $savepoint to package this repo state for a fresh coding-agent session.",
       "should_trigger": true,
@@ -233,6 +249,30 @@
       "language": "en",
       "category": "status-command",
       "rationale": "Slash-command/status policy is out of scope."
+    },
+    {
+      "id": "no-trigger-compact-command-01",
+      "query": "Run /compact and focus on the current parser task.",
+      "should_trigger": false,
+      "language": "en",
+      "category": "session-control",
+      "rationale": "Slash-command compaction is session control, not savepoint artifact creation."
+    },
+    {
+      "id": "no-trigger-compaction-threshold-01",
+      "query": "Set the compaction threshold to 85% for this agent.",
+      "should_trigger": false,
+      "language": "en",
+      "category": "session-control",
+      "rationale": "Compaction threshold policy is out of scope for the savepoint skill."
+    },
+    {
+      "id": "no-trigger-compaction-summary-01",
+      "query": "Just summarize what happened after compaction.",
+      "should_trigger": false,
+      "language": "en",
+      "category": "ordinary-summary",
+      "rationale": "A compaction summary request without savepoint or recovery artifact intent is an ordinary summary."
     },
     {
       "id": "no-trigger-project-state-01",

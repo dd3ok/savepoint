@@ -61,6 +61,8 @@ Durable state files may include:
 
 When relevant, record path, why it matters, whether it was read, the section or anchor to read next, and any conflict with disk/Git state.
 
+If the next action touches files governed by nested or path-scoped instruction files, include those instruction files in the required reading order and mark whether they were read or still need to be reloaded.
+
 Do not copy whole state files into `SAVEPOINT.md`. Prefer path plus reason plus section.
 
 ## Detail Artifact Boundary
@@ -83,6 +85,8 @@ On resume, trust sources in this order:
 6. Prior chat context only if explicitly provided by the user.
 
 If a state file conflicts with disk state, disk state wins. Report the conflict before editing.
+
+After automatic context compaction, an intentional session reset, or an agent transfer, preserve only verified recovery facts. Put any uncertainty in `Expected drift`, `Unknown or unverified`, `Required Reading`, or `Recovery Notes`; do not reconstruct missing chat from memory.
 
 ## Compression Rules
 

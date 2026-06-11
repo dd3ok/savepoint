@@ -158,6 +158,10 @@ def test_portable_helper_writes_valid_draft() -> None:
         require("SAVEPOINT_MODE: file" in text, "file marker missing")
         require("RESUME_READY: no" in text, "draft must not be resume-ready")
         require("BLOCKERS: draft-needs-agent-review" in text, "draft blocker missing")
+        require(
+            "Do not rely on prior chat context unless the user explicitly provides it." in text,
+            "draft resume prompt should warn against relying on prior chat",
+        )
         require(text.rstrip().endswith("END_SAVEPOINT_V1\n```"), "marker block must be final")
         require(len(text) <= 3400, "stub draft should stay compact")
 
@@ -347,6 +351,67 @@ def test_renderer_accepts_minimal_ready_json_input() -> None:
             require(forbidden not in text, f"minimal input should not emit removed optional placeholder {forbidden}")
         require("disk state wins" in text, "minimal input must retain disk-state-wins safety language")
         require("minimal-savepoint-input.json - untracked" not in text, "minimal input file should not be listed as created work")
+        validation = run([sys.executable, str(VALIDATOR), str(repo / ".savepoint" / "SAVEPOINT.md")], repo)
+        require(validation.returncode == 0, validation.stderr or validation.stdout)
+
+
+def test_renderer_records_recovery_uncertainty_inputs() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = repo / "uncertain-savepoint-input.json"
+        input_path.write_text(
+            """{
+  "goal": "preserve recovery state after automatic context compaction",
+  "current_state": "disk facts are verified but prior chat may be lossy",
+  "next_action": "reload nested instructions before editing app.py",
+  "instruction_files_loaded": [
+    "nested CLAUDE.md for app.py - not-read - reload before editing app.py"
+  ],
+  "expected_drift": "validation is from before session reset; rerun focused check if files changed",
+  "unknown_unverified": "nested CLAUDE.md for app.py was not read after compaction",
+  "project_validation": [
+    {
+      "command": "python scripts/check-savepoint-stub.py",
+      "result": "passed",
+      "summary": "uncertainty renderer fixture validation recorded"
+    }
+  ]
+}
+""",
+            encoding="utf-8",
+        )
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 0, result.stderr or result.stdout)
+        text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
+        require(
+            "- Expected drift from captured state: validation is from before session reset; rerun focused check if files changed" in text,
+            "renderer should record optional expected drift",
+        )
+        require(
+            "- Unknown or unverified: nested CLAUDE.md for app.py was not read after compaction" in text,
+            "renderer should record optional unknown/unverified facts",
+        )
+        required_reading = text.split("## Required Reading", 1)[1].split("## Change Manifest", 1)[0]
+        require(
+            "nested CLAUDE.md for app.py - not-read - reload before editing app.py" in required_reading,
+            "renderer should carry path-scoped instruction reload into Required Reading",
+        )
+        require(
+            "Do not rely on prior chat context unless the user explicitly provides it." in text,
+            "resume prompt should warn against relying on prior chat",
+        )
+        require("CONTEXT_TRANSFER_REASON" not in text, "renderer must not add new marker-style compaction fields")
         validation = run([sys.executable, str(VALIDATOR), str(repo / ".savepoint" / "SAVEPOINT.md")], repo)
         require(validation.returncode == 0, validation.stderr or validation.stdout)
 
@@ -665,7 +730,7 @@ Relative detail paths resolve from this file.
 ## Resume Prompt
 
 ```text
-Read this savepoint, verify cwd/Git state/status/diff, read listed instruction/state files, compare all claims with disk state, report consistency or conflicts, and continue only if the user requested continuation and RESUME_READY is yes.
+Read this savepoint, verify cwd/Git state/status/diff, read listed instruction/state files, and compare all claims with disk state. Do not rely on prior chat context unless the user explicitly provides it. Report consistency or conflicts, and continue only if the user requested continuation and RESUME_READY is yes.
 ```
 
 ## Markers
@@ -697,6 +762,11 @@ def test_validator_accepts_compact_resume_ready_file_without_repetitive_sections
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo(Path(tmp))
         output = write_compact_resume_ready_savepoint(repo)
+        text = output.read_text(encoding="utf-8")
+        require(
+            "Do not rely on prior chat context unless the user explicitly provides it." in text,
+            "compact fixture resume prompt should warn against relying on prior chat",
+        )
         validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
         require(validation.returncode == 0, validation.stderr or validation.stdout)
 
@@ -916,6 +986,7 @@ def main() -> int:
         test_renderer_classifies_status_codes_without_losing_columns,
         test_renderer_default_output_stays_compact,
         test_renderer_accepts_minimal_ready_json_input,
+        test_renderer_records_recovery_uncertainty_inputs,
         test_renderer_records_not_run_when_savepoint_validation_is_omitted,
         test_renderer_minimal_json_without_project_validation_stays_unsafe,
         test_renderer_failed_project_validation_stays_unsafe,

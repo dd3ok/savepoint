@@ -135,6 +135,36 @@ REQUIRED_TRIGGER_CASES = {
         "language": "en",
         "category": "resume",
     },
+    "trigger-en-compaction-recovery-01": {
+        "query": "My context was automatically compacted; create a recovery savepoint so a fresh session can continue from the repo state.",
+        "should_trigger": True,
+        "language": "en",
+        "category": "context-loss",
+    },
+    "trigger-en-before-new-savepoint-01": {
+        "query": "Before I start a new session, create a SAVEPOINT.md with the current Git state and next action.",
+        "should_trigger": True,
+        "language": "en",
+        "category": "create",
+    },
+    "no-trigger-compact-command-01": {
+        "query": "Run /compact and focus on the current parser task.",
+        "should_trigger": False,
+        "language": "en",
+        "category": "session-control",
+    },
+    "no-trigger-compaction-threshold-01": {
+        "query": "Set the compaction threshold to 85% for this agent.",
+        "should_trigger": False,
+        "language": "en",
+        "category": "session-control",
+    },
+    "no-trigger-compaction-summary-01": {
+        "query": "Just summarize what happened after compaction.",
+        "should_trigger": False,
+        "language": "en",
+        "category": "ordinary-summary",
+    },
     "no-trigger-ko-sql-savepoint-01": {
         "query": "Postgres SAVEPOINT 명령 설명해줘.",
         "should_trigger": False,

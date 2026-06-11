@@ -81,7 +81,7 @@
 ## Resume Prompt
 
 ```text
-Read /workspace/shop/.savepoint/SAVEPOINT.md and verify disk state, but do not rotate or implement yet. RESUME_READY is no because npm test -- checkout is still running. Wait for the running command result to be recorded before continuing.
+Read /workspace/shop/.savepoint/SAVEPOINT.md and verify disk state, but do not rotate or implement yet. Do not rely on prior chat context unless the user explicitly provides it. RESUME_READY is no because npm test -- checkout is still running. Wait for the running command result to be recorded before continuing.
 ```
 
 ## Markers

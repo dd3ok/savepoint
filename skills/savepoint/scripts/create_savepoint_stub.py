@@ -216,7 +216,7 @@ Relative detail paths resolve from this file.
 ## Resume Prompt
 
 ```text
-Read this savepoint, verify cwd/Git state/status/diff, read listed instruction/state files, compare all claims with disk state, report consistency or conflicts, and continue only if the user requested continuation and RESUME_READY is yes.
+Read this savepoint, verify cwd/Git state/status/diff, read listed instruction/state files, and compare all claims with disk state. Do not rely on prior chat context unless the user explicitly provides it. Report consistency or conflicts, and continue only if the user requested continuation and RESUME_READY is yes.
 ```
 
 ## Markers

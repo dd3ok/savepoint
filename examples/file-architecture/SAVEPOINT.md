@@ -85,7 +85,7 @@
 ## Resume Prompt
 
 ```text
-Read /workspace/billing-app/.savepoint/SAVEPOINT.md first, then read only the listed detail artifacts needed to fix timestamp formatting. Verify disk state before editing. If the user requested continuation and disk state is safe, inspect src/billing/invoiceService.ts and tests/billing/invoice.integration.test.ts, fix the smallest timestamp issue, and rerun npm test -- tests/billing/invoice.integration.test.ts.
+Read /workspace/billing-app/.savepoint/SAVEPOINT.md first, then read only the listed detail artifacts needed to fix timestamp formatting. Verify disk state before editing. Do not rely on prior chat context unless the user explicitly provides it. If the user requested continuation and disk state is safe, inspect src/billing/invoiceService.ts and tests/billing/invoice.integration.test.ts, fix the smallest timestamp issue, and rerun npm test -- tests/billing/invoice.integration.test.ts.
 ```
 
 ## Markers
