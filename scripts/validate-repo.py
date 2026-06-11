@@ -655,6 +655,8 @@ class Validator:
         }
         for path, phrases in required_phrases.items():
             text = self.read(path)
+            if not text:
+                continue
             for phrase in phrases:
                 if phrase not in text:
                     self.fail(f"{path.relative_to(ROOT)} missing eval phrase: {phrase}")

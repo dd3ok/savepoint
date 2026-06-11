@@ -92,7 +92,7 @@ After automatic context compaction, an intentional session reset, or an agent tr
 
 When loading a file savepoint after compaction, reset, or agent transfer, read only the shortest path needed to verify recovery state:
 
-1. Marker block and `RESUME_READY` / `BLOCKERS`.
+1. `Markers`, especially `RESUME_READY` / `BLOCKERS`.
 2. `TL;DR / Operational Summary`.
 3. `Repo Snapshot`.
 4. `Required Reading`.
