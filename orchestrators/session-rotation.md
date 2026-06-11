@@ -82,7 +82,7 @@ Continue only if RESUME_READY is yes and the user asked for implementation.
 ## Safe Rotation Conditions
 
 - The previous session has completed or paused at a clean checkpoint.
-- `SAVEPOINT.md` exists or the orchestrator captured an explicit text savepoint response.
+- `SAVEPOINT.md` exists or the orchestrator captured an explicit Quick Save response.
 - cwd, Git root, branch, short HEAD, `git status --short`, and `git diff --stat` were recorded in the savepoint.
 - Dirty and staged files were recorded.
 - Last validation command and result were recorded, or skipped validation has an explicit low-risk reason and next validation command.

@@ -9,7 +9,7 @@
 - Required `SAVEPOINT.md` Shape
 - Trust Order
 - Create Contract
-- Text Contract
+- Quick Save Contract
 - Load / Resume Contract
 - Detail Spillover
 - Cleanup
@@ -21,7 +21,7 @@
 ## Defaults
 
 - Default file artifact: `.savepoint/SAVEPOINT.md`.
-- Default text output: response text only.
+- Default Quick Save output: response text only.
 - Default prompt: an embedded `## Resume Prompt` section inside file `SAVEPOINT.md`.
 - Create `details/*.md` only as internal spillover when file `SAVEPOINT.md` cannot stay both concise and recoverable.
 
@@ -32,8 +32,8 @@ Resume lookup order:
 
 ## Paths
 
-- `text`: short copy-paste note for another agent; no disk/Git recovery guarantee, no file, and no marker by default.
-- `file`: recoverable `SAVEPOINT.md` with disk/Git snapshot, validation state, secret-redaction state, and marker block.
+- `text`: Quick Save note for another agent; no disk/Git recovery guarantee, no file, and no marker by default.
+- `file`: Savepoint artifact with disk/Git snapshot, validation state, secret-redaction state, and marker block.
 
 For generic "savepoint" or "세이브포인트 만들어줘" requests, default to file.
 
@@ -76,7 +76,7 @@ If the savepoint conflicts with disk state, disk state wins. Report the mismatch
 
 ## Create Contract
 
-Before writing a file savepoint, inspect and record:
+Before writing a Savepoint, inspect and record:
 
 - `pwd`
 - Git root if inside a repository
@@ -97,9 +97,9 @@ If the user provides extra argument text or a next-session focus, record it as `
 
 Read only enough files to verify recovery state. Prefer instruction files, relevant durable state files, existing savepoint artifacts, changed files, and files needed for the smallest next step.
 
-## Text Contract
+## Quick Save Contract
 
-Use text output only when the user explicitly asks for copy-paste, text, no-file/no files, in-response/in the response, or similar transfer. It may summarize current conversation/work context, but it must not claim repo recovery.
+Use Quick Save output only when the user explicitly asks for copy-paste, text, no-file/no files, in-response/in the response, or similar transfer. It may summarize current conversation/work context, but it must not claim repo recovery.
 
 Omit markers by default. If the user asks for machine-readable text output, set `SAVEPOINT_MODE: text`, `SAVEPOINT_PATH: not-written`, and `RESUME_READY: no`.
 
