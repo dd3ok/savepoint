@@ -18,7 +18,7 @@ This repository contains session-continuity assets for coding agents such as Cod
 
 ## Mandatory Skill Usage
 
-- Use `$savepoint` when the user asks to create, update, load, inspect, or resume `.savepoint/SAVEPOINT.md`, a text/copy-paste savepoint, or Korean equivalents such as `세이브포인트 만들어줘` / `세이브포인트 로드해줘` / `세이브포인트 읽어줘` / `세이브포인트 이어서 해줘`.
+- Use `$savepoint` when the user asks for `/savepoint save`, `/savepoint load`, `/savepoint text`, `.savepoint/SAVEPOINT.md`, a response-only copy-paste handoff, or Korean equivalents such as `세이브포인트 만들어줘` / `세이브포인트 로드해줘` / `세이브포인트 읽어줘` / `세이브포인트 이어서 해줘`.
 - Do not use this skill for ordinary summaries, README writing, AGENTS.md authoring alone, code implementation, `/new`, `/status`, PTY control, or session-rotation policy.
 - When updating the skill contract, template, marker semantics, examples, or evals, run the validation commands below before committing.
 
