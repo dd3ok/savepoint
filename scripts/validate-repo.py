@@ -83,6 +83,36 @@ KOREAN_INVOCATION_PHRASES = [
     "세이브포인트 이어서 해줘",
 ]
 REQUIRED_TRIGGER_CASES = {
+    "trigger-slash-save-01": {
+        "query": "/savepoint save",
+        "should_trigger": True,
+        "language": "en",
+        "category": "create",
+    },
+    "trigger-slash-load-01": {
+        "query": "/savepoint load",
+        "should_trigger": True,
+        "language": "en",
+        "category": "load",
+    },
+    "trigger-slash-text-01": {
+        "query": "/savepoint text",
+        "should_trigger": True,
+        "language": "en",
+        "category": "text",
+    },
+    "trigger-ko-slash-save-01": {
+        "query": "/savepoint save 해줘",
+        "should_trigger": True,
+        "language": "ko",
+        "category": "create",
+    },
+    "trigger-ko-slash-text-01": {
+        "query": "/savepoint text로 복붙용 세이브포인트 만들어줘",
+        "should_trigger": True,
+        "language": "ko",
+        "category": "text",
+    },
     "trigger-ko-resume-01": {
         "query": "세이브포인트 이어서 해줘.",
         "should_trigger": True,
@@ -242,7 +272,10 @@ class Validator:
         self.require_exists(ROOT / "scripts" / "render_savepoint.py")
 
         required_skill_phrases = [
-            "Quick Save",
+            "Slash-style prompts",
+            "/savepoint save",
+            "/savepoint load",
+            "/savepoint text",
             "default recoverable file checkpoint",
             ".savepoint/SAVEPOINT.md",
             "SAVEPOINT_V1",
@@ -263,6 +296,7 @@ class Validator:
             ".savepoint/SAVEPOINT.md",
             "SAVEPOINT_MODE: text|file",
             "Load / Resume Contract",
+            "`/savepoint text` Contract",
             "no-file/no files, in-response/in the response",
             "Detail Spillover",
             "Do not delete tracked files",
@@ -317,7 +351,9 @@ class Validator:
         if not readme_ko_text.startswith("# Savepoint\n"):
             self.fail("README.ko.md must start with '# Savepoint'")
         for phrase in [
-            "Quick Save",
+            "/savepoint save",
+            "/savepoint load",
+            "/savepoint text",
             "Savepoint",
             ".savepoint/SAVEPOINT.md",
             "validate_savepoint.py",
@@ -326,7 +362,9 @@ class Validator:
             if phrase not in readme_text:
                 self.fail(f"README.md missing entry: {phrase}")
         for phrase in [
-            "Quick Save",
+            "/savepoint save",
+            "/savepoint load",
+            "/savepoint text",
             "Savepoint",
             ".savepoint/SAVEPOINT.md",
             "validate_savepoint.py",
@@ -353,11 +391,13 @@ class Validator:
         for phrase in [
             "$savepoint",
             "create",
-            "update",
-            "inspect",
-            "resume",
+            "load",
+            "verify",
             "text",
-            "file",
+            "copy-paste",
+            "/savepoint save",
+            "/savepoint load",
+            "/savepoint text",
             ".savepoint/SAVEPOINT.md",
         ]:
             if phrase not in prompt:
@@ -497,9 +537,9 @@ class Validator:
         if not has_short_file_positive:
             self.fail("trigger evals should include short generic savepoint requests that still default to file")
         if not has_no_files_text_positive:
-            self.fail("trigger evals should include no-files Quick Save requests")
+            self.fail("trigger evals should include no-files /savepoint text requests")
         if not has_in_response_text_positive:
-            self.fail("trigger evals should include in-response Quick Save requests")
+            self.fail("trigger evals should include in-response /savepoint text requests")
         if not has_korean_load_positive:
             self.fail("trigger evals should include Korean load-only savepoint requests")
         if not has_english_load_positive:
@@ -565,7 +605,7 @@ class Validator:
         if marker_allowed_values() != MARKER_ENUMS:
             self.fail("schema enum/const marker values must match validator constants")
         if not validate_marker_semantics({"SAVEPOINT_MODE": "text", "SAVEPOINT_PATH": "not-written", "DETAILS_READY": "not-needed", "RESUME_READY": "yes"}):
-            self.fail("Quick Saves must not be RESUME_READY=yes")
+            self.fail("/savepoint text outputs must not be RESUME_READY=yes")
         if validate_marker_semantics({"SAVEPOINT_MODE": "file", "SAVEPOINT_PATH": "/tmp/SAVEPOINT.md", "DETAILS_READY": "no", "RESUME_READY": "no"}):
             self.fail("unsafe Savepoints may have pending detail artifacts")
 
