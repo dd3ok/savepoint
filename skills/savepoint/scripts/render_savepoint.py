@@ -402,7 +402,7 @@ def redaction_status(args: argparse.Namespace, redaction_ok: bool) -> str:
     if not args.scan_redaction:
         return "not-run: rerun renderer with --scan-redaction before marking ready"
     if redaction_ok:
-        return "passed: rendered savepoint scanned for secret patterns"
+        return "passed: rendered SAVEPOINT.md scanned for built-in secret patterns; no matches"
     return "failed: possible secret was redacted; review source input before resume"
 
 

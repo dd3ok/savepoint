@@ -246,6 +246,10 @@ def test_renderer_writes_resume_ready_savepoint_from_json_input() -> None:
         require("SAVEPOINT_MODE: file" in text, "file marker missing")
         require("VALIDATION_RECORDED: yes" in text, "savepoint validation marker missing")
         require("REDACTION_CHECKED: yes" in text, "redaction marker missing")
+        require(
+            "- Secret redaction check: passed: rendered SAVEPOINT.md scanned for built-in secret patterns; no matches" in text,
+            "redaction evidence should state scan scope and result",
+        )
         require("RESUME_READY: yes" in text, "resume-ready marker missing")
         require("BLOCKERS: none" in text, "ready renderer output should have no marker blockers")
         require(text.rstrip().endswith("END_SAVEPOINT_V1\n```"), "marker block must be final")
