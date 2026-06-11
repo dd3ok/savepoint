@@ -20,10 +20,6 @@ REQUIRED_TEXT_FIELDS = [
     "goal",
     "current_state",
     "next_action",
-    "done_when",
-    "out_of_scope",
-    "smallest_next_step",
-    "observable_completion",
 ]
 MAX_VALUE_CHARS = 600
 
@@ -104,14 +100,51 @@ def project_validation_entries(value: Any) -> list[str]:
     return entries
 
 
+def project_validation_passed(value: Any) -> bool:
+    if not isinstance(value, list):
+        return False
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        result = clean_text(item.get("result"), fallback="").lower()
+        summary = clean_text(item.get("summary"), fallback="").lower()
+        combined = f"{result} {summary}"
+        if re.search(r"\b(pass|passed|ok|success|succeeded)\b", combined) and not re.search(
+            r"\b(fail|failed|error|not-run|not run|skipped)\b",
+            combined,
+        ):
+            return True
+    return False
+
+
+def observable_completion(data: dict[str, Any]) -> str:
+    explicit = clean_text(data.get("observable_completion"), fallback="")
+    if explicit:
+        return explicit
+    return "next action completed and recorded validation remains passing"
+
+
+def next_action_text(data: dict[str, Any]) -> str:
+    return clean_text(data.get("smallest_next_step"), fallback=clean_text(data.get("next_action")))
+
+
 def git_status_lines(cwd: Path) -> list[str]:
     git_root = find_git_root(cwd)
     if not git_root:
         return []
-    output = git_output(["status", "--short", "--untracked-files=all"], git_root)
-    if not output:
+    try:
+        result = subprocess.run(
+            ["git", "status", "--short", "--untracked-files=all"],
+            cwd=git_root,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except OSError:
         return []
-    return [line for line in output.splitlines() if line.strip()]
+    if result.returncode != 0 or not result.stdout:
+        return []
+    return [line for line in result.stdout.splitlines() if line.strip()]
 
 
 def status_path(line: str) -> str:
@@ -126,7 +159,8 @@ def status_path(line: str) -> str:
     return path
 
 
-def derive_change_manifest(cwd: Path, data: dict[str, Any]) -> dict[str, list[str]]:
+def derive_change_manifest(cwd: Path, data: dict[str, Any], ignored_paths: set[str] | None = None) -> dict[str, list[str]]:
+    ignored_paths = ignored_paths or set()
     changed: list[str] = []
     created: list[str] = []
     deleted: list[str] = []
@@ -135,7 +169,7 @@ def derive_change_manifest(cwd: Path, data: dict[str, Any]) -> dict[str, list[st
     for line in git_status_lines(cwd):
         code = line[:2]
         path = status_path(line)
-        if not path:
+        if not path or path.replace("\\", "/") in ignored_paths:
             continue
         index_status, worktree_status = code[0], code[1]
         if "R" in code:
@@ -181,6 +215,21 @@ def inline_or_block(items: list[str], *, empty: str = "none") -> str:
     return "\n" + "\n".join(f"  - {item}" for item in items)
 
 
+def ignored_status_paths(cwd: Path, *paths: Path) -> set[str]:
+    git_root = find_git_root(cwd)
+    if not git_root:
+        return set()
+    ignored: set[str] = set()
+    for path in paths:
+        absolute = path if path.is_absolute() else cwd / path
+        try:
+            relative = absolute.resolve().relative_to(git_root.resolve())
+        except ValueError:
+            continue
+        ignored.add(relative.as_posix())
+    return ignored
+
+
 def blockers_for(data: dict[str, Any], args: argparse.Namespace, redaction_ok: bool) -> list[str]:
     blockers: list[str] = []
     for field in REQUIRED_TEXT_FIELDS:
@@ -195,8 +244,11 @@ def blockers_for(data: dict[str, Any], args: argparse.Namespace, redaction_ok: b
         blockers.append("redaction-check-not-run")
     elif not redaction_ok:
         blockers.append("redaction-check-failed")
-    if not project_validation_entries(data.get("project_validation")):
+    project_entries = project_validation_entries(data.get("project_validation"))
+    if not project_entries:
         blockers.append("project-validation-not-recorded")
+    elif not project_validation_passed(data.get("project_validation")):
+        blockers.append("project-validation-not-passing")
     if not args.run_savepoint_validation:
         blockers.append("savepoint-validation-not-run")
     return unique_or_input(blockers, None)
@@ -227,7 +279,7 @@ def build_savepoint(
 ) -> str:
     cwd = Path.cwd()
     snapshot = collect_snapshot(cwd)
-    changes = derive_change_manifest(cwd, data)
+    changes = derive_change_manifest(cwd, data, ignored_status_paths(cwd, output_path, args.input))
     project_entries = project_validation_entries(data.get("project_validation"))
     blockers = blockers_for(data, args, redaction_ok)
     if force_unsafe_blocker:
@@ -241,7 +293,6 @@ def build_savepoint(
         "RESUME_READY": "yes" if resume_ready else "no",
         "BLOCKERS": "none" if resume_ready else ",".join(blockers),
     }
-    next_focus = clean_text(data.get("next_session_focus"), fallback=clean_text(data.get("next_action")))
     instruction_files = list_items(data.get("instruction_files_loaded")) or discover_instruction_files(cwd)
     durable_files = list_items(data.get("durable_state_files_checked"))
     files_first = list_items(data.get("files_to_inspect_first")) or first_paths(changes)
@@ -260,21 +311,8 @@ Generated deterministic final savepoint.
 
 - Goal: {clean_text(data.get("goal"))}
 - Current state: {clean_text(data.get("current_state"))}
-- Next action: {clean_text(data.get("next_action"))}
+- Next action: {next_action_text(data)}
 - Blocker: {"none" if resume_ready else ", ".join(blockers)}
-
-## Recovery Contract
-
-- Mode: `file`; resume ready: `{"yes" if resume_ready else "no"}`; blockers: `{"none" if resume_ready else ", ".join(blockers)}`
-- Trust order: user instruction, working tree/Git state, repo instructions/state files, `SAVEPOINT.md`, details, explicit prior chat.
-- If this savepoint conflicts with disk state, trust disk state and report the mismatch before editing.
-
-## Session Target
-
-- Next-session focus: {next_focus}
-- Done when: {clean_text(data.get("done_when"))}
-- Out of scope: {clean_text(data.get("out_of_scope"))}
-- Smallest executable next step: {clean_text(data.get("smallest_next_step"))}
 
 ## Repo Snapshot
 
@@ -316,7 +354,7 @@ Relative detail paths resolve from this file.
 ## Recovery Notes
 
 - Decisions/rationale: {inline_or_block(list_items(data.get("decisions")), empty="no extra decisions recorded")}
-- Risks/pitfalls: {inline_or_block(list_items(data.get("risks")), empty="no extra risks recorded")}
+- Risks/pitfalls: {inline_or_block([*list_items(data.get("risks")), "disk state wins if savepoint claims conflict"])}
 - Failed approaches: {clean_text(data.get("failed_approaches"), fallback="none")}
 - Unresolved questions or approval blockers: {clean_text(data.get("unresolved_blockers"), fallback="none")}
 - State-file conflicts: {clean_text(data.get("state_file_conflicts"), fallback="none")}
@@ -327,14 +365,7 @@ Relative detail paths resolve from this file.
 - Project validation: {inline_or_block(project_entries, empty="not-run: record project validation or skipped reason")}
 - Skipped checks / next validation: {skipped}
 - Secret redaction check: {redaction_status(args, redaction_ok)}
-- Observable completion criteria: {clean_text(data.get("observable_completion"))}
-
-## Remaining Work
-
-1. Smallest next step: {clean_text(data.get("smallest_next_step"))}
-2. Next implementation step: {clean_text(data.get("next_action"))}
-3. Validation/cleanup: rerun recorded validation after disk state changes
-4. Optional later work: {clean_text(data.get("optional_later_work"), fallback="none")}
+- Observable completion criteria: {observable_completion(data)}
 
 ## Resume Prompt
 
