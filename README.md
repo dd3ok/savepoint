@@ -1,6 +1,6 @@
 # Savepoint
 
-A safer save slot for coding agents.
+A continue/load system for coding agents.
 
 Savepoint helps a fresh agent session load the current coding run without relying on prior chat context.
 
@@ -47,20 +47,17 @@ Savepoints write:
 
 `SAVEPOINT.md` embeds `## Resume Prompt` and ends with a `SAVEPOINT_V1` marker block. The field schema lives in `skills/savepoint/schemas/savepoint-v1.schema.json`; marker semantics live in `skills/savepoint/references/savepoint-contract.md`.
 
-## Canonical Contract
+## Runtime Boundary
 
-The canonical files are:
+Normal create/load uses:
 
 - Skill router: `skills/savepoint/SKILL.md`
-- Artifact contract: `skills/savepoint/references/savepoint-contract.md`
-- Savepoint skeleton: `skills/savepoint/references/savepoint-template.md`
-- Token-efficient draft helper: `skills/savepoint/scripts/create_savepoint_stub.py`
-- Token-efficient renderer/finalizer: `skills/savepoint/scripts/render_savepoint.py`
-- Context packaging: `skills/savepoint/references/context-packaging.md`
-- Marker schema: `skills/savepoint/schemas/savepoint-v1.schema.json`
+- Renderer/finalizer: `skills/savepoint/scripts/render_savepoint.py`
 - Portable validator: `skills/savepoint/scripts/validate_savepoint.py`
+- Shared marker/snapshot helpers: `skills/savepoint/scripts/savepoint_contract.py`
+- Marker schema: `skills/savepoint/schemas/savepoint-v1.schema.json`
 
-The root-level `examples/`, `evals/`, `orchestrators/`, and `scripts/validate-repo.py` are maintainer assets. The root `scripts/validate_savepoint.py` forwards to the portable validator.
+References, templates, examples, evals, orchestrators, and `scripts/validate-repo.py` are maintainer/debug assets, not normal agent context. The root `scripts/validate_savepoint.py` and `scripts/render_savepoint.py` forward to the portable runtime tools.
 
 ## Repository Layout
 
@@ -81,7 +78,7 @@ The root-level `examples/`, `evals/`, `orchestrators/`, and `scripts/validate-re
 │       │   └── savepoint-template.md
 │       ├── schemas/savepoint-v1.schema.json
 │       └── scripts/
-│           ├── create_savepoint_stub.py
+│           ├── render_savepoint.py
 │           ├── savepoint_contract.py
 │           └── validate_savepoint.py
 ├── examples/

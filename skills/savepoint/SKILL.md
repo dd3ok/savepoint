@@ -9,12 +9,12 @@ Preserve coding-session state for continuation without prior chat context.
 
 ## Choose
 
-- **Quick Save**: response-only text for explicit `복붙용`, `텍스트`, `파일 없이`, `붙여넣을`, `copy-paste`, `text`, `no-file`, `no files`, `in-response`, or `in the response` requests. Use 300-600 tokens for simple notes, 800-1200 tokens by default for coding-session transfers, and up to 2000 tokens for complex cross-agent transfers. If longer, create a Savepoint instead. Do not claim recovery, disk/Git verification, `SAVEPOINT.md`, or `RESUME_READY: yes`. Omit markers unless requested; then use `SAVEPOINT_MODE: text`.
-- **Savepoint**: default recoverable file checkpoint for generic requests, `SAVEPOINT.md`, repo/Git state, validation, safe resume, or recovery by another coding agent. Write `.savepoint/SAVEPOINT.md`, include `## Resume Prompt`, and exactly one `SAVEPOINT_V1` block with `SAVEPOINT_MODE: file`. Keep routine Savepoint files compact: use one-line field values, summarize command results, use repo-relative paths after recording Git root, and avoid repeating the same next action across sections.
+- **Quick Save**: response-only text for explicit `복붙용`, `텍스트`, `파일 없이`, `붙여넣을`, `copy-paste`, `text`, `no-file`, `no files`, `in-response`, or `in the response` requests. Do not claim recovery, disk/Git verification, `SAVEPOINT.md`, or `RESUME_READY: yes`. Omit markers unless requested; then use `SAVEPOINT_MODE: text`.
+- **Savepoint**: default recoverable file checkpoint for generic requests, `SAVEPOINT.md`, repo/Git state, validation, safe resume, or recovery by another coding agent. Generate `.savepoint/SAVEPOINT.md` with `scripts/render_savepoint.py`, include `## Resume Prompt`, and exactly one `SAVEPOINT_V1` block with `SAVEPOINT_MODE: file`.
 
 ## Rules
 
-- Normal use: do not read references, `scripts/*.py`, or `evals/*.json`; run validators as commands and inspect source only when debugging.
+- Normal use: do not read references, `scripts/*.py`, or `evals/*.json`; run the renderer and validator as commands and inspect their outputs.
 - Stay in artifact scope: do not run `/new`, `/status`, control PTYs, rotate sessions, choose thresholds, or edit application code while creating.
 - Use extra focus text only to narrow the next action. Redact secrets. Do not paste transcripts, full diffs, long logs, shell history, or duplicated PRDs/plans/ADRs/issues/commits.
 
@@ -22,7 +22,7 @@ Preserve coding-session state for continuation without prior chat context.
 
 1. For Quick Saves, include only goal, state, next action, blockers/risks, and relevant paths or links.
 2. For Savepoints, inspect and record cwd, Git root, branch, short HEAD, status, diff stat, name-status, staged stat, staged name-status, latest commit, relevant instruction files, and relevant durable state files.
-3. For file drafts, prefer `scripts/create_savepoint_stub.py` or `scripts/render_savepoint.py` for mechanical structure, markers, Git snapshot, redaction status, and validation status. Use `references/savepoint-template.md` only when script helpers are unavailable. Use `details/*.md` only when `SAVEPOINT.md` cannot stay concise and recoverable.
+3. Run `scripts/render_savepoint.py` from compact semantic JSON, then inspect only the generated `.savepoint/SAVEPOINT.md`. If the generated output is stale, unsafe, or invalid, report that before continuing.
 4. For adopted generated default savepoints, later create/update requests refresh `.savepoint/SAVEPOINT.md` in place unless the user asks to preserve history.
 5. Validate written artifacts with `skills/savepoint/scripts/validate_savepoint.py` or `scripts/validate_savepoint.py`; fix errors before setting `RESUME_READY: yes`.
 
@@ -33,5 +33,3 @@ Preserve coding-session state for continuation without prior chat context.
 3. Compare claims with the working tree; disk state wins, and drift must be reported before edits.
 4. Continue only when the user requested continuation and `RESUME_READY` is `yes`; otherwise stop after the report.
 5. Cleanup only adopted, generated, untracked artifacts. For inspect-only requests, do not clean up by default.
-
-For normal use, do not read references. For Quick Saves, do not read references unless asked. For Savepoint create/load/inspect/resume, read `references/savepoint-contract.md` only for unclear marker, `RESUME_READY`, cleanup, staleness, or detail-spillover rules. Read `references/context-packaging.md` only for state-file/context-budget or minimal-load-path questions.

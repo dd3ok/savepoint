@@ -156,7 +156,7 @@ Default overwrite is allowed only when the existing artifact is the generated, u
 
 Treat a default savepoint as generated only when it is the default `.savepoint/SAVEPOINT.md`, untracked, contains exactly one valid final `SAVEPOINT_V1` marker block, passes savepoint validation, and was selected or adopted in the current workflow. Default path plus untracked status is not enough to prove generated authorship; if authorship is unclear, do not overwrite by default.
 
-Never overwrite tracked, user-authored, external-path, inspect-only, stale, unsafe, conflicting, or debug-needed savepoints. If using `scripts/create_savepoint_stub.py`, use `--force` only after these adoption checks pass.
+Never overwrite tracked, user-authored, external-path, inspect-only, stale, unsafe, conflicting, or debug-needed savepoints. Use renderer `--force` only after these adoption checks pass.
 
 Preserve or rename old savepoints only when the user asks for history, audit, records, or preservation. Preserve directly referenced generated `details/*.md` artifacts together with the selected savepoint, and report old and new paths. When preserving a savepoint with generated details, keep the referenced detail files in the same relative layout or update the preserved savepoint references.
 

@@ -237,9 +237,9 @@ class Validator:
         for name in CANONICAL_REFERENCES:
             self.require_exists(SKILL_DIR / "references" / name)
         self.require_exists(SKILL_DIR / "schemas" / "savepoint-v1.schema.json")
-        self.require_exists(SKILL_DIR / "scripts" / "create_savepoint_stub.py")
         self.require_exists(SKILL_DIR / "scripts" / "render_savepoint.py")
-        self.require_exists(ROOT / "scripts" / "create_savepoint_stub.py")
+        self.require_exists(SKILL_DIR / "scripts" / "savepoint_contract.py")
+        self.require_exists(SKILL_DIR / "scripts" / "validate_savepoint.py")
         self.require_exists(ROOT / "scripts" / "render_savepoint.py")
 
         required_skill_phrases = [
