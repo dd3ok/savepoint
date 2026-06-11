@@ -41,7 +41,7 @@ Savepoint는 아래 파일을 씁니다.
 .savepoint/SAVEPOINT.md
 ```
 
-`SAVEPOINT.md`는 `## Resume Prompt`와 마지막 `SAVEPOINT_V1` marker block을 포함합니다. field schema는 `skills/savepoint/schemas/savepoint-v1.schema.json`, marker semantics는 `skills/savepoint/references/savepoint-contract.md`에 있습니다.
+`SAVEPOINT.md`는 `## Resume Prompt`와 마지막 `SAVEPOINT_V1` marker block을 포함합니다. field schema는 `skills/savepoint/schemas/savepoint-v1.schema.json`, marker semantics는 `docs/reference/savepoint-contract.md`에 있습니다.
 
 ## Maintainer Validation
 
@@ -57,7 +57,7 @@ python3 scripts/check-marker-block.py
 python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
-python3 scripts/check-savepoint-stub.py
+python3 scripts/check-savepoint-renderer.py
 python3 scripts/check-install-helper.py
 python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
 git diff --check

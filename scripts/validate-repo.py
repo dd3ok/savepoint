@@ -20,6 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_DIR = ROOT / "skills" / "savepoint"
 SKILL_SCRIPTS = SKILL_DIR / "scripts"
+REFERENCE_DIR = ROOT / "docs" / "reference"
 sys.path.insert(0, str(SKILL_SCRIPTS))
 
 from savepoint_contract import (  # noqa: E402
@@ -46,7 +47,7 @@ EXPECTED_MARKER_LINES = [
     "END_SAVEPOINT_V1",
 ]
 SAVEPOINT_FILES = [
-    SKILL_DIR / "references" / "savepoint-template.md",
+    REFERENCE_DIR / "savepoint-template.md",
     ROOT / "examples" / "SAVEPOINT.filled.example.md",
     ROOT / "examples" / "file-bugfix" / "SAVEPOINT.md",
     ROOT / "examples" / "file-architecture" / "SAVEPOINT.md",
@@ -232,10 +233,8 @@ class Validator:
 
     def validate_references(self) -> None:
         skill_text = self.read(SKILL_DIR / "SKILL.md")
-        for ref in sorted(set(re.findall(r"`(references/[^`]+)`", skill_text))):
-            self.require_exists(SKILL_DIR / ref)
         for name in CANONICAL_REFERENCES:
-            self.require_exists(SKILL_DIR / "references" / name)
+            self.require_exists(REFERENCE_DIR / name)
         self.require_exists(SKILL_DIR / "schemas" / "savepoint-v1.schema.json")
         self.require_exists(SKILL_DIR / "scripts" / "render_savepoint.py")
         self.require_exists(SKILL_DIR / "scripts" / "savepoint_contract.py")
@@ -259,7 +258,7 @@ class Validator:
             if phrase not in skill_text:
                 self.fail(f"SKILL.md missing required policy: {phrase}")
 
-        contract_text = self.read(SKILL_DIR / "references" / "savepoint-contract.md")
+        contract_text = self.read(REFERENCE_DIR / "savepoint-contract.md")
         for phrase in [
             ".savepoint/SAVEPOINT.md",
             "SAVEPOINT_MODE: text|file",
@@ -281,11 +280,11 @@ class Validator:
             if phrase not in contract_text:
                 self.fail(f"savepoint-contract.md missing policy phrase: {phrase}")
 
-        template_text = self.read(SKILL_DIR / "references" / "savepoint-template.md")
+        template_text = self.read(REFERENCE_DIR / "savepoint-template.md")
         for phrase in [
             "## Resume Prompt",
             "- Next-session focus:",
-            "Consult `references/savepoint-contract.md` only when marker semantics",
+            "Consult `docs/reference/savepoint-contract.md` only when marker semantics",
             "Compact defaults",
             "SAVEPOINT_MODE: text|file",
             "continue only if the user requested continuation and RESUME_READY is yes",
@@ -293,7 +292,7 @@ class Validator:
         ]:
             if phrase not in template_text:
                 self.fail(f"savepoint-template.md missing phrase: {phrase}")
-        context_text = self.read(SKILL_DIR / "references" / "context-packaging.md")
+        context_text = self.read(REFERENCE_DIR / "context-packaging.md")
         for phrase in [
             "Budget guidance is advisory, not a validation rule.",
             "Path selection happens before budget",
@@ -593,7 +592,7 @@ class Validator:
                 self.fail(f"{path.relative_to(ROOT)} marker block does not match expected field order")
             self.validate_marker_values(path, block)
 
-        contract_text = self.read(SKILL_DIR / "references" / "savepoint-contract.md")
+        contract_text = self.read(REFERENCE_DIR / "savepoint-contract.md")
         for marker in marker_field_order():
             if marker not in contract_text:
                 self.fail(f"savepoint-contract.md missing marker name {marker}")
@@ -644,7 +643,7 @@ class Validator:
                 marker_line = next((line for line in text.splitlines() if line.startswith("SAVEPOINT_PATH: /")), "")
                 if "savepoint-template.md" not in path.as_posix() and ".savepoint/SAVEPOINT.md" not in marker_line:
                     self.fail(f"{path.relative_to(ROOT)} should demonstrate the default .savepoint/SAVEPOINT.md path")
-        contract = self.read(SKILL_DIR / "references" / "savepoint-contract.md")
+        contract = self.read(REFERENCE_DIR / "savepoint-contract.md")
         for line in TRUST_ORDER_LINES:
             if line not in contract:
                 self.fail(f"savepoint-contract.md missing trust order line: {line}")
@@ -743,6 +742,7 @@ class Validator:
             ROOT / "SECURITY.md",
             ROOT / "evals",
             ROOT / "examples",
+            ROOT / "docs",
             ROOT / "orchestrators",
             SKILL_DIR,
         ]

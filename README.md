@@ -45,7 +45,7 @@ Savepoints write:
 .savepoint/SAVEPOINT.md
 ```
 
-`SAVEPOINT.md` embeds `## Resume Prompt` and ends with a `SAVEPOINT_V1` marker block. The field schema lives in `skills/savepoint/schemas/savepoint-v1.schema.json`; marker semantics live in `skills/savepoint/references/savepoint-contract.md`.
+`SAVEPOINT.md` embeds `## Resume Prompt` and ends with a `SAVEPOINT_V1` marker block. The field schema lives in `skills/savepoint/schemas/savepoint-v1.schema.json`; marker semantics live in `docs/reference/savepoint-contract.md`.
 
 ## Runtime Boundary
 
@@ -57,7 +57,7 @@ Normal create/load uses:
 - Shared marker/snapshot helpers: `skills/savepoint/scripts/savepoint_contract.py`
 - Marker schema: `skills/savepoint/schemas/savepoint-v1.schema.json`
 
-References, templates, examples, evals, orchestrators, and `scripts/validate-repo.py` are maintainer/debug assets, not normal agent context. The root `scripts/validate_savepoint.py` and `scripts/render_savepoint.py` forward to the portable runtime tools.
+Reference docs, templates, examples, evals, orchestrators, and `scripts/validate-repo.py` are maintainer/debug assets, not normal agent context. The root `scripts/validate_savepoint.py` and `scripts/render_savepoint.py` forward to the portable runtime tools.
 
 ## Repository Layout
 
@@ -72,15 +72,16 @@ References, templates, examples, evals, orchestrators, and `scripts/validate-rep
 │       ├── SKILL.md
 │       ├── LICENSE.txt
 │       ├── agents/openai.yaml
-│       ├── references/
-│       │   ├── context-packaging.md
-│       │   ├── savepoint-contract.md
-│       │   └── savepoint-template.md
 │       ├── schemas/savepoint-v1.schema.json
 │       └── scripts/
 │           ├── render_savepoint.py
 │           ├── savepoint_contract.py
 │           └── validate_savepoint.py
+├── docs/
+│   └── reference/
+│       ├── context-packaging.md
+│       ├── savepoint-contract.md
+│       └── savepoint-template.md
 ├── examples/
 ├── evals/
 ├── orchestrators/
@@ -150,7 +151,7 @@ python3 scripts/check-marker-block.py
 python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
-python3 scripts/check-savepoint-stub.py
+python3 scripts/check-savepoint-renderer.py
 python3 scripts/check-install-helper.py
 python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
 git diff --check

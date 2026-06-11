@@ -90,19 +90,19 @@ def semantic_input(repo: Path) -> Path:
   "next_action": "run the focused validation commands",
   "done_when": "savepoint validation and project validation are both recorded",
   "out_of_scope": "marker schema changes",
-  "smallest_next_step": "run python scripts/check-savepoint-stub.py",
+  "smallest_next_step": "run python scripts/check-savepoint-renderer.py",
   "decisions": ["keep SAVEPOINT_V1 marker fields and order unchanged"],
   "risks": ["disk state can drift after the snapshot is captured"],
   "failed_approaches": "none",
   "unresolved_blockers": "none",
   "project_validation": [
     {
-      "command": "python scripts/check-savepoint-stub.py",
+      "command": "python scripts/check-savepoint-renderer.py",
       "result": "passed",
       "summary": "renderer fixture validation recorded"
     }
   ],
-  "observable_completion": "check-savepoint-stub exits 0",
+  "observable_completion": "check-savepoint-renderer exits 0",
   "inspected_without_change": ["README.md"],
   "files_to_inspect_first": ["app.py"]
 }
@@ -124,7 +124,7 @@ def minimal_semantic_input(
     project_validation = "" if not include_project_validation else """,
   "project_validation": [
     {
-      "command": "python scripts/check-savepoint-stub.py",
+      "command": "python scripts/check-savepoint-renderer.py",
       "result": "%s",
       "summary": "minimal renderer fixture validation recorded"
     }
@@ -239,7 +239,7 @@ def test_renderer_writes_resume_ready_savepoint_from_json_input() -> None:
         text = output.read_text(encoding="utf-8")
         require("Generated deterministic final savepoint." in text, "renderer origin note missing")
         require("<agent-fill>" not in text, "renderer should not leave placeholders")
-        require("- Next action: run python scripts/check-savepoint-stub.py" in text, "smallest next step should drive rendered next action")
+        require("- Next action: run python scripts/check-savepoint-renderer.py" in text, "smallest next step should drive rendered next action")
         require("- Changed:" in text and "app.py - modified" in text, "changed file was not derived")
         require("- Created: none" in text, "renderer-generated files should not be listed as created work")
         require("- Inspected without change: README.md" in text, "semantic inspected file missing")
@@ -375,7 +375,7 @@ def test_renderer_records_recovery_uncertainty_inputs() -> None:
   "unknown_unverified": "nested CLAUDE.md for app.py was not read after compaction",
   "project_validation": [
     {
-      "command": "python scripts/check-savepoint-stub.py",
+      "command": "python scripts/check-savepoint-renderer.py",
       "result": "passed",
       "summary": "uncertainty renderer fixture validation recorded"
     }
