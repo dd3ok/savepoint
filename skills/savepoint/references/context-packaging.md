@@ -39,7 +39,7 @@ Prefer the smallest recoverable package:
 
 Budget guidance is advisory, not a validation rule. Path selection happens before budget: explicit text/copy-paste/no-file/no files/in-response/in the response requests remain text unless the user agrees to write a file.
 
-These are budgets, not hard correctness limits. The top-level `SAVEPOINT.md` must still contain required markers, repo snapshot summary, validation status, changed-file summary, risks, and a singular next action. Do not omit recovery-critical facts solely to fit the budget; compress or spill over instead.
+These are budgets, not hard correctness limits. The top-level `SAVEPOINT.md` must still contain required markers, repo snapshot summary, validation status, changed-file summary, risks, and a singular next action. Repeated planning prose such as separate target and remaining-work sections may be omitted when those facts already appear once. Do not omit recovery-critical facts solely to fit the budget; compress or spill over instead.
 
 Never preserve raw chat transcripts, full diffs, long logs, shell history, or broad background unless the user explicitly asks and the content is essential and redacted.
 

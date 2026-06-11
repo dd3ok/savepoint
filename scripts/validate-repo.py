@@ -263,7 +263,9 @@ class Validator:
             self.require_exists(SKILL_DIR / "references" / name)
         self.require_exists(SKILL_DIR / "schemas" / "savepoint-v1.schema.json")
         self.require_exists(SKILL_DIR / "scripts" / "create_savepoint_stub.py")
+        self.require_exists(SKILL_DIR / "scripts" / "render_savepoint.py")
         self.require_exists(ROOT / "scripts" / "create_savepoint_stub.py")
+        self.require_exists(ROOT / "scripts" / "render_savepoint.py")
 
         required_skill_phrases = [
             "Text savepoint",
@@ -285,6 +287,7 @@ class Validator:
             "Continue only when the user requested continuation and `RESUME_READY` is `yes`",
             "For adopted generated default savepoints",
             "scripts/create_savepoint_stub.py",
+            "scripts/render_savepoint.py",
         ]
         for phrase in required_skill_phrases:
             if phrase not in skill_text:
@@ -667,14 +670,11 @@ class Validator:
     def validate_savepoint_sections(self) -> None:
         required_sections = [
             "## TL;DR / Operational Summary",
-            "## Recovery Contract",
-            "## Session Target",
             "## Repo Snapshot",
             "## Required Reading",
             "## Change Manifest",
             "## Recovery Notes",
             "## Validation Manifest",
-            "## Remaining Work",
             "## Resume Prompt",
             "## Markers",
         ]
@@ -691,8 +691,6 @@ class Validator:
                 self.fail(f"{path.relative_to(ROOT)} missing expected drift field")
             if "- `git diff --cached --name-status`:" not in text:
                 self.fail(f"{path.relative_to(ROOT)} missing staged name-status field")
-            if "- Next-session focus:" not in text:
-                self.fail(f"{path.relative_to(ROOT)} missing next-session focus field")
             if "SAVEPOINT_MODE: file" in text and "SAVEPOINT_PATH: /" in text:
                 marker_line = next((line for line in text.splitlines() if line.startswith("SAVEPOINT_PATH: /")), "")
                 if "savepoint-template.md" not in path.as_posix() and ".savepoint/SAVEPOINT.md" not in marker_line:

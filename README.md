@@ -46,6 +46,7 @@ The canonical files are:
 - Artifact contract: `skills/savepoint/references/savepoint-contract.md`
 - Savepoint skeleton: `skills/savepoint/references/savepoint-template.md`
 - Token-efficient draft helper: `skills/savepoint/scripts/create_savepoint_stub.py`
+- Token-efficient renderer/finalizer: `skills/savepoint/scripts/render_savepoint.py`
 - Context packaging: `skills/savepoint/references/context-packaging.md`
 - Marker schema: `skills/savepoint/schemas/savepoint-v1.schema.json`
 - Portable validator: `skills/savepoint/scripts/validate_savepoint.py`
