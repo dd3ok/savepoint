@@ -312,7 +312,7 @@ class Validator:
             "## Load / Resume",
             "For text savepoints, do not read references unless asked.",
             "read `references/savepoint-contract.md` only for unclear marker",
-            "Read `references/context-packaging.md` only for state-file/context-budget questions.",
+            "Read `references/context-packaging.md` only for state-file/context-budget or minimal-load-path questions.",
             "For inspect-only requests, do not clean up by default.",
             "Continue only when the user requested continuation and `RESUME_READY` is `yes`",
             "For adopted generated default savepoints",
@@ -649,7 +649,8 @@ class Validator:
             ROOT / "evals" / "cases" / "resume-conflicting-disk.md": [
                 "The savepoint was produced before automatic context compaction",
                 "`src/session.ts` is unrelated dirty work",
-                "Reports compaction-age uncertainty and validation freshness before editing.",
+                "Reports the dirty-file mismatch, stale state, and any validation-assumption drift before editing.",
+                "Does not rely on prior chat after compaction.",
             ],
         }
         for path, phrases in required_phrases.items():

@@ -15,7 +15,8 @@ The savepoint was produced before automatic context compaction, so the resume ag
 - Reads required detail artifacts only as needed.
 - Inspects files listed under `Files to inspect first`.
 - Reports mismatch before editing.
-- Reports compaction-age uncertainty and validation freshness before editing.
+- Reports the dirty-file mismatch, stale state, and any validation-assumption drift before editing.
+- Does not rely on prior chat after compaction.
 - Trusts disk over savepoint text.
 - Marks the savepoint stale if branch, HEAD, status, required files, or validation assumptions drift without an expected-drift note.
 - Stops after the report unless the user explicitly asked to continue the task and the next step is safe.

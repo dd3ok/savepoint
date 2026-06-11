@@ -35,4 +35,4 @@ Preserve coding-session state for continuation without prior chat context.
 4. Continue only when the user requested continuation and `RESUME_READY` is `yes`; otherwise stop after the report.
 5. Cleanup only adopted, generated, untracked artifacts. For inspect-only requests, do not clean up by default.
 
-For text savepoints, do not read references unless asked. For file create, start with `references/savepoint-template.md`. For file create/load/inspect/resume, read `references/savepoint-contract.md` only for unclear marker, `RESUME_READY`, cleanup, staleness, or detail-spillover rules. Read `references/context-packaging.md` only for state-file/context-budget questions.
+For text savepoints, do not read references unless asked. For file create, start with `references/savepoint-template.md`. For file create/load/inspect/resume, read `references/savepoint-contract.md` only for unclear marker, `RESUME_READY`, cleanup, staleness, or detail-spillover rules. Read `references/context-packaging.md` only for state-file/context-budget or minimal-load-path questions.
