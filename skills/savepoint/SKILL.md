@@ -1,6 +1,6 @@
 ---
 name: savepoint
-description: "Use when explicitly creating/updating/loading/inspecting/resuming coding-session savepoints: /savepoint save, /savepoint load, /savepoint text, .savepoint/SAVEPOINT.md, or text/copy-paste. Not for SQL SAVEPOINT, ordinary summaries, docs, code changes, /new, /status, PTY, or session rotation. Triggers: 세이브포인트 만들어줘; 세이브포인트 로드해줘; 세이브포인트 읽어줘; 세이브포인트 이어서 해줘."
+description: "Use when explicitly creating/updating/loading/inspecting/resuming coding-session savepoints: 세이브포인트 만들어줘; 세이브포인트 로드해줘; 세이브포인트 읽어줘; 세이브포인트 이어서 해줘; /savepoint save; /savepoint load; /savepoint text; .savepoint/SAVEPOINT.md; text/copy-paste. Not for SQL SAVEPOINT, ordinary summaries, docs, code changes, /new, /status, PTY, or session rotation."
 ---
 
 # Savepoint

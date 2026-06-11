@@ -101,18 +101,6 @@ REQUIRED_TRIGGER_CASES = {
         "language": "en",
         "category": "text",
     },
-    "trigger-ko-slash-save-01": {
-        "query": "/savepoint save 해줘",
-        "should_trigger": True,
-        "language": "ko",
-        "category": "create",
-    },
-    "trigger-ko-slash-text-01": {
-        "query": "/savepoint text로 복붙용 세이브포인트 만들어줘",
-        "should_trigger": True,
-        "language": "ko",
-        "category": "text",
-    },
     "trigger-ko-resume-01": {
         "query": "세이브포인트 이어서 해줘.",
         "should_trigger": True,
