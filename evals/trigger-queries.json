@@ -3,6 +3,30 @@
   "version": 1,
   "queries": [
     {
+      "id": "trigger-slash-save-01",
+      "query": "/savepoint save",
+      "should_trigger": true,
+      "language": "en",
+      "category": "create",
+      "rationale": "Slash-style prompt for creating or refreshing a file Savepoint."
+    },
+    {
+      "id": "trigger-slash-load-01",
+      "query": "/savepoint load",
+      "should_trigger": true,
+      "language": "en",
+      "category": "load",
+      "rationale": "Slash-style prompt for loading and verifying an existing Savepoint."
+    },
+    {
+      "id": "trigger-slash-text-01",
+      "query": "/savepoint text",
+      "should_trigger": true,
+      "language": "en",
+      "category": "text",
+      "rationale": "Slash-style prompt for response-only copy-paste handoff."
+    },
+    {
       "id": "trigger-ko-file-01",
       "query": "컨텍스트가 다 찼어. 지금까지 작업을 다음 세션에서 이어갈 세이브포인트로 만들어줘.",
       "should_trigger": true,
@@ -40,7 +64,7 @@
       "should_trigger": true,
       "language": "ko",
       "category": "text",
-      "rationale": "Korean Quick Save request."
+      "rationale": "Korean response-only text handoff request."
     },
     {
       "id": "trigger-ko-text-direct-01",
@@ -48,7 +72,7 @@
       "should_trigger": true,
       "language": "ko",
       "category": "text",
-      "rationale": "Korean explicit Quick Save request."
+      "rationale": "Korean explicit /savepoint text request."
     },
     {
       "id": "trigger-ko-state-files-01",
@@ -80,7 +104,7 @@
       "should_trigger": true,
       "language": "en",
       "category": "text",
-      "rationale": "Explicit Quick Save request."
+      "rationale": "Explicit response-only text handoff request."
     },
     {
       "id": "trigger-en-text-direct-01",
@@ -88,7 +112,7 @@
       "should_trigger": true,
       "language": "en",
       "category": "text",
-      "rationale": "Explicit Quick Save request."
+      "rationale": "Explicit /savepoint text request."
     },
     {
       "id": "trigger-en-in-response-text-01",
@@ -96,7 +120,7 @@
       "should_trigger": true,
       "language": "en",
       "category": "text",
-      "rationale": "Explicit in-response Quick Save request."
+      "rationale": "Explicit in-response text handoff request."
     },
     {
       "id": "trigger-en-update-01",

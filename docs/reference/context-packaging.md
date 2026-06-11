@@ -20,7 +20,7 @@ Savepoints are current recovery artifacts, not history logs. Preserve older save
 
 Prefer the smallest recoverable package:
 
-1. Quick Save:
+1. `/savepoint text`:
    - Response text for explicit text/copy-paste/no-file/no files/in-response/in the response transfer.
    - No repo recovery guarantee.
    - Use 300-600 tokens for simple copy-paste summaries.

@@ -4,32 +4,30 @@ A continue/load system for coding agents.
 
 Savepoint helps a fresh agent session load the current coding run without relying on prior chat context.
 
-- **Quick Save**: response-only text for lightweight transfer.
-- **Savepoint**: recoverable file checkpoint for repo/Git state.
+## Slash-style prompts
 
-Use Quick Save when the transfer is small.
-Use Savepoint when disk state, validation, redaction, or safe resume matters.
+| Prompt | Meaning |
+|---|---|
+| `/savepoint save` | Create or refresh `.savepoint/SAVEPOINT.md`. |
+| `/savepoint load` | Load and verify an existing Savepoint. Continue only if requested and safe. |
+| `/savepoint text` | Produce a response-only copy-paste handoff. No file, no recovery guarantee. |
+
+These slash-style prompts use one skill name plus a mode.
+
+Native slash-command support depends on the client. If a client does not pass custom slash prompts through to the model, use the natural-language equivalent: `Use $savepoint to save`, `Use $savepoint to load`, or `Use $savepoint to create a text handoff`.
 
 [한국어 README](README.ko.md)
 
-It provides one skill, `$savepoint`, with three user-facing workflows:
+The file-backed Savepoint path is the default for preserving coding-session state, repo/Git state, validation, redaction, or safe resume. Use `/savepoint load` when continuing from an existing `.savepoint/SAVEPOINT.md`.
 
-| Need | Say | Output |
-|---|---|---|
-| Savepoint | `Create a savepoint`, `Create a savepoint file`, `Create SAVEPOINT.md` | `.savepoint/SAVEPOINT.md` |
-| Load / Resume Savepoint | `Load the savepoint`, `Read the savepoint`, `Resume from the savepoint`, `Resume from SAVEPOINT.md` | Verify/report state; continue only if requested and safe |
-| Quick Save | `Create a text savepoint`, `Create a copy-paste savepoint`, `Create a savepoint without writing files` | Response text |
-
-Default to **Savepoint** when preserving coding-session state. Default to **Load / Resume Savepoint** when continuing from an existing `.savepoint/SAVEPOINT.md`.
-
-Use **Quick Save** only for explicit copy-paste, text, or no-file requests that do not need file recovery guarantees.
+Use `/savepoint text` only for explicit copy-paste, text, or no-file requests that do not need file recovery guarantees.
 
 ## Use Cases
 
 - Resume a coding-agent session after the context window is full.
 - Recover coding state after automatic context compaction or before an intentional session reset.
 - Transfer repo/Git state from one Codex or Claude session to another.
-- Create a copy-paste Quick Save for a quick one-off transfer.
+- Create a `/savepoint text` copy-paste handoff for a quick one-off transfer.
 
 For short one-off summaries, a plain summary may be cheaper; use savepoint when structured coding transfer or recovery matters.
 
@@ -118,7 +116,7 @@ The helper defaults to dry-run. It writes files only with `--apply`; `--add-giti
 
 - `examples/file-bugfix/`: small Savepoint.
 - `examples/file-architecture/`: Savepoint with focused `details/*.md` spillover.
-- `examples/text-note/`: response-only Quick Save note.
+- `examples/text-note/`: response-only `/savepoint text` note.
 - `examples/unsafe-savepoint/`: intentionally unsafe Savepoint with `RESUME_READY: no`.
 
 ## Maintainer Evals
@@ -127,7 +125,7 @@ The helper defaults to dry-run. It writes files only with `--apply`; `--add-giti
 
 Core expectations:
 
-- Quick Save output is short and does not claim repo recovery.
+- `/savepoint text` output is short and does not claim repo recovery.
 - Savepoint output writes `.savepoint/SAVEPOINT.md`.
 - Savepoint output embeds `## Resume Prompt`.
 - Large Savepoints use focused detail artifacts instead of bloating `SAVEPOINT.md`.

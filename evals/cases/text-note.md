@@ -1,4 +1,4 @@
-# Eval: Quick Save
+# Eval: /savepoint text
 
 ## Scenario
 

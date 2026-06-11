@@ -71,7 +71,7 @@ def main() -> int:
     )
     errors.extend(
         expect(
-            "unsafe Quick Save marker block is valid",
+            "unsafe /savepoint text marker block is valid",
             {
                 "SAVEPOINT_MODE": "text",
                 "SAVEPOINT_PATH": "not-written",
@@ -230,7 +230,7 @@ def check_text_details_reference_rejected() -> list[str]:
         errors = validate_savepoint(path, allow_example_paths=True)
     if not any("text mode must not reference detail artifacts" in error for error in errors):
         return [
-            "Quick Save with detail references should fail, "
+            "/savepoint text with detail references should fail, "
             f"got errors={errors}"
         ]
     return []

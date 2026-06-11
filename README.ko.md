@@ -4,32 +4,30 @@
 
 Savepoint는 새 에이전트 세션이 이전 채팅 context에 의존하지 않고 현재 코딩 작업을 이어서 불러오도록 돕습니다.
 
-- **Quick Save**: 작은 전달을 위한 응답 텍스트입니다.
-- **Savepoint**: repo/Git 상태를 복구할 수 있는 파일 checkpoint입니다.
+## Slash-style prompts
 
-전달이 작으면 Quick Save를 사용합니다.
-디스크 상태, 검증, redaction, 안전한 resume이 중요하면 Savepoint를 사용합니다.
+| Prompt | 의미 |
+|---|---|
+| `/savepoint save` | `.savepoint/SAVEPOINT.md` 생성/갱신 |
+| `/savepoint load` | 기존 Savepoint 검증/로드. 요청됐고 안전할 때만 이어서 작업 |
+| `/savepoint text` | 파일 없이 복붙용 텍스트 인계 생성 |
+
+이 slash-style prompt는 하나의 skill 이름 뒤에 mode를 붙이는 구조입니다.
+
+네이티브 slash-command 지원 여부는 클라이언트마다 다를 수 있습니다. 클라이언트가 custom slash prompt를 모델에 전달하지 않으면 `$savepoint로 저장해줘`, `$savepoint로 로드해줘`, `$savepoint 복붙용 텍스트로 만들어줘`처럼 자연어로 사용합니다.
 
 [English README](README.md)
 
-이 저장소는 `$savepoint` 스킬 하나와 세 가지 사용자 흐름을 제공합니다.
+코딩 세션 상태, repo/Git 상태, 검증, redaction, 안전한 resume이 중요하면 기본적으로 파일 기반 **Savepoint**를 사용합니다. 기존 `.savepoint/SAVEPOINT.md`에서 이어갈 때는 `/savepoint load`를 사용합니다.
 
-| 필요 | 말하기 | 출력 |
-|---|---|---|
-| Savepoint | `세이브포인트 만들어줘`, `세이브포인트 파일 만들어줘`, `SAVEPOINT.md 만들어줘` | `.savepoint/SAVEPOINT.md` |
-| Load / Resume Savepoint | `세이브포인트 로드해줘`, `세이브포인트 읽어줘`, `세이브포인트 이어서 해줘` | 상태 검증/보고 후, 요청했고 안전할 때만 이어서 작업 |
-| Quick Save | `세이브포인트 텍스트로 만들어줘`, `세이브포인트 복붙용으로 만들어줘`, `세이브포인트 파일 없이 만들어줘` | 응답 텍스트 |
-
-코딩 세션 상태를 보존할 때는 기본적으로 **Savepoint**를 사용합니다. 기존 `.savepoint/SAVEPOINT.md`에서 이어갈 때는 **Load / Resume Savepoint**를 사용합니다.
-
-`복붙용`, `텍스트`, `파일 없이`처럼 파일 없는 전달을 명시한 경우에만 **Quick Save**를 사용합니다.
+`복붙용`, `텍스트`, `파일 없이`처럼 파일 없는 전달을 명시한 경우에만 `/savepoint text`를 사용합니다.
 
 ## 사용 사례
 
 - context window가 가득 찬 코딩 에이전트 세션을 새 세션에서 이어가기
 - 자동 context compaction 이후 또는 의도적인 session reset 전에 복구 가능한 상태 남기기
 - Codex 또는 Claude 세션 사이에서 repo/Git 상태 전달하기
-- 단발성 작업을 위한 복붙용 Quick Save 만들기
+- 단발성 작업을 위한 `/savepoint text` 복붙용 인계 만들기
 
 짧은 단순 요약만 필요하면 일반 요약이 더 저렴할 수 있습니다. 구조화된 코딩 작업 전달이나 복구가 중요할 때 savepoint를 사용하세요.
 
