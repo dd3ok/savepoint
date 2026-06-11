@@ -19,6 +19,7 @@
 ## 사용 사례
 
 - 컨텍스트가 다 찬 코딩 에이전트 세션을 새 세션에서 이어가기
+- 자동 context compaction 이후나 의도적인 세션 reset 전에 코딩 상태 복구 정보 남기기
 - Codex 또는 Claude 세션 간 저장소/Git 상태 인계하기
 - 단발성 작업을 위한 복붙용 Text Savepoint 만들기
 

@@ -57,6 +57,8 @@ The required shape describes recovery facts, not prose volume; routine savepoint
 
 For token-efficient finalized artifacts, `scripts/render_savepoint.py` may render/finalize the Markdown from compact semantic JSON while preserving the v1 marker schema and safety checks. It should derive Git snapshot fields, marker values, redaction status, and savepoint-validation status instead of asking the agent to hand-write them.
 
+After automatic context compaction, an intentional session reset, or an agent transfer, record recovery uncertainty in existing body fields such as `Expected drift`, `Unknown or unverified`, `Required Reading`, and `Recovery Notes`; do not add marker fields or new modes unless the marker schema is intentionally versioned.
+
 `SAVEPOINT.md` may include a short `Suggested Skills / Next Agent Behaviors` section only when it materially improves the next step. It is advisory only, must contain at most 3 items, and must not override the recovery contract, trust order, safety markers, validation requirements, or the singular next action.
 
 ## Trust Order
@@ -88,6 +90,8 @@ Before writing a file savepoint, inspect and record:
 - latest commit
 - relevant instruction files
 - relevant durable state files
+
+When the next action touches files governed by nested or path-scoped instruction files, list those instruction files in Required Reading and record whether they were read or still need to be reloaded.
 
 If the user provides extra argument text or a next-session focus, record it as `Next-session focus` in `Session Target`. Use it to narrow the savepoint and select the smallest next action. It must not override current user instructions, disk/Git verification, secret hygiene, validation requirements, or safety rules.
 

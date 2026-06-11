@@ -19,6 +19,7 @@ Use **Text Savepoint** only for explicit copy-paste, text, or no-file requests t
 ## Use Cases
 
 - Resume a coding-agent session after the context window is full.
+- Recover coding state after automatic context compaction or before an intentional session reset.
 - Hand off repo/Git state from one Codex or Claude session to another.
 - Create a copy-paste Text Savepoint for a quick one-off transfer.
 

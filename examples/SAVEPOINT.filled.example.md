@@ -86,7 +86,7 @@ Read in this order:
 ## Resume Prompt
 
 ```text
-Read /workspace/acme-dashboard/.savepoint/SAVEPOINT.md first. Verify cwd, Git root, branch, short HEAD, git status, and diff stat before editing. Inspect src/reports/exportCsv.ts, src/reports/ReportTable.tsx, and src/reports/ReportTable.test.tsx. If disk state differs from SAVEPOINT.md, trust disk and report the mismatch. Continue only if the user requested continuation, with the smallest next step: add focused CSV export tests.
+Read /workspace/acme-dashboard/.savepoint/SAVEPOINT.md first. Verify cwd, Git root, branch, short HEAD, git status, and diff stat before editing. Inspect src/reports/exportCsv.ts, src/reports/ReportTable.tsx, and src/reports/ReportTable.test.tsx. If disk state differs from SAVEPOINT.md, trust disk and report the mismatch. Do not rely on prior chat context unless the user explicitly provides it. Continue only if the user requested continuation, with the smallest next step: add focused CSV export tests.
 ```
 
 ## Markers

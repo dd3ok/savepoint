@@ -300,6 +300,8 @@ def build_savepoint(
         data.get("skipped_checks_next_validation"),
         fallback="no skipped checks; rerun recorded project validation if state changes",
     )
+    expected_drift = clean_text(data.get("expected_drift"), fallback="none")
+    unknown_unverified = clean_text(data.get("unknown_unverified"), fallback="none")
     if not resume_ready and force_unsafe_blocker:
         validation_status = validation_status or "not-run: renderer marked artifact unsafe before final validation"
 
@@ -329,7 +331,7 @@ Generated deterministic final savepoint.
 - Latest commit: {snapshot["latest_commit"]}
 - Instruction files loaded: {inline_or_block(instruction_files)}
 - Durable state files checked: {inline_or_block(durable_files)}
-- Expected drift from captured state: none
+- Expected drift from captured state: {expected_drift}
 
 ## Required Reading
 
@@ -349,7 +351,7 @@ Relative detail paths resolve from this file.
 - Moved: {inline_or_block(changes["moved"])}
 - Staged: {inline_or_block(changes["staged"])}
 - Inspected without change: {inline_or_block(changes["inspected"])}
-- Unknown or unverified: none
+- Unknown or unverified: {unknown_unverified}
 
 ## Recovery Notes
 
@@ -370,7 +372,7 @@ Relative detail paths resolve from this file.
 ## Resume Prompt
 
 ```text
-Read this savepoint, verify cwd/Git state/status/diff, read listed instruction/state files, compare all claims with disk state, report consistency or conflicts, and continue only if the user requested continuation and RESUME_READY is yes.
+Read this savepoint, verify cwd/Git state/status/diff, read listed instruction/state files, and compare all claims with disk state. Do not rely on prior chat context unless the user explicitly provides it. Report consistency or conflicts, and continue only if the user requested continuation and RESUME_READY is yes.
 ```
 
 ## Markers

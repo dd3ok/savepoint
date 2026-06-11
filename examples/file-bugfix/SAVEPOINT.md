@@ -81,7 +81,7 @@
 ## Resume Prompt
 
 ```text
-Read /workspace/app/.savepoint/SAVEPOINT.md, verify disk state, inspect src/auth/session.ts and tests/auth/session.test.ts, then summarize the changed files and recorded validation results.
+Read /workspace/app/.savepoint/SAVEPOINT.md, verify disk state, and inspect src/auth/session.ts and tests/auth/session.test.ts. Do not rely on prior chat context unless the user explicitly provides it. Then summarize the changed files and recorded validation results.
 ```
 
 ## Markers
