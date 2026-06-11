@@ -1,4 +1,4 @@
 interface:
   display_name: "Savepoint"
-  short_description: "Create text or file coding-session savepoints"
-  default_prompt: "Use $savepoint to create, update, load, inspect, or resume text/file coding-session state. For file recovery, write .savepoint/SAVEPOINT.md with Git/disk state, validation status, risks, and one narrow next action."
+  short_description: "Create, load, or text-export coding-session savepoints"
+  default_prompt: "Use $savepoint for /savepoint save, /savepoint load, or /savepoint text: create .savepoint/SAVEPOINT.md with Git/disk state, load and verify an existing Savepoint, or produce a response-only copy-paste text handoff."
