@@ -121,7 +121,7 @@ The helper defaults to dry-run. It writes files only with `--apply`; `--add-giti
 - `examples/text-note/`: response-only Quick Save note.
 - `examples/unsafe-savepoint/`: intentionally unsafe Savepoint with `RESUME_READY: no`.
 
-## Evals
+## Maintainer Evals
 
 `evals/trigger-queries.json` records should-trigger and should-not-trigger prompts, including SQL/database `SAVEPOINT` near misses.
 
