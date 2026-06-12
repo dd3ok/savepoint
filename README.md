@@ -62,6 +62,52 @@ The portable skill entrypoint is `skills/savepoint/scripts/savepoint.py`; reposi
 
 `inspect --json` exits `0` when the file and marker are valid, `1` when a savepoint-like file is parsed but invalid, and `2` when the file cannot be read or is not a savepoint artifact.
 
+Minimal file workflow:
+
+```bash
+python3 scripts/savepoint.py init-input --output .savepoint/input.json
+$EDITOR .savepoint/input.json
+python3 scripts/savepoint.py save --input .savepoint/input.json --output .savepoint/SAVEPOINT.md --assert-no-active-commands --scan-redaction --validate
+python3 scripts/savepoint.py inspect .savepoint/SAVEPOINT.md --json
+```
+
+For a short savepoint without editing JSON:
+
+```bash
+python3 scripts/savepoint.py save \
+  --output .savepoint/SAVEPOINT.md \
+  --assert-no-active-commands --scan-redaction --validate \
+  --goal "finish the focused fix" \
+  --current-state "implementation is done" \
+  --next-action "run the final validation suite" \
+  --project-status passed \
+  --validation-command "python3 scripts/check-savepoint-renderer.py" \
+  --validation-result passed \
+  --validation-summary "focused renderer checks passed"
+```
+
+With `--scan-redaction`, the input JSON is scanned before rendering. Do not put raw secrets in `.savepoint/input.json`. Add `--delete-input-on-success` to remove `.savepoint/input.json` only after a resume-ready save succeeds.
+
+Existing automation should call `scripts/savepoint.py`. Update old root-wrapper calls as:
+
+| Old call | Current call |
+|---|---|
+| `scripts/render_savepoint.py --input ...` | `scripts/savepoint.py save --input ...` |
+| `scripts/validate_savepoint.py ...` | `scripts/savepoint.py validate ...` |
+
+Use `validation.project` for project validation input. Replace old top-level input keys as:
+
+| Old key | Current field |
+|---|---|
+| `project_validation` | `validation.project.commands` plus `validation.project.status` |
+| `skipped_checks_next_validation` | `validation.project.next_validation` |
+| `smallest_next_step` | `next_action` |
+| `blockers` | `unresolved_blockers` |
+
+For `failed-expected` or `not-run-justified`, include the reason and next validation command.
+
+Use the listed English `validation.project.status` values. Validation command `result` should use canonical English values such as `passed` or `failed`; summaries and reasons may be any language.
+
 ## Install
 
 Recommended commands:
@@ -75,6 +121,8 @@ python3 scripts/install.py --target codex --scope repo --apply --add-gitignore
 ```
 
 The helper defaults to dry-run. It writes files only with `--apply`. With repo-scope install, `--add-gitignore` appends `.savepoint/`.
+
+On Windows, prefer the install helper or a normal Git clone/worktree. Archive extraction tools can mishandle symlinks.
 
 Typical skill locations:
 
@@ -114,6 +162,7 @@ python3 scripts/check-frontmatter.py
 python3 scripts/check-marker-block.py
 python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
+python3 scripts/check-output-contract.py
 python3 scripts/validate-repo.py
 python3 scripts/check-savepoint-renderer.py
 python3 scripts/check-install-helper.py

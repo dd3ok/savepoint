@@ -383,6 +383,7 @@ class Validator:
             "Savepoint",
             ".savepoint/SAVEPOINT.md",
             "scripts/savepoint.py",
+            "scripts/check-output-contract.py",
             "scripts/validate-repo.py",
             "python3 -m compileall",
         ]:
@@ -398,6 +399,7 @@ class Validator:
             "Savepoint",
             ".savepoint/SAVEPOINT.md",
             "scripts/savepoint.py",
+            "scripts/check-output-contract.py",
             "scripts/validate-repo.py",
             "python3 -m compileall",
         ]:
@@ -627,6 +629,7 @@ class Validator:
                 if phrase not in text:
                     self.fail(f"{path.relative_to(ROOT)} missing eval phrase: {phrase}")
         output_contract = ROOT / "evals" / "output-contract.json"
+        self.require_exists(ROOT / "scripts" / "check-output-contract.py")
         self.require_exists(output_contract)
         if not output_contract.exists():
             return

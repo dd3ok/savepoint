@@ -33,6 +33,8 @@ Project validation statuses:
 - `failed-blocking`: resume-ready is not allowed.
 - `not-run-unknown`: resume-ready is not allowed.
 
+Use these exact English status values in `validation.project.status`. Command `result` values should be canonical English values such as `passed` or `failed`; command summaries, reasons, and next-validation notes may be any language.
+
 `VALIDATION_RECORDED: yes` records both savepoint artifact validation and an honest project validation posture. It is not a claim that the project validation passed.
 
 ## Load Report

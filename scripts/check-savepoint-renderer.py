@@ -1302,14 +1302,8 @@ def test_renderer_secret_scan_blocks_resume_ready() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo_with_modified_app(Path(tmp))
         input_path = semantic_input(repo)
-        payload = input_path.read_text(encoding="utf-8")
-        input_path.write_text(
-            payload.replace(
-                "disk state can drift after the snapshot is captured",
-                "token='sk-abcdefghijklmnopqrstuvwxyz123456'",
-            ),
-            encoding="utf-8",
-        )
+        secret_name = "sk-abcdefghijklmnopqrstuvwxyz123456"
+        (repo / f"{secret_name}.txt").write_text("do not include raw secret-like paths\n", encoding="utf-8")
         output = repo / ".savepoint" / "SAVEPOINT.md"
         result = run(
             [
@@ -1328,6 +1322,41 @@ def test_renderer_secret_scan_blocks_resume_ready() -> None:
         require("REDACTION_CHECKED: no" in text, "secret scan failure should not mark redaction checked")
         require("RESUME_READY: no" in text, "secret scan failure should block resume-ready")
         require("BLOCKERS: redaction-check-failed" in text, "secret scan blocker missing")
+        require(secret_name not in text, "raw secret-like path leaked into rendered output")
+        require("<redacted>" in text, "secret-like path should be redacted in rendered output")
+
+
+def test_renderer_rejects_secret_bearing_input_before_render() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = semantic_input(repo)
+        secret_value = "sk-abcdefghijklmnopqrstuvwxyz123456"
+        payload = input_path.read_text(encoding="utf-8")
+        input_path.write_text(
+            payload.replace(
+                "disk state can drift after the snapshot is captured",
+                f"token='{secret_value}'",
+            ),
+            encoding="utf-8",
+        )
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        combined = f"{result.stdout}\n{result.stderr}"
+        require(result.returncode == 1, "secret-bearing input should fail before render")
+        require(not output.exists(), "secret-bearing input should not write SAVEPOINT.md")
+        require("input JSON failed redaction scan" in result.stderr, "input redaction scan error missing")
+        require(secret_value not in combined, "input redaction scan must not print raw secret values")
 
 
 def test_renderer_redacts_secret_even_when_scan_flag_is_omitted() -> None:
@@ -1395,6 +1424,213 @@ def test_savepoint_cli_save_validate_and_inspect() -> None:
         require(parsed["savepoint_validation"] == "passed", "inspect JSON should include savepoint validation status")
         require(parsed["validation"]["project"]["status"] == "passed", "inspect JSON should include project validation status")
         require("next_validation" in parsed["validation"]["project"], "inspect JSON should include project validation next command")
+
+
+def test_savepoint_cli_deletes_input_on_success_only_under_savepoint_dir() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        original_input = semantic_input(repo)
+        input_path = repo / ".savepoint" / "input.json"
+        input_path.parent.mkdir(parents=True, exist_ok=True)
+        input_path.write_text(original_input.read_text(encoding="utf-8"), encoding="utf-8")
+        original_input.unlink()
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run(
+            [
+                sys.executable,
+                str(SAVEPOINT_CLI),
+                "save",
+                "--input",
+                str(input_path),
+                "--output",
+                str(output),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--validate",
+                "--delete-input-on-success",
+            ],
+            repo,
+        )
+        require(result.returncode == 0, result.stderr or result.stdout)
+        require(output.exists(), "savepoint CLI did not write SAVEPOINT.md")
+        require(not input_path.exists(), "successful save should delete .savepoint input when requested")
+
+
+def test_savepoint_cli_does_not_delete_input_outside_savepoint_dir() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = semantic_input(repo)
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run(
+            [
+                sys.executable,
+                str(SAVEPOINT_CLI),
+                "save",
+                "--input",
+                str(input_path),
+                "--output",
+                str(output),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--validate",
+                "--delete-input-on-success",
+            ],
+            repo,
+        )
+        require(result.returncode == 0, result.stderr or result.stdout)
+        require(output.exists(), "savepoint CLI did not write SAVEPOINT.md")
+        require(input_path.exists(), "input outside .savepoint should not be deleted")
+
+
+def test_savepoint_cli_keeps_input_when_save_is_not_resume_ready() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        original_input = semantic_input(repo)
+        input_path = repo / ".savepoint" / "input.json"
+        input_path.parent.mkdir(parents=True, exist_ok=True)
+        input_path.write_text(original_input.read_text(encoding="utf-8"), encoding="utf-8")
+        original_input.unlink()
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run(
+            [
+                sys.executable,
+                str(SAVEPOINT_CLI),
+                "save",
+                "--input",
+                str(input_path),
+                "--output",
+                str(output),
+                "--scan-redaction",
+                "--validate",
+                "--delete-input-on-success",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "unsafe savepoint should return not-ready status")
+        require(output.exists(), "unsafe save should still write SAVEPOINT.md")
+        require(input_path.exists(), "input should remain when save is not resume-ready")
+
+
+def test_savepoint_cli_direct_flags_can_render_passed_savepoint() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run(
+            [
+                sys.executable,
+                str(SAVEPOINT_CLI),
+                "save",
+                "--output",
+                str(output),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--validate",
+                "--goal",
+                "finish direct flag savepoint",
+                "--current-state",
+                "simple savepoint fields are supplied directly on the CLI",
+                "--next-action",
+                "inspect the generated savepoint",
+                "--project-status",
+                "passed",
+                "--validation-command",
+                "python scripts/check-savepoint-renderer.py",
+                "--validation-result",
+                "passed",
+                "--validation-summary",
+                "focused renderer check passed",
+                "--files-to-inspect-first",
+                "app.py",
+            ],
+            repo,
+        )
+        require(result.returncode == 0, result.stderr or result.stdout)
+        text = output.read_text(encoding="utf-8")
+        require("RESUME_READY: yes" in text, "direct passed savepoint should be resume-ready")
+        require("finish direct flag savepoint" in text, "direct goal missing from savepoint")
+        require("app.py" in text, "direct files-to-inspect-first missing from savepoint")
+
+
+def test_savepoint_cli_direct_flags_can_render_not_run_justified_savepoint() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run(
+            [
+                sys.executable,
+                str(SAVEPOINT_CLI),
+                "save",
+                "--output",
+                str(output),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--validate",
+                "--goal",
+                "finish direct flag savepoint",
+                "--current-state",
+                "only documentation changed since the last validated state",
+                "--next-action",
+                "rerun the focused documentation validation",
+                "--project-status",
+                "not-run-justified",
+                "--reason",
+                "current change only updates savepoint documentation",
+                "--next-validation",
+                "python scripts/check-savepoint-renderer.py",
+            ],
+            repo,
+        )
+        require(result.returncode == 0, result.stderr or result.stdout)
+        text = output.read_text(encoding="utf-8")
+        require("RESUME_READY: yes" in text, "direct not-run-justified savepoint should be resume-ready")
+        require("current change only updates savepoint documentation" in text, "direct reason missing from savepoint")
+
+
+def test_savepoint_cli_rejects_input_and_direct_flags_together() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = semantic_input(repo)
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run(
+            [
+                sys.executable,
+                str(SAVEPOINT_CLI),
+                "save",
+                "--input",
+                str(input_path),
+                "--output",
+                str(output),
+                "--goal",
+                "do not mix input modes",
+            ],
+            repo,
+        )
+        require(result.returncode == 1, "CLI should reject mixed input and direct flag modes")
+        require("cannot combine --input with direct save flags" in result.stderr, "mixed mode error missing")
+        require(not output.exists(), "mixed input mode should not write SAVEPOINT.md")
+
+
+def test_savepoint_cli_rejects_incomplete_direct_flags() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run(
+            [
+                sys.executable,
+                str(SAVEPOINT_CLI),
+                "save",
+                "--output",
+                str(output),
+                "--goal",
+                "missing required direct fields",
+                "--current-state",
+                "not enough direct fields were supplied",
+            ],
+            repo,
+        )
+        require(result.returncode == 1, "CLI should reject incomplete direct flag mode")
+        require("missing required direct save field" in result.stderr, "direct flag required-field error missing")
+        require(not output.exists(), "incomplete direct input should not write SAVEPOINT.md")
 
 
 def test_savepoint_cli_init_input_defaults_to_unknown_validation() -> None:
@@ -2025,8 +2261,16 @@ def main() -> int:
         test_renderer_rejects_removed_blockers_alias,
         test_renderer_keeps_savepoint_unsafe_without_active_command_assertion,
         test_renderer_secret_scan_blocks_resume_ready,
+        test_renderer_rejects_secret_bearing_input_before_render,
         test_renderer_redacts_secret_even_when_scan_flag_is_omitted,
         test_savepoint_cli_save_validate_and_inspect,
+        test_savepoint_cli_deletes_input_on_success_only_under_savepoint_dir,
+        test_savepoint_cli_does_not_delete_input_outside_savepoint_dir,
+        test_savepoint_cli_keeps_input_when_save_is_not_resume_ready,
+        test_savepoint_cli_direct_flags_can_render_passed_savepoint,
+        test_savepoint_cli_direct_flags_can_render_not_run_justified_savepoint,
+        test_savepoint_cli_rejects_input_and_direct_flags_together,
+        test_savepoint_cli_rejects_incomplete_direct_flags,
         test_savepoint_cli_init_input_defaults_to_unknown_validation,
         test_savepoint_cli_inspect_json_reports_invalid_marker,
         test_savepoint_cli_inspect_json_requires_valid_savepoint_for_resume_ready,

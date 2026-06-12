@@ -18,6 +18,7 @@ jobs:
       - run: python3 scripts/check-marker-block.py
       - run: python3 scripts/check-marker-semantics.py
       - run: python3 scripts/validate-examples.py
+      - run: python3 scripts/check-output-contract.py
       - run: python3 scripts/validate-repo.py
       - run: python3 scripts/check-savepoint-renderer.py
       - run: python3 scripts/check-install-helper.py

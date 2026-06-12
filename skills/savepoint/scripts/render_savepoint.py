@@ -84,6 +84,18 @@ def read_input(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     return data, None
 
 
+def input_redaction_scan_error(path: Path) -> str | None:
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except OSError as exc:
+        return f"failed to read input JSON: {exc}"
+    errors: list[str] = []
+    scan_secret_patterns(path, text, errors)
+    if errors:
+        return "input JSON failed redaction scan; redact or remove secret-like values before rendering"
+    return None
+
+
 def clean_text(value: Any, *, fallback: str = "not recorded") -> str:
     if value is None:
         return fallback
@@ -646,6 +658,12 @@ def main(argv: list[str] | None = None) -> int:
     if preflight_error:
         print(f"error: {preflight_error}", file=sys.stderr)
         return 1
+
+    if args.scan_redaction:
+        input_scan_error = input_redaction_scan_error(args.input)
+        if input_scan_error:
+            print(f"error: {input_scan_error}", file=sys.stderr)
+            return 1
 
     data, input_error = read_input(args.input)
     if input_error or data is None:
