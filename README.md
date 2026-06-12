@@ -36,7 +36,7 @@ If a client does not pass custom slash prompts through, use the natural-language
 
 - File mode writes `.savepoint/SAVEPOINT.md`.
 - The artifact includes a repo/Git snapshot, `## Resume Prompt`, and one final `SAVEPOINT_V1` marker block.
-- Generated artifacts are scanned for secret-like values before `REDACTION_CHECKED: yes`.
+- Generated artifacts receive pattern-based secret-like scans before `REDACTION_CHECKED: yes`.
 - The bundled validator checks marker shape and safe-resume fields.
 - On load, current disk state wins over savepoint text.
 

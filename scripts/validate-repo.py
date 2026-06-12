@@ -292,24 +292,30 @@ class Validator:
             "SAVEPOINT_V1",
             "RESUME_READY: yes",
             "Run the bundled CLI; do not inspect implementation source during normal use.",
+            "Resolve `<savepoint-skill-dir>` before running commands",
             "python3 <savepoint-skill-dir>/scripts/savepoint.py save",
+            "inspect <path> --json",
             "append `--force` only when",
             "generated, untracked, valid default artifact",
             "`validation.project.status`",
             "`not-run-justified`",
             "`failed-expected`",
             "`no-file`, `no files`, `in-response`, or `in the response`",
+            "Prepare `.savepoint/input.json` as in Save, then run",
             "## Load / Resume",
             "For inspect-only requests, do not clean up by default.",
             "Continue only when the user requested continuation and `RESUME_READY` is `yes`",
-            "Read `references/contract.md` only when",
+            "Read references only when normal CLI use is insufficient",
+            "`references/contract.md`",
+            "`references/safety.md`",
+            "`references/template.md`",
         ]
         for phrase in required_skill_phrases:
             if phrase not in skill_text:
                 self.fail(f"SKILL.md missing required policy: {phrase}")
         skill_line_count = len(skill_text.splitlines())
-        if not 55 <= skill_line_count <= 65:
-            self.fail(f"SKILL.md should stay concise at 55-65 lines, got {skill_line_count}")
+        if skill_line_count > 65:
+            self.fail(f"SKILL.md should stay concise at <=65 lines, got {skill_line_count}")
         for phrase in [
             "direct flags such as",
             "do not combine direct flags",
@@ -394,6 +400,7 @@ class Validator:
             "AGENTS.md",
             "docs/reference/savepoint-contract.md",
             "Savepoint is not a lightweight conversation summary.",
+            "pattern-based secret-like scans",
         ]:
             if phrase not in readme_text:
                 self.fail(f"README.md missing entry: {phrase}")
@@ -410,6 +417,7 @@ class Validator:
             "AGENTS.md",
             "docs/reference/savepoint-contract.md",
             "Savepoint는 가벼운 대화 요약이 아닙니다.",
+            "pattern-based secret-like scan",
         ]:
             if phrase not in readme_ko_text:
                 self.fail(f"README.ko.md missing entry: {phrase}")

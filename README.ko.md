@@ -36,7 +36,7 @@ Savepoint는 가벼운 대화 요약이 아닙니다. 복구 가능한 repo/Git 
 
 - file mode는 `.savepoint/SAVEPOINT.md`를 씁니다.
 - artifact는 repo/Git snapshot, `## Resume Prompt`, 마지막 `SAVEPOINT_V1` marker block을 포함합니다.
-- `REDACTION_CHECKED: yes` 전에 생성된 artifact의 secret-like 값을 스캔합니다.
+- `REDACTION_CHECKED: yes` 전에 generated artifact를 pattern-based secret-like scan으로 검사합니다.
 - bundled validator가 marker shape와 safe-resume 필드를 검사합니다.
 - load 시 현재 disk state가 savepoint text보다 우선합니다.
 
