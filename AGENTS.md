@@ -31,6 +31,7 @@ python3 scripts/check-frontmatter.py
 python3 scripts/check-marker-block.py
 python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
+python3 scripts/check-output-contract.py
 python3 scripts/validate-repo.py
 python3 scripts/check-savepoint-renderer.py
 python3 scripts/check-install-helper.py

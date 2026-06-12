@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tempfile
 from pathlib import Path
 
 import render_savepoint
@@ -28,7 +29,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     subcommands = parser.add_subparsers(dest="command", required=True)
 
     save = subcommands.add_parser("save", help="Create or refresh a file savepoint.")
-    save.add_argument("--input", required=True, type=Path, help="JSON file with semantic savepoint input.")
+    save.add_argument("--input", type=Path, help="JSON file with semantic savepoint input.")
     save.add_argument("--output", type=Path, help="Savepoint path to write.")
     save.add_argument("--force", action="store_true", help="Overwrite an existing output file.")
     save.add_argument(
@@ -38,6 +39,30 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     save.add_argument("--scan-redaction", action="store_true", help="Scan generated text for secret patterns.")
     save.add_argument("--validate", action="store_true", help="Run bundled savepoint validation after writing.")
+    save.add_argument(
+        "--delete-input-on-success",
+        action="store_true",
+        help="After a resume-ready save, delete --input only when it is under .savepoint/.",
+    )
+    save.add_argument("--goal", help="Direct save input: current goal.")
+    save.add_argument("--current-state", help="Direct save input: current state.")
+    save.add_argument("--next-action", help="Direct save input: next action.")
+    save.add_argument(
+        "--project-status",
+        choices=sorted(render_savepoint.PROJECT_VALIDATION_STATUSES),
+        help="Direct save input: validation.project.status.",
+    )
+    save.add_argument("--reason", help="Direct save input: project validation reason.")
+    save.add_argument("--next-validation", help="Direct save input: next validation command.")
+    save.add_argument("--validation-command", help="Direct save input: recorded validation command.")
+    save.add_argument("--validation-result", help="Direct save input: recorded validation result.")
+    save.add_argument("--validation-summary", help="Direct save input: recorded validation summary.")
+    save.add_argument(
+        "--files-to-inspect-first",
+        nargs="*",
+        default=None,
+        help="Direct save input: focused paths for the next agent to inspect first.",
+    )
     save.add_argument(
         "--run-savepoint-validation",
         action="store_true",
@@ -71,8 +96,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def render_save_argv(args: argparse.Namespace) -> list[str]:
-    argv = ["--input", str(args.input)]
+def render_save_argv(args: argparse.Namespace, input_path: Path) -> list[str]:
+    argv = ["--input", str(input_path)]
     if args.output is not None:
         argv.extend(["--output", str(args.output)])
     if args.force:
@@ -84,6 +109,163 @@ def render_save_argv(args: argparse.Namespace) -> list[str]:
     if args.validate or args.run_savepoint_validation:
         argv.append("--run-savepoint-validation")
     return argv
+
+
+DIRECT_SAVE_FLAG_ATTRS = [
+    ("goal", "--goal"),
+    ("current_state", "--current-state"),
+    ("next_action", "--next-action"),
+    ("project_status", "--project-status"),
+    ("reason", "--reason"),
+    ("next_validation", "--next-validation"),
+    ("validation_command", "--validation-command"),
+    ("validation_result", "--validation-result"),
+    ("validation_summary", "--validation-summary"),
+    ("files_to_inspect_first", "--files-to-inspect-first"),
+]
+
+
+def direct_save_flags_present(args: argparse.Namespace) -> list[str]:
+    present: list[str] = []
+    for attr, flag in DIRECT_SAVE_FLAG_ATTRS:
+        if getattr(args, attr) is not None:
+            present.append(flag)
+    return present
+
+
+def direct_save_validation_error(args: argparse.Namespace) -> str | None:
+    required = [
+        ("goal", "--goal"),
+        ("current_state", "--current-state"),
+        ("next_action", "--next-action"),
+        ("project_status", "--project-status"),
+    ]
+    missing = [flag for attr, flag in required if not clean_text(getattr(args, attr), fallback="").strip()]
+    if missing:
+        return f"missing required direct save field(s): {', '.join(missing)}"
+
+    validation_fields = [
+        ("validation_command", "--validation-command"),
+        ("validation_result", "--validation-result"),
+        ("validation_summary", "--validation-summary"),
+    ]
+    validation_present = any(clean_text(getattr(args, attr), fallback="").strip() for attr, _flag in validation_fields)
+    validation_missing = [flag for attr, flag in validation_fields if not clean_text(getattr(args, attr), fallback="").strip()]
+    status = args.project_status
+    if status in {"passed", "failed-expected"} or validation_present:
+        if validation_missing:
+            return f"missing required direct save field(s): {', '.join(validation_missing)}"
+    if status in {"failed-expected", "not-run-justified"}:
+        missing_reason = []
+        if not clean_text(args.reason, fallback="").strip():
+            missing_reason.append("--reason")
+        if not clean_text(args.next_validation, fallback="").strip():
+            missing_reason.append("--next-validation")
+        if missing_reason:
+            return f"missing required direct save field(s): {', '.join(missing_reason)}"
+    if status == "failed-blocking" and not validation_present and not clean_text(args.reason, fallback="").strip():
+        return "missing required direct save field(s): --reason or validation command fields"
+    return None
+
+
+def direct_save_data(args: argparse.Namespace) -> dict[str, object]:
+    project: dict[str, object] = {
+        "status": args.project_status,
+        "reason": args.reason or "",
+        "commands": [],
+        "next_validation": args.next_validation or "",
+    }
+    if args.validation_command or args.validation_result or args.validation_summary:
+        project["commands"] = [
+            {
+                "command": args.validation_command or "",
+                "result": args.validation_result or "",
+                "summary": args.validation_summary or "",
+            }
+        ]
+    return {
+        "goal": args.goal,
+        "current_state": args.current_state,
+        "next_action": args.next_action,
+        "unresolved_blockers": "none",
+        "files_to_inspect_first": args.files_to_inspect_first or [],
+        "validation": {"project": project},
+    }
+
+
+def write_direct_input(args: argparse.Namespace) -> Path:
+    handle = tempfile.NamedTemporaryFile(
+        "w",
+        encoding="utf-8",
+        newline="\n",
+        suffix=".json",
+        prefix="savepoint-direct-",
+        delete=False,
+    )
+    with handle:
+        json.dump(direct_save_data(args), handle, ensure_ascii=True, indent=2)
+        handle.write("\n")
+    return Path(handle.name)
+
+
+def is_under_savepoint_dir(path: Path) -> bool:
+    try:
+        base = (Path.cwd() / ".savepoint").resolve()
+        absolute = path if path.is_absolute() else Path.cwd() / path
+        absolute.parent.resolve().relative_to(base)
+        resolved = absolute.resolve()
+        resolved.relative_to(base)
+        return resolved.is_file()
+    except (ValueError, OSError, RuntimeError):
+        return False
+
+
+def delete_input_on_success(args: argparse.Namespace, exit_code: int) -> None:
+    if not args.delete_input_on_success or args.input is None or exit_code != 0:
+        return
+    if not is_under_savepoint_dir(args.input):
+        return
+    input_path = args.input if args.input.is_absolute() else Path.cwd() / args.input
+    try:
+        input_path.unlink()
+    except OSError as exc:
+        print(f"warning: failed to delete input JSON: {exc}", file=sys.stderr)
+
+
+def run_save(args: argparse.Namespace) -> int:
+    direct_flags = direct_save_flags_present(args)
+    if args.input is not None and direct_flags:
+        print(f"error: cannot combine --input with direct save flags: {', '.join(direct_flags)}", file=sys.stderr)
+        return 1
+    if args.input is None and not direct_flags:
+        print("error: save requires --input or direct save flags", file=sys.stderr)
+        return 1
+
+    temporary_input: Path | None = None
+    input_path = args.input
+    if input_path is None:
+        direct_error = direct_save_validation_error(args)
+        if direct_error:
+            print(f"error: {direct_error}", file=sys.stderr)
+            return 1
+        try:
+            input_path = write_direct_input(args)
+        except OSError as exc:
+            print(f"error: failed to write direct save input: {exc}", file=sys.stderr)
+            return 1
+        temporary_input = input_path
+
+    try:
+        exit_code = render_savepoint.main(render_save_argv(args, input_path))
+    finally:
+        if temporary_input is not None:
+            try:
+                temporary_input.unlink()
+            except OSError:
+                pass
+
+    delete_input_on_success(args, exit_code)
+    return exit_code
 
 
 def run_validate(args: argparse.Namespace) -> int:
@@ -233,7 +415,7 @@ Use file mode when the next agent must verify disk/Git state from `.savepoint/SA
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     if args.command == "save":
-        return render_savepoint.main(render_save_argv(args))
+        return run_save(args)
     if args.command == "init-input":
         return run_init_input(args)
     if args.command == "validate":

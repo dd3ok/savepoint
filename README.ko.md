@@ -62,6 +62,52 @@ portable skill entrypoint는 `skills/savepoint/scripts/savepoint.py`입니다. r
 
 `inspect --json`은 파일과 marker가 valid이면 `0`, savepoint-like 파일을 읽었지만 invalid이면 `1`, 파일을 읽을 수 없거나 savepoint artifact가 아니면 `2`로 종료합니다.
 
+최소 파일 흐름:
+
+```bash
+python3 scripts/savepoint.py init-input --output .savepoint/input.json
+$EDITOR .savepoint/input.json
+python3 scripts/savepoint.py save --input .savepoint/input.json --output .savepoint/SAVEPOINT.md --assert-no-active-commands --scan-redaction --validate
+python3 scripts/savepoint.py inspect .savepoint/SAVEPOINT.md --json
+```
+
+짧은 savepoint를 JSON 편집 없이 만들 때:
+
+```bash
+python3 scripts/savepoint.py save \
+  --output .savepoint/SAVEPOINT.md \
+  --assert-no-active-commands --scan-redaction --validate \
+  --goal "focused fix 마무리" \
+  --current-state "구현은 끝난 상태" \
+  --next-action "최종 검증 suite 실행" \
+  --project-status passed \
+  --validation-command "python3 scripts/check-savepoint-renderer.py" \
+  --validation-result passed \
+  --validation-summary "focused renderer checks passed"
+```
+
+`--scan-redaction`을 쓰면 입력 JSON을 렌더 전에 먼저 스캔합니다. `.savepoint/input.json`에 raw secret을 넣지 마세요. `--delete-input-on-success`를 추가하면 resume-ready save가 성공했을 때만 `.savepoint/input.json`을 삭제합니다.
+
+기존 자동화도 `scripts/savepoint.py`를 호출하게 바꿉니다.
+
+| 이전 호출 | 현재 호출 |
+|---|---|
+| `scripts/render_savepoint.py --input ...` | `scripts/savepoint.py save --input ...` |
+| `scripts/validate_savepoint.py ...` | `scripts/savepoint.py validate ...` |
+
+프로젝트 검증 입력은 `validation.project`를 사용합니다.
+
+| 이전 key | 현재 field |
+|---|---|
+| `project_validation` | `validation.project.commands`와 `validation.project.status` |
+| `skipped_checks_next_validation` | `validation.project.next_validation` |
+| `smallest_next_step` | `next_action` |
+| `blockers` | `unresolved_blockers` |
+
+`failed-expected` 또는 `not-run-justified`를 쓰면 사유와 다음 검증 명령을 함께 기록합니다.
+
+`validation.project.status`는 문서에 나열된 영어 값을 사용합니다. 검증 명령 `result`는 `passed` 또는 `failed`처럼 canonical English 값을 쓰고, summary와 reason은 한국어도 괜찮습니다.
+
 ## 설치
 
 추천 명령:
@@ -75,6 +121,8 @@ python3 scripts/install.py --target codex --scope repo --apply --add-gitignore
 ```
 
 helper는 기본 dry-run입니다. 실제로 쓰려면 `--apply`가 필요합니다. repo-scope install에서 `--add-gitignore`를 주면 `.savepoint/`를 추가합니다.
+
+Windows에서는 install helper나 일반 Git clone/worktree를 권장합니다. 일부 archive extraction 도구는 symlink를 제대로 처리하지 못할 수 있습니다.
 
 ## Runtime boundary
 
@@ -107,6 +155,7 @@ python3 scripts/check-frontmatter.py
 python3 scripts/check-marker-block.py
 python3 scripts/check-marker-semantics.py
 python3 scripts/validate-examples.py
+python3 scripts/check-output-contract.py
 python3 scripts/validate-repo.py
 python3 scripts/check-savepoint-renderer.py
 python3 scripts/check-install-helper.py

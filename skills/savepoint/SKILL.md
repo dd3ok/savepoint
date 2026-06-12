@@ -27,7 +27,7 @@ Native slash-command support depends on the client. If slash prompts are not pas
 - Prefer current files, Git state, and durable state files over chat memory.
 - Do not paste transcripts, full diffs, long logs, shell history, PRDs, ADRs, issues, or commits.
 - Reference existing artifacts by path, URL, branch, or commit.
-- Redact API keys, tokens, cookies, credentials, private keys, passwords, `.env` values, and PII as `<redacted>`.
+- Redact API keys, tokens, cookies, credentials, private keys, passwords, `.env` values, and PII as `<redacted>`; do not place raw secrets in semantic input files.
 - File savepoints must end with exactly one `SAVEPOINT_V1` marker block.
 - Keep top-level `SAVEPOINT.md` compact. Use generated `details/*.md` only when needed for recovery.
 
@@ -43,6 +43,8 @@ python3 <savepoint-skill-dir>/scripts/savepoint.py save --input .savepoint/input
 ```
 
 Inside this repository, `python3 scripts/savepoint.py save ...` also works.
+
+For simple savepoints, direct flags such as `--goal`, `--current-state`, `--next-action`, and `--project-status` may replace `--input`; do not combine direct flags with `--input`. Add `--delete-input-on-success` only when `.savepoint/input.json` should be removed after a resume-ready save.
 
 5. Inspect only the generated `.savepoint/SAVEPOINT.md`.
 6. Report exact path, `RESUME_READY`, blockers if any, and the first next action.
