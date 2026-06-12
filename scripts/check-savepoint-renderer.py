@@ -1030,6 +1030,106 @@ def test_renderer_failed_expected_with_passed_command_stays_unsafe() -> None:
         require("VALIDATION_RECORDED: no" in text, "passed command should not count as failed-expected validation recorded")
 
 
+def test_renderer_failed_expected_with_passed_result_failure_word_summary_stays_unsafe() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = repo / "savepoint-input.json"
+        input_path.write_text(
+            """{
+  "goal": "finish expected failure evidence",
+  "current_state": "expected project failure is documented with only historical failure wording",
+  "next_action": "record the exact failing command before continuing",
+  "validation": {
+    "project": {
+      "status": "failed-expected",
+      "reason": "known failing auth edge case is the next task",
+      "commands": [
+        {
+          "command": "python -m pytest tests/auth",
+          "result": "passed",
+          "summary": "previous failure is now fixed"
+        }
+      ],
+      "next_validation": "python -m pytest tests/auth"
+    }
+  }
+}
+""",
+            encoding="utf-8",
+        )
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "expected failure with passed result should stay unsafe")
+        text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
+        require("validation-failed-evidence-missing" in text, "passed result with historical failure summary should get failed-evidence blocker")
+        require("savepoint-validation-failed" not in text, "renderer should report the specific failed-evidence blocker before validation fallback")
+        require("RESUME_READY: no" in text, "passed result cannot satisfy expected failure evidence")
+
+
+def test_renderer_failed_expected_with_next_validation_none_stays_unsafe_with_specific_blocker() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = lite_validation_semantic_input(
+            repo,
+            status="failed-expected",
+            reason="known failing auth edge case is the next task",
+            next_validation="none",
+        )
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "expected failure with placeholder next validation should stay unsafe")
+        text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
+        require("validation-next-command-missing" in text, "placeholder next validation should get specific blocker")
+        require("savepoint-validation-failed" not in text, "renderer should report next-command blocker before validation fallback")
+
+
+def test_renderer_not_run_justified_with_reason_none_stays_unsafe_with_specific_blocker() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = lite_validation_semantic_input(
+            repo,
+            status="not-run-justified",
+            reason="none",
+            next_validation="python scripts/check-savepoint-renderer.py",
+        )
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "justified not-run with placeholder reason should stay unsafe")
+        text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
+        require("validation-reason-missing" in text, "placeholder reason should get specific blocker")
+        require("savepoint-validation-failed" not in text, "renderer should report reason blocker before validation fallback")
+
+
 def test_renderer_not_run_justified_without_next_validation_stays_unsafe() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo_with_modified_app(Path(tmp))
@@ -1915,6 +2015,9 @@ def main() -> int:
         test_renderer_failed_expected_project_validation_can_resume_ready,
         test_renderer_failed_expected_without_command_fields_stays_unsafe,
         test_renderer_failed_expected_with_passed_command_stays_unsafe,
+        test_renderer_failed_expected_with_passed_result_failure_word_summary_stays_unsafe,
+        test_renderer_failed_expected_with_next_validation_none_stays_unsafe_with_specific_blocker,
+        test_renderer_not_run_justified_with_reason_none_stays_unsafe_with_specific_blocker,
         test_renderer_not_run_justified_without_next_validation_stays_unsafe,
         test_renderer_failed_blocking_project_validation_stays_unsafe,
         test_renderer_missing_next_action_stays_unsafe,

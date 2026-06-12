@@ -36,6 +36,7 @@ PROJECT_VALIDATION_STATUSES = {
 }
 PROJECT_VALIDATION_NEXT_REQUIRED = {"failed-expected", "not-run-justified"}
 CLEAR_BLOCKER_VALUES = {"none", "no", "not-needed", "not needed"}
+ABSENCE_ONLY_VALUES = {"none", "no", "not-needed", "not needed", "n/a", "na"}
 VALIDATION_FAILURE_RE = re.compile(r"\b(fail|fails|failed|failing|failure|error|errors|not-run|not run|skipped)\b")
 EXPECTED_FAILURE_RE = re.compile(r"\b(fail|fails|failed|failing|failure|error|errors)\b")
 NEGATED_FAILURE_RE = re.compile(r"\b(no|zero|0)\s+(failures?|errors?)\b")
@@ -170,18 +171,25 @@ def contains_expected_failure_evidence(text: str) -> bool:
     return bool(EXPECTED_FAILURE_RE.search(NEGATED_FAILURE_RE.sub("", text.lower())))
 
 
+def has_substantive_value(value: Any) -> bool:
+    text = clean_text(value, fallback="").strip().strip("`").lower().strip(" .")
+    return bool(text) and text not in ABSENCE_ONLY_VALUES and "<" not in text
+
+
+def project_validation_command_failed(item: Any) -> bool:
+    if not project_validation_command_complete(item):
+        return False
+    result = clean_text(item.get("result"), fallback="").lower()
+    return contains_expected_failure_evidence(result)
+
+
 def project_validation_failed_expected(value: Any) -> bool:
     if not isinstance(value, list):
         return False
-    saw_failure_entry = False
     for item in value:
         if not project_validation_command_complete(item):
             return False
-        result = clean_text(item.get("result"), fallback="").lower()
-        summary = clean_text(item.get("summary"), fallback="").lower()
-        if contains_expected_failure_evidence(f"{result} {summary}"):
-            saw_failure_entry = True
-    return saw_failure_entry
+    return any(project_validation_command_failed(item) for item in value)
 
 
 def normalize_project_validation_status(value: Any) -> str:
@@ -261,11 +269,11 @@ def project_validation_recorded(posture: dict[str, Any]) -> bool:
             posture["commands"]
             and posture.get("commands_complete")
             and posture.get("commands_expected_failure")
-            and posture["reason"]
-            and posture["next_validation"]
+            and has_substantive_value(posture["reason"])
+            and has_substantive_value(posture["next_validation"])
         )
     if status == "not-run-justified":
-        return bool(posture["reason"] and posture["next_validation"])
+        return has_substantive_value(posture["reason"]) and has_substantive_value(posture["next_validation"])
     return False
 
 
@@ -406,14 +414,14 @@ def blockers_for(data: dict[str, Any], args: argparse.Namespace, redaction_ok: b
             blockers.append("validation-command-missing")
         elif not posture.get("commands_expected_failure"):
             blockers.append("validation-failed-evidence-missing")
-        if not posture["reason"]:
+        if not has_substantive_value(posture["reason"]):
             blockers.append("validation-reason-missing")
-        if not posture["next_validation"]:
+        if not has_substantive_value(posture["next_validation"]):
             blockers.append("validation-next-command-missing")
     elif posture["status"] == "not-run-justified":
-        if not posture["reason"]:
+        if not has_substantive_value(posture["reason"]):
             blockers.append("validation-reason-missing")
-        if not posture["next_validation"]:
+        if not has_substantive_value(posture["next_validation"]):
             blockers.append("validation-next-command-missing")
     elif posture["status"] == "passed" and not posture.get("commands_complete"):
         blockers.append("validation-command-missing")

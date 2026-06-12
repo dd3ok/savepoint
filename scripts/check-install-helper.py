@@ -114,7 +114,8 @@ def test_apply_copies_skill() -> None:
         destination = repo / ".agents" / "skills" / "savepoint"
         require(result.returncode == 0, result.stderr or result.stdout)
         require((destination / "SKILL.md").exists(), "SKILL.md was not copied")
-        require((destination / "references" / "contract.md").exists(), "runtime references were not copied")
+        for name in ["contract.md", "safety.md", "template.md"]:
+            require((destination / "references" / name).exists(), f"runtime reference missing: {name}")
         require((destination / "scripts" / "render_savepoint.py").exists(), "renderer was not copied")
         require((destination / "scripts" / "savepoint.py").exists(), "unified CLI was not copied")
         require((destination / "scripts" / "savepoint_contract.py").exists(), "contract helper was not copied")
