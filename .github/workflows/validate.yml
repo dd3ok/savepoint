@@ -21,7 +21,8 @@ jobs:
       - run: python3 scripts/validate-repo.py
       - run: python3 scripts/check-savepoint-renderer.py
       - run: python3 scripts/check-install-helper.py
-      - run: python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
+      - run: python3 scripts/savepoint.py validate --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
+      - run: python3 -m compileall -q skills/savepoint/scripts scripts
       - name: Check committed whitespace
         shell: bash
         run: |

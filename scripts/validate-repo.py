@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Maintainer-only checks for savepoint repository packaging and examples.
 
-Use the portable `validate_savepoint.py` for generated SAVEPOINT.md artifacts.
+Use `scripts/savepoint.py validate` for generated SAVEPOINT.md artifacts.
 This script guards repository metadata, examples, trigger evals, marker schema,
 and maintainer assets without freezing routine README/SKILL prose.
 """
@@ -20,6 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_DIR = ROOT / "skills" / "savepoint"
 SKILL_SCRIPTS = SKILL_DIR / "scripts"
+SKILL_REFERENCE_DIR = SKILL_DIR / "references"
 REFERENCE_DIR = ROOT / "docs" / "reference"
 sys.path.insert(0, str(SKILL_SCRIPTS))
 
@@ -58,6 +59,11 @@ CANONICAL_REFERENCES = [
     "context-packaging.md",
     "savepoint-contract.md",
     "savepoint-template.md",
+]
+CANONICAL_SKILL_REFERENCES = [
+    "contract.md",
+    "safety.md",
+    "template.md",
 ]
 MARKER_ENUMS = {
     "SAVEPOINT_MODE": {"text", "file"},
@@ -228,8 +234,8 @@ class Validator:
 
         name = data.get("name", "")
         description = data.get("description", "")
-        if set(data) != {"name", "description"}:
-            self.fail("SKILL.md frontmatter must contain only name and description")
+        if set(data) != {"name", "description", "argument-hint"}:
+            self.fail("SKILL.md frontmatter must contain only name, description, and argument-hint")
         if name != SKILL_DIR.name:
             self.fail(f"frontmatter name must match skill directory: {name!r}")
         if not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?", name):
@@ -239,7 +245,19 @@ class Validator:
         if len(description) > 1024:
             self.fail("frontmatter description exceeds 1024 characters")
         lower_description = description.lower()
-        for term in ["explicit", "sql", "ordinary summaries", "/new", "pty"]:
+        if data.get("argument-hint") != "[save|load|text] [next-session focus]":
+            self.fail("SKILL.md argument-hint must describe save/load/text and optional focus")
+        for term in [
+            "context reset",
+            "session transfer",
+            "sql",
+            "ordinary summaries",
+            "direct code/docs edits without checkpoint intent",
+            "pty/session control",
+            "session rotation",
+            "/new",
+            "/status",
+        ]:
             if term not in lower_description:
                 self.fail(f"frontmatter description must include boundary term: {term}")
         for phrase in KOREAN_INVOCATION_PHRASES:
@@ -253,27 +271,39 @@ class Validator:
         skill_text = self.read(SKILL_DIR / "SKILL.md")
         for name in CANONICAL_REFERENCES:
             self.require_exists(REFERENCE_DIR / name)
+        for name in CANONICAL_SKILL_REFERENCES:
+            self.require_exists(SKILL_REFERENCE_DIR / name)
         self.require_exists(SKILL_DIR / "schemas" / "savepoint-v1.schema.json")
+        self.require_exists(SKILL_DIR / "scripts" / "savepoint.py")
         self.require_exists(SKILL_DIR / "scripts" / "render_savepoint.py")
         self.require_exists(SKILL_DIR / "scripts" / "savepoint_contract.py")
         self.require_exists(SKILL_DIR / "scripts" / "validate_savepoint.py")
-        self.require_exists(ROOT / "scripts" / "render_savepoint.py")
+        self.require_exists(ROOT / "scripts" / "savepoint.py")
+        for removed_wrapper in ["render_savepoint.py", "validate_savepoint.py"]:
+            if (ROOT / "scripts" / removed_wrapper).exists():
+                self.fail(f"root wrapper should not exist: scripts/{removed_wrapper}")
 
         required_skill_phrases = [
-            "## Prompts",
+            "Default behavior",
+            "/savepoint        -> create or refresh `.savepoint/SAVEPOINT.md`",
             "/savepoint save",
             "/savepoint load",
             "/savepoint text",
-            "default recoverable file checkpoint",
             ".savepoint/SAVEPOINT.md",
             "SAVEPOINT_V1",
             "RESUME_READY: yes",
-            "Normal use: do not read references, `scripts/*.py`, or `evals/*.json`",
+            "Do not read references, `scripts/*.py`, or `evals/*.json` during normal use.",
+            "python3 <savepoint-skill-dir>/scripts/savepoint.py save",
+            "append `--force` only when",
+            "generated, untracked, valid default artifact",
+            "`validation.project.status`",
+            "`not-run-justified`",
+            "`failed-expected`",
             "`no-file`, `no files`, `in-response`, or `in the response`",
             "## Load / Resume",
             "For inspect-only requests, do not clean up by default.",
             "Continue only when the user requested continuation and `RESUME_READY` is `yes`",
-            "For adopted generated default savepoints",
+            "Read `references/contract.md` only when",
         ]
         for phrase in required_skill_phrases:
             if phrase not in skill_text:
@@ -314,6 +344,11 @@ class Validator:
         ]:
             if phrase not in template_text:
                 self.fail(f"savepoint-template.md missing phrase: {phrase}")
+        skill_template_text = self.read(SKILL_REFERENCE_DIR / "template.md")
+        marker_index = skill_template_text.find("END_SAVEPOINT_V1")
+        closing_index = skill_template_text.rfind("```\n````")
+        if marker_index == -1 or closing_index == -1 or closing_index < marker_index:
+            self.fail("skills/savepoint/references/template.md must keep the SAVEPOINT_V1 marker inside the copyable template fence")
         context_text = self.read(REFERENCE_DIR / "context-packaging.md")
         for phrase in [
             "Budget guidance is advisory, not a validation rule.",
@@ -342,10 +377,14 @@ class Validator:
             "/savepoint save",
             "/savepoint load",
             "/savepoint text",
+            "30-second usage",
+            "What it guarantees",
+            "What it does not guarantee",
             "Savepoint",
             ".savepoint/SAVEPOINT.md",
-            "validate_savepoint.py",
+            "scripts/savepoint.py",
             "scripts/validate-repo.py",
+            "python3 -m compileall",
         ]:
             if phrase not in readme_text:
                 self.fail(f"README.md missing entry: {phrase}")
@@ -353,10 +392,14 @@ class Validator:
             "/savepoint save",
             "/savepoint load",
             "/savepoint text",
+            "30초 사용법",
+            "보장하는 것",
+            "보장하지 않는 것",
             "Savepoint",
             ".savepoint/SAVEPOINT.md",
-            "validate_savepoint.py",
+            "scripts/savepoint.py",
             "scripts/validate-repo.py",
+            "python3 -m compileall",
         ]:
             if phrase not in readme_ko_text:
                 self.fail(f"README.ko.md missing entry: {phrase}")
@@ -371,6 +414,8 @@ class Validator:
         ]:
             if phrase not in text:
                 self.fail(f"agents/openai.yaml missing phrase: {phrase}")
+        if "allow_implicit_invocation:" in text and "allow_implicit_invocation: true" not in text:
+            self.fail("agents/openai.yaml allow_implicit_invocation must be true when present")
         match = re.search(r'(?m)^\s*default_prompt:\s*"([^"]+)"\s*$', text)
         if not match:
             self.fail("agents/openai.yaml default_prompt must be a quoted single-line string")
@@ -383,9 +428,6 @@ class Validator:
             "verify",
             "text",
             "copy-paste",
-            "/savepoint save",
-            "/savepoint load",
-            "/savepoint text",
             ".savepoint/SAVEPOINT.md",
         ]:
             if phrase not in prompt:
@@ -568,6 +610,7 @@ class Validator:
                 "session reset",
                 "working tree",
                 "Unrelated dirty files",
+                "resume-ready semantics",
             ],
             ROOT / "evals" / "cases" / "resume-conflicting-disk.md": [
                 "automatic context compaction",
@@ -583,6 +626,26 @@ class Validator:
             for phrase in phrases:
                 if phrase not in text:
                     self.fail(f"{path.relative_to(ROOT)} missing eval phrase: {phrase}")
+        output_contract = ROOT / "evals" / "output-contract.json"
+        self.require_exists(output_contract)
+        if not output_contract.exists():
+            return
+        try:
+            data = json.loads(output_contract.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            self.fail(f"evals/output-contract.json is invalid JSON: {exc}")
+            return
+        categories = {case.get("category") for case in data.get("cases", []) if isinstance(case, dict)}
+        for category in [
+            "artifact-contract",
+            "security-redaction",
+            "resume-ready-semantics",
+            "token-budget",
+            "no-unwanted-files",
+            "least-permission",
+        ]:
+            if category not in categories:
+                self.fail(f"evals/output-contract.json missing category: {category}")
 
     def validate_schema_contract(self) -> None:
         expected_names = [line.split(":", 1)[0] for line in EXPECTED_MARKER_LINES[1:-1]]

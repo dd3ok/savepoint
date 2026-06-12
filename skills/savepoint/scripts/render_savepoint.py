@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from savepoint_contract import DEFAULT_OUTPUT, collect_snapshot, find_git_root, render_marker_block
+from savepoint_contract import DEFAULT_OUTPUT, collect_snapshot, extract_marker_values, find_git_root, render_marker_block
 from validate_savepoint import SECRET_PATTERNS, is_redacted_secret_match, scan_secret_patterns
 
 
@@ -21,6 +21,25 @@ REQUIRED_TEXT_FIELDS = [
     "next_action",
 ]
 MAX_VALUE_CHARS = 600
+UNSUPPORTED_INPUT_KEYS = {
+    "project_validation": "validation.project",
+    "skipped_checks_next_validation": "validation.project.next_validation",
+    "smallest_next_step": "next_action",
+    "blockers": "unresolved_blockers",
+}
+PROJECT_VALIDATION_STATUSES = {
+    "passed",
+    "failed-expected",
+    "failed-blocking",
+    "not-run-justified",
+    "not-run-unknown",
+}
+PROJECT_VALIDATION_NEXT_REQUIRED = {"failed-expected", "not-run-justified"}
+CLEAR_BLOCKER_VALUES = {"none", "no", "not-needed", "not needed"}
+ABSENCE_ONLY_VALUES = {"none", "no", "not-needed", "not needed", "n/a", "na"}
+VALIDATION_FAILURE_RE = re.compile(r"\b(fail|fails|failed|failing|failure|error|errors|not-run|not run|skipped)\b")
+EXPECTED_FAILURE_RE = re.compile(r"\b(fail|fails|failed|failing|failure|error|errors)\b")
+NEGATED_FAILURE_RE = re.compile(r"\b(no|zero|0)\s+(failures?|errors?)\b")
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -46,7 +65,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--run-savepoint-validation",
         action="store_true",
-        help="Run validate_savepoint.py after writing the final artifact.",
+        help="Run bundled savepoint validation after writing the final artifact.",
     )
     return parser.parse_args(argv)
 
@@ -58,6 +77,10 @@ def read_input(path: Path) -> tuple[dict[str, Any] | None, str | None]:
         return None, f"failed to read input JSON: {exc}"
     if not isinstance(data, dict):
         return None, "input JSON must be an object"
+    unsupported = [key for key in UNSUPPORTED_INPUT_KEYS if key in data]
+    if unsupported:
+        details = ", ".join(f"{key} (use {UNSUPPORTED_INPUT_KEYS[key]})" for key in unsupported)
+        return None, f"unsupported input key: {details}"
     return data, None
 
 
@@ -85,7 +108,14 @@ def list_items(value: Any) -> list[str]:
     return [text] if text else []
 
 
-def project_validation_entries(value: Any) -> list[str]:
+def unresolved_blockers_text(data: dict[str, Any]) -> str:
+    value = clean_text(data.get("unresolved_blockers"), fallback="")
+    if value and value.lower() not in CLEAR_BLOCKER_VALUES:
+        return value
+    return "none"
+
+
+def project_validation_command_entries(value: Any) -> list[str]:
     entries: list[str] = []
     if not isinstance(value, list):
         return entries
@@ -99,20 +129,151 @@ def project_validation_entries(value: Any) -> list[str]:
     return entries
 
 
+def project_validation_command_complete(item: Any) -> bool:
+    if not isinstance(item, dict):
+        return False
+    return all(
+        clean_text(item.get(field), fallback="") != ""
+        for field in ["command", "result", "summary"]
+    )
+
+
+def project_validation_commands_complete(value: Any) -> bool:
+    if not isinstance(value, list) or not value:
+        return False
+    return all(project_validation_command_complete(item) for item in value)
+
+
 def project_validation_passed(value: Any) -> bool:
     if not isinstance(value, list):
         return False
+    saw_valid_entry = False
     for item in value:
-        if not isinstance(item, dict):
-            continue
+        if not project_validation_command_complete(item):
+            return False
         result = clean_text(item.get("result"), fallback="").lower()
         summary = clean_text(item.get("summary"), fallback="").lower()
         combined = f"{result} {summary}"
-        if re.search(r"\b(pass|passed|ok|success|succeeded)\b", combined) and not re.search(
-            r"\b(fail|failed|error|not-run|not run|skipped)\b",
-            combined,
+        passed = bool(re.search(r"\b(pass|passed|ok|success|succeeded)\b", combined)) and not contains_blocking_failure(combined)
+        if passed:
+            saw_valid_entry = True
+            continue
+        if not passed:
+            return False
+    return saw_valid_entry
+
+
+def contains_blocking_failure(text: str) -> bool:
+    return bool(VALIDATION_FAILURE_RE.search(NEGATED_FAILURE_RE.sub("", text.lower())))
+
+
+def contains_expected_failure_evidence(text: str) -> bool:
+    return bool(EXPECTED_FAILURE_RE.search(NEGATED_FAILURE_RE.sub("", text.lower())))
+
+
+def has_substantive_value(value: Any) -> bool:
+    text = clean_text(value, fallback="").strip().strip("`").lower().strip(" .")
+    return bool(text) and text not in ABSENCE_ONLY_VALUES and "<" not in text
+
+
+def project_validation_command_failed(item: Any) -> bool:
+    if not project_validation_command_complete(item):
+        return False
+    result = clean_text(item.get("result"), fallback="").lower()
+    return contains_expected_failure_evidence(result)
+
+
+def project_validation_failed_expected(value: Any) -> bool:
+    if not isinstance(value, list):
+        return False
+    for item in value:
+        if not project_validation_command_complete(item):
+            return False
+    return any(project_validation_command_failed(item) for item in value)
+
+
+def normalize_project_validation_status(value: Any) -> str:
+    status = clean_text(value, fallback="").lower()
+    if status in PROJECT_VALIDATION_STATUSES:
+        return status
+    return "not-run-unknown"
+
+
+def project_validation_posture(data: dict[str, Any]) -> dict[str, Any]:
+    validation = data.get("validation")
+    project = validation.get("project") if isinstance(validation, dict) else None
+    if isinstance(project, dict):
+        status = normalize_project_validation_status(project.get("status"))
+        raw_commands = project.get("commands")
+        commands = project_validation_command_entries(raw_commands)
+        reason = clean_text(project.get("reason"), fallback="")
+        next_validation = clean_text(project.get("next_validation"), fallback="")
+        if (
+            status == "passed"
+            and commands
+            and project_validation_commands_complete(raw_commands)
+            and not project_validation_passed(raw_commands)
         ):
-            return True
+            status = "failed-blocking"
+            reason = reason or clean_text(commands[0], fallback="project validation failed")
+        return {
+            "status": status,
+            "commands": commands,
+            "reason": reason,
+            "next_validation": next_validation,
+            "source": "validation.project",
+            "commands_complete": project_validation_commands_complete(raw_commands),
+            "commands_expected_failure": project_validation_failed_expected(raw_commands),
+        }
+
+    return {
+        "status": "not-run-unknown",
+        "commands": [],
+        "reason": "",
+        "next_validation": "",
+        "source": "validation.project",
+        "commands_complete": False,
+        "commands_expected_failure": False,
+    }
+
+
+def project_validation_entries(data: dict[str, Any]) -> list[str]:
+    posture = project_validation_posture(data)
+    status = posture["status"]
+    commands = posture["commands"]
+    reason = posture["reason"]
+    if status == "passed":
+        return commands
+    if status == "failed-expected" and commands:
+        entries = "; ".join(commands)
+        if reason:
+            entries = f"{entries}; reason: {reason}"
+        return [f"{status}: {entries}"]
+    if commands:
+        return [f"{status}: {entry}" for entry in commands]
+    if reason:
+        return [f"{status}: {reason}"]
+    if status == "not-run-unknown":
+        return ["not-run-unknown: no project validation reason or next validation recorded"]
+    return [f"{status}: project validation status recorded without command details"]
+
+
+def project_validation_recorded(posture: dict[str, Any]) -> bool:
+    status = posture["status"]
+    if status == "passed":
+        return bool(posture["commands"]) and bool(posture.get("commands_complete"))
+    if status == "failed-blocking":
+        return bool(posture["commands"] or posture["reason"])
+    if status == "failed-expected":
+        return bool(
+            posture["commands"]
+            and posture.get("commands_complete")
+            and posture.get("commands_expected_failure")
+            and has_substantive_value(posture["reason"])
+            and has_substantive_value(posture["next_validation"])
+        )
+    if status == "not-run-justified":
+        return has_substantive_value(posture["reason"]) and has_substantive_value(posture["next_validation"])
     return False
 
 
@@ -124,7 +285,7 @@ def observable_completion(data: dict[str, Any]) -> str:
 
 
 def next_action_text(data: dict[str, Any]) -> str:
-    return clean_text(data.get("smallest_next_step"), fallback=clean_text(data.get("next_action")))
+    return clean_text(data.get("next_action"))
 
 
 def git_status_lines(cwd: Path) -> list[str]:
@@ -234,8 +395,8 @@ def blockers_for(data: dict[str, Any], args: argparse.Namespace, redaction_ok: b
     for field in REQUIRED_TEXT_FIELDS:
         if clean_text(data.get(field), fallback="") == "":
             blockers.append(f"missing-{field.replace('_', '-')}")
-    unresolved = clean_text(data.get("unresolved_blockers"), fallback="none").lower()
-    if unresolved not in {"none", "no", "not-needed", "not needed"}:
+    unresolved = unresolved_blockers_text(data).lower()
+    if unresolved not in CLEAR_BLOCKER_VALUES:
         blockers.append("unresolved-blockers-recorded")
     if not args.assert_no_active_commands:
         blockers.append("active-commands-not-asserted")
@@ -243,11 +404,27 @@ def blockers_for(data: dict[str, Any], args: argparse.Namespace, redaction_ok: b
         blockers.append("redaction-check-not-run")
     elif not redaction_ok:
         blockers.append("redaction-check-failed")
-    project_entries = project_validation_entries(data.get("project_validation"))
-    if not project_entries:
-        blockers.append("project-validation-not-recorded")
-    elif not project_validation_passed(data.get("project_validation")):
-        blockers.append("project-validation-not-passing")
+    posture = project_validation_posture(data)
+    if posture["status"] == "not-run-unknown":
+        blockers.append("validation-not-run-unknown")
+    elif posture["status"] == "failed-blocking":
+        blockers.append("validation-failed-blocking")
+    elif posture["status"] == "failed-expected":
+        if not posture.get("commands_complete"):
+            blockers.append("validation-command-missing")
+        elif not posture.get("commands_expected_failure"):
+            blockers.append("validation-failed-evidence-missing")
+        if not has_substantive_value(posture["reason"]):
+            blockers.append("validation-reason-missing")
+        if not has_substantive_value(posture["next_validation"]):
+            blockers.append("validation-next-command-missing")
+    elif posture["status"] == "not-run-justified":
+        if not has_substantive_value(posture["reason"]):
+            blockers.append("validation-reason-missing")
+        if not has_substantive_value(posture["next_validation"]):
+            blockers.append("validation-next-command-missing")
+    elif posture["status"] == "passed" and not posture.get("commands_complete"):
+        blockers.append("validation-command-missing")
     if not args.run_savepoint_validation:
         blockers.append("savepoint-validation-not-run")
     return unique_or_input(blockers, None)
@@ -279,7 +456,8 @@ def build_savepoint(
     cwd = Path.cwd()
     snapshot = collect_snapshot(cwd)
     changes = derive_change_manifest(cwd, data, ignored_status_paths(cwd, output_path, args.input))
-    project_entries = project_validation_entries(data.get("project_validation"))
+    project_posture = project_validation_posture(data)
+    project_entries = project_validation_entries(data)
     blockers = blockers_for(data, args, redaction_ok)
     if force_unsafe_blocker:
         blockers = unique_or_input([force_unsafe_blocker, *blockers], None)
@@ -287,7 +465,7 @@ def build_savepoint(
     marker_values = {
         "DETAILS_READY": "not-needed",
         "DISK_RECORDED": "yes" if snapshot["git_root"] != "not a git repository" else "no",
-        "VALIDATION_RECORDED": "yes" if args.run_savepoint_validation and project_entries else "no",
+        "VALIDATION_RECORDED": "yes" if args.run_savepoint_validation and project_validation_recorded(project_posture) else "no",
         "REDACTION_CHECKED": "yes" if args.scan_redaction and redaction_ok else "no",
         "RESUME_READY": "yes" if resume_ready else "no",
         "BLOCKERS": "none" if resume_ready else ",".join(blockers),
@@ -296,7 +474,7 @@ def build_savepoint(
     durable_files = list_items(data.get("durable_state_files_checked"))
     files_first = list_items(data.get("files_to_inspect_first")) or first_paths(changes)
     skipped = clean_text(
-        data.get("skipped_checks_next_validation"),
+        project_posture["next_validation"],
         fallback="no skipped checks; rerun recorded project validation if state changes",
     )
     expected_drift = clean_text(data.get("expected_drift"), fallback="none")
@@ -357,7 +535,7 @@ Relative detail paths resolve from this file.
 - Decisions/rationale: {inline_or_block(list_items(data.get("decisions")), empty="no extra decisions recorded")}
 - Risks/pitfalls: {inline_or_block([*list_items(data.get("risks")), "disk state wins if savepoint claims conflict"])}
 - Failed approaches: {clean_text(data.get("failed_approaches"), fallback="none")}
-- Unresolved questions or approval blockers: {clean_text(data.get("unresolved_blockers"), fallback="none")}
+- Unresolved questions or approval blockers: {unresolved_blockers_text(data)}
 - State-file conflicts: {clean_text(data.get("state_file_conflicts"), fallback="none")}
 
 ## Validation Manifest
@@ -554,7 +732,9 @@ def main(argv: list[str] | None = None) -> int:
     final_text = output_path.read_text(encoding="utf-8")
     final_errors: list[str] = []
     scan_secret_patterns(output_path, final_text, final_errors)
-    final_ready = "RESUME_READY: yes" in final_text and not final_errors
+    marker_values, marker_errors = extract_marker_values(output_path, final_text)
+    final_errors.extend(marker_errors)
+    final_ready = marker_values.get("RESUME_READY") == "yes" and not final_errors
     print(f"wrote: {output_path}")
     if final_ready:
         return 0

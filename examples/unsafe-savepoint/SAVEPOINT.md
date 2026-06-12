@@ -65,7 +65,7 @@
 
 ## Validation Manifest
 
-- Savepoint validation: `python3 scripts/validate_savepoint.py .savepoint/SAVEPOINT.md` passed.
+- Savepoint validation: `python3 scripts/savepoint.py validate .savepoint/SAVEPOINT.md` passed.
 - Project validation: `npm test -- checkout` still running; failure lines Unknown.
 - Skipped checks / next validation: current check has not completed; wait for `npm test -- checkout` result.
 - Secret redaction check: manual artifact scan

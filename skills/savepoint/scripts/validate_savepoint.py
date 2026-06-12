@@ -2,7 +2,7 @@
 """Validate generated SAVEPOINT.md artifacts.
 
 Usage:
-  python3 scripts/validate_savepoint.py SAVEPOINT.md [more/SAVEPOINT.md ...]
+  python3 scripts/savepoint.py validate SAVEPOINT.md [more/SAVEPOINT.md ...]
 """
 
 from __future__ import annotations
@@ -100,6 +100,23 @@ ABSENCE_ALLOWED_LABELS = {
     "- Unresolved questions or approval blockers:",
     "- State-file conflicts:",
 }
+PROJECT_VALIDATION_STATUSES = {
+    "passed",
+    "failed-expected",
+    "failed-blocking",
+    "not-run-justified",
+    "not-run-unknown",
+}
+PROJECT_VALIDATION_STATUS_ORDER = [
+    "failed-expected",
+    "failed-blocking",
+    "not-run-justified",
+    "not-run-unknown",
+    "passed",
+]
+PROJECT_VALIDATION_NEXT_REQUIRED = {"failed-expected", "not-run-justified"}
+VALIDATION_FAILURE_RE = re.compile(r"\b(fail|fails|failed|failing|failure|error|errors|not-run|not run|skipped)\b")
+NEGATED_FAILURE_RE = re.compile(r"\b(no|zero|0)\s+(failures?|errors?)\b")
 
 
 def validate_savepoint(path: Path, allow_example_paths: bool = False) -> list[str]:
@@ -205,7 +222,7 @@ def validate_resume_ready_content(path: Path, text: str) -> list[str]:
         value = field_value_or_block(text, label)
         allow_absence = label in ABSENCE_ALLOWED_LABELS
         if label == "- Skipped checks / next validation:":
-            allow_absence = project_validation_passed(text)
+            allow_absence = project_validation_status(text) == "passed"
         if is_placeholder_value(value, allow_absence=allow_absence):
             errors.append(f"{path}: RESUME_READY=yes requires substantive value for {label}")
     errors.extend(validate_validation_status(path, text))
@@ -217,18 +234,89 @@ def validate_resume_ready_content(path: Path, text: str) -> list[str]:
 def validate_validation_status(path: Path, text: str) -> list[str]:
     errors: list[str] = []
     skipped = field_value_or_block(text, "- Skipped checks / next validation:")
-    if skipped.strip().strip("`").lower().strip(" .") in ABSENCE_ONLY_VALUES and not project_validation_passed(text):
-        errors.append(
-            f"{path}: Skipped checks / next validation may be none only when Project validation records a passed check"
-        )
+    skipped_absent = skipped.strip().strip("`").lower().strip(" .") in ABSENCE_ONLY_VALUES
+    status = project_validation_status(text)
+    if status == "not-run-unknown":
+        errors.append(f"{path}: RESUME_READY=yes cannot use Project validation status not-run-unknown")
+    elif status == "failed-blocking":
+        errors.append(f"{path}: RESUME_READY=yes cannot use Project validation status failed-blocking")
+    elif status == "passed" and passed_validation_has_failure_terms(text):
+        errors.append(f"{path}: Project validation status passed cannot include failure terms")
+    elif status in PROJECT_VALIDATION_NEXT_REQUIRED:
+        if not project_validation_reason_present(text, status):
+            errors.append(f"{path}: Project validation status {status} requires a reason")
+        if skipped_absent:
+            errors.append(
+                f"{path}: Project validation status {status} requires a next validation command"
+            )
+        if status == "failed-expected" and not project_validation_command_evidence_present(text):
+            errors.append(
+                f"{path}: Project validation status failed-expected requires command evidence"
+            )
     return errors
 
 
-def project_validation_passed(text: str) -> bool:
-    value = field_value_or_block(text, "- Project validation:").lower()
-    if not re.search(r"\b(pass|passed|ok|success|succeeded)\b", value):
+def passed_validation_has_failure_terms(text: str) -> bool:
+    value = project_validation_value(text).lower().replace("_", "-")
+    if "passed" not in value:
         return False
-    return not re.search(r"\b(fail|failed|error|not-run|not run|skipped)\b", value)
+    return contains_blocking_failure(value)
+
+
+def contains_blocking_failure(text: str) -> bool:
+    return bool(VALIDATION_FAILURE_RE.search(NEGATED_FAILURE_RE.sub("", text.lower())))
+
+
+def project_validation_value(text: str) -> str:
+    value = field_value_or_block(text, "- Project validation:")
+    lines = [re.sub(r"^\s*-\s*", "", line.strip()) for line in value.splitlines()]
+    return "\n".join(line for line in lines if line).strip()
+
+
+def project_validation_body(text: str, status: str) -> str:
+    value = project_validation_value(text)
+    return re.sub(rf"(?is)^\s*`?{re.escape(status)}`?\s*[:\-]?\s*", "", value, count=1).strip()
+
+
+def project_validation_command_evidence_present(text: str) -> bool:
+    value = NEGATED_FAILURE_RE.sub("", project_validation_body(text, "failed-expected").lower())
+    return bool(
+        re.search(
+            r"\b(fail|fails|failed|failing|failure|error|errors)\b\s*:\s*`[^`]+`\s+-\s*\S",
+            value,
+        )
+    )
+
+
+def project_validation_reason_present(text: str, status: str) -> bool:
+    body = project_validation_body(text, status)
+    if status == "failed-expected":
+        match = re.search(r"(?is)(?:^|[;\n])\s*reason\s*:\s*(.+)", body)
+        if not match:
+            return False
+        reason = match.group(1).strip(" :-`\n\t")
+        return not is_placeholder_value(reason, allow_absence=False)
+    reason = body.strip(" :-`\n\t")
+    return not is_placeholder_value(reason, allow_absence=False)
+
+
+def project_validation_status(text: str) -> str:
+    value = project_validation_value(text).lower().replace("_", "-")
+    lead = value.strip().splitlines()[0] if value.strip() else ""
+    for status in PROJECT_VALIDATION_STATUS_ORDER:
+        if re.match(rf"^`?{re.escape(status)}\b", lead):
+            return status
+    if re.search(r"\b(pass|passed|ok|success|succeeded)\b", lead) and not contains_blocking_failure(lead):
+        return "passed"
+    if re.search(r"\b(fail|fails|failed|failing|failure|error|errors)\b", NEGATED_FAILURE_RE.sub("", lead)):
+        return "failed-blocking"
+    if re.search(r"\b(not-run|not run|skipped)\b", lead):
+        return "not-run-unknown"
+    return "not-run-unknown"
+
+
+def project_validation_passed(text: str) -> bool:
+    return project_validation_status(text) == "passed"
 
 
 def field_value_or_block(text: str, label: str) -> str:
@@ -292,7 +380,7 @@ def has_resume_prompt_evidence(text: str) -> bool:
     return re.search(r"(?m)^## Resume Prompt\s*$", text) is not None
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--allow-example-paths",
@@ -300,12 +388,12 @@ def main() -> int:
         help="Allow example SAVEPOINT_PATH values that do not exist on this machine.",
     )
     parser.add_argument("savepoints", nargs="+", type=Path)
-    args = parser.parse_args()
+    args = parser.parse_args(sys.argv[1:] if argv is None else argv)
 
     errors: list[str] = []
     for path in args.savepoints:
-        if not path.exists():
-            errors.append(f"{path}: file does not exist")
+        if not path.is_file():
+            errors.append(f"{path}: file does not exist or is not a file")
             continue
         errors.extend(validate_savepoint(path, allow_example_paths=args.allow_example_paths))
 
