@@ -193,7 +193,7 @@ Field meanings:
 - `DETAILS_READY`: `yes` for file detail spillover artifacts, `not-needed` when there are no generated details, otherwise `no`.
 - `PROMPT_READY`: `yes` when file `SAVEPOINT.md` contains an embedded `## Resume Prompt`, or a text response provides a transfer note with a usable next-step prompt.
 - `DISK_RECORDED`: `yes` only when the required repo snapshot was recorded.
-- `VALIDATION_RECORDED`: `yes` when validation status is recorded, including passed, failed, or intentionally skipped validation with reason and next command.
+- `VALIDATION_RECORDED`: `yes` when savepoint artifact validation and project validation posture are recorded, including passed, expected failed, or intentionally skipped project validation with reason and next command.
 - `REDACTION_CHECKED`: `yes` only after checking generated artifacts or text output for secrets.
 - `RESUME_READY`: `yes` only when the safe resume checklist passes.
 - `BLOCKERS`: `none` or a short reason preventing safe continuation.
@@ -213,7 +213,8 @@ Set `RESUME_READY: yes` only when all are true:
 - every referenced detail artifact exists, or details are `not-needed`.
 - an embedded resume prompt exists; `PROMPT_READY: yes`.
 - disk-state conflict handling is stated.
-- validation command and result are recorded, or skipped validation has a reason and next command.
+- savepoint artifact validation ran and passed.
+- project validation posture is recorded.
 - secret redaction was checked.
 - no unresolved user question blocks continuation.
 - the next step is singular, executable, and narrow.
@@ -222,6 +223,14 @@ Set `RESUME_READY: yes` only when all are true:
 When file artifacts are written, attempt the bundled savepoint validator (`validate_savepoint.py`) after final artifact edits when it is available. If the validator reports errors, correct them and rerun the validator before completion; a failed savepoint validation makes the savepoint unsafe. Do not claim validation passed unless the command actually ran and passed.
 
 `RESUME_READY: yes` means a fresh session can reconstruct state and continue. It does not mean tests pass, code is correct, or the task is complete.
+
+Project validation posture uses these statuses:
+
+- `passed`: project validation passed; `RESUME_READY: yes` is allowed.
+- `failed-expected`: project validation failed in a known, documented way; `RESUME_READY: yes` is allowed only with reason and next validation command.
+- `not-run-justified`: project validation was not run for a stated reason; `RESUME_READY: yes` is allowed only with reason and next validation command.
+- `failed-blocking`: project validation failed in a blocking or unexplained way; `RESUME_READY: no`.
+- `not-run-unknown`: project validation was not run without enough reason or next command; `RESUME_READY: no`.
 
 ## Staleness Rules
 

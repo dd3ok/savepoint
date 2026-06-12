@@ -71,7 +71,7 @@ Read in this order:
 ## Validation Manifest
 
 - Savepoint validation: `python3 scripts/validate_savepoint.py .savepoint/SAVEPOINT.md` passed.
-- Project validation: `npm test -- ReportTable.test.tsx` failed; no matching CSV export assertions yet.
+- Project validation: failed-expected: `npm test -- ReportTable.test.tsx` failed; no matching CSV export assertions yet.
 - Skipped checks / next validation: full suite not run because focused tests are missing; next `npm test -- ReportTable.test.tsx`, then `npm run lint` if available.
 - Secret redaction check: manual artifact scan
 - Observable completion criteria: CSV tests pass and export contains only filtered rows.

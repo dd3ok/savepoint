@@ -100,6 +100,14 @@ ABSENCE_ALLOWED_LABELS = {
     "- Unresolved questions or approval blockers:",
     "- State-file conflicts:",
 }
+PROJECT_VALIDATION_STATUSES = {
+    "passed",
+    "failed-expected",
+    "failed-blocking",
+    "not-run-justified",
+    "not-run-unknown",
+}
+PROJECT_VALIDATION_NEXT_REQUIRED = {"failed-expected", "not-run-justified"}
 
 
 def validate_savepoint(path: Path, allow_example_paths: bool = False) -> list[str]:
@@ -205,7 +213,7 @@ def validate_resume_ready_content(path: Path, text: str) -> list[str]:
         value = field_value_or_block(text, label)
         allow_absence = label in ABSENCE_ALLOWED_LABELS
         if label == "- Skipped checks / next validation:":
-            allow_absence = project_validation_passed(text)
+            allow_absence = project_validation_status(text) == "passed"
         if is_placeholder_value(value, allow_absence=allow_absence):
             errors.append(f"{path}: RESUME_READY=yes requires substantive value for {label}")
     errors.extend(validate_validation_status(path, text))
@@ -217,18 +225,38 @@ def validate_resume_ready_content(path: Path, text: str) -> list[str]:
 def validate_validation_status(path: Path, text: str) -> list[str]:
     errors: list[str] = []
     skipped = field_value_or_block(text, "- Skipped checks / next validation:")
-    if skipped.strip().strip("`").lower().strip(" .") in ABSENCE_ONLY_VALUES and not project_validation_passed(text):
+    skipped_absent = skipped.strip().strip("`").lower().strip(" .") in ABSENCE_ONLY_VALUES
+    status = project_validation_status(text)
+    if status == "not-run-unknown":
+        errors.append(f"{path}: RESUME_READY=yes cannot use Project validation status not-run-unknown")
+    elif status == "failed-blocking":
+        errors.append(f"{path}: RESUME_READY=yes cannot use Project validation status failed-blocking")
+    elif status in PROJECT_VALIDATION_NEXT_REQUIRED and skipped_absent:
         errors.append(
-            f"{path}: Skipped checks / next validation may be none only when Project validation records a passed check"
+            f"{path}: Project validation status {status} requires a next validation command"
         )
     return errors
 
 
+def project_validation_status(text: str) -> str:
+    value = field_value_or_block(text, "- Project validation:").lower().replace("_", "-")
+    for status in PROJECT_VALIDATION_STATUSES:
+        if status in value:
+            return status
+    if re.search(r"\b(pass|passed|ok|success|succeeded)\b", value) and not re.search(
+        r"\b(fail|failed|error|not-run|not run|skipped)\b",
+        value,
+    ):
+        return "passed"
+    if re.search(r"\b(fail|failed|error)\b", value):
+        return "failed-blocking"
+    if re.search(r"\b(not-run|not run|skipped)\b", value):
+        return "not-run-unknown"
+    return "not-run-unknown"
+
+
 def project_validation_passed(text: str) -> bool:
-    value = field_value_or_block(text, "- Project validation:").lower()
-    if not re.search(r"\b(pass|passed|ok|success|succeeded)\b", value):
-        return False
-    return not re.search(r"\b(fail|failed|error|not-run|not run|skipped)\b", value)
+    return project_validation_status(text) == "passed"
 
 
 def field_value_or_block(text: str, label: str) -> str:
@@ -292,7 +320,7 @@ def has_resume_prompt_evidence(text: str) -> bool:
     return re.search(r"(?m)^## Resume Prompt\s*$", text) is not None
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--allow-example-paths",
@@ -300,7 +328,7 @@ def main() -> int:
         help="Allow example SAVEPOINT_PATH values that do not exist on this machine.",
     )
     parser.add_argument("savepoints", nargs="+", type=Path)
-    args = parser.parse_args()
+    args = parser.parse_args(sys.argv[1:] if argv is None else argv)
 
     errors: list[str] = []
     for path in args.savepoints:

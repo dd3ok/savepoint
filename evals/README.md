@@ -6,6 +6,8 @@ Use them when changing `SKILL.md`, savepoint templates, markers, examples, or or
 
 `trigger-queries.json` records realistic should-trigger and should-not-trigger prompts for checking the skill description boundary. It is validated by `python3 scripts/validate-repo.py --check trigger-evals`.
 
+`output-contract.json` records artifact-contract, redaction, token-budget, permission, and resume-ready semantics expectations that should stay out of runtime skill context.
+
 ## Review Method
 
 For each case:
@@ -33,4 +35,5 @@ For each case:
 - Secrets are redacted.
 - `SKILL.md` frontmatter parses as valid YAML.
 - File artifacts have a final marker block that is present and honest; text notes omit it by default.
-- `VALIDATION_RECORDED: yes` means validation status is recorded, including passed, failed, or intentionally skipped validation with an explicit low-risk reason and next command.
+- `VALIDATION_RECORDED: yes` means savepoint artifact validation and project validation posture are recorded.
+- `RESUME_READY: yes` can coexist with `not-run-justified` or `failed-expected` project validation when reason and next validation command are recorded.

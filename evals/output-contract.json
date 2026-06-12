@@ -1,0 +1,87 @@
+{
+  "skill_name": "savepoint",
+  "version": 1,
+  "cases": [
+    {
+      "id": "artifact-file-mode-01",
+      "category": "artifact-contract",
+      "scenario": "File savepoint creation succeeds.",
+      "must": [
+        ".savepoint/SAVEPOINT.md exists",
+        "## Resume Prompt exists",
+        "exactly one final SAVEPOINT_V1 marker exists",
+        "full diffs and long logs are not embedded"
+      ]
+    },
+    {
+      "id": "text-mode-no-recovery-01",
+      "category": "artifact-contract",
+      "scenario": "User asks for copy-paste or no-file handoff.",
+      "must": [
+        "no .savepoint/SAVEPOINT.md creation is claimed",
+        "repo recovery guarantee is not claimed",
+        "RESUME_READY: yes is not emitted"
+      ]
+    },
+    {
+      "id": "redaction-secret-01",
+      "category": "security-redaction",
+      "scenario": "Input mentions API keys, tokens, cookies, private keys, .env values, or PII.",
+      "must": [
+        "secret values are redacted as <redacted>",
+        "generated artifacts are scanned",
+        "redaction failure makes RESUME_READY no"
+      ]
+    },
+    {
+      "id": "resume-ready-not-run-justified-01",
+      "category": "resume-ready-semantics",
+      "scenario": "Project validation was not run, with a recorded reason and next validation command.",
+      "must": [
+        "Project validation is recorded as not-run-justified",
+        "next validation command is recorded",
+        "RESUME_READY yes is allowed when other hard blockers are absent"
+      ]
+    },
+    {
+      "id": "resume-ready-failed-blocking-01",
+      "category": "resume-ready-semantics",
+      "scenario": "Project validation failed in an unexplained or blocking way.",
+      "must": [
+        "Project validation is recorded as failed-blocking",
+        "RESUME_READY remains no",
+        "blocker names the validation failure"
+      ]
+    },
+    {
+      "id": "simple-token-budget-01",
+      "category": "token-budget",
+      "scenario": "Simple dirty working tree savepoint.",
+      "must": [
+        "top-level SAVEPOINT.md stays compact",
+        "detail artifacts are not created unless needed",
+        "repeated planning sections are avoided"
+      ]
+    },
+    {
+      "id": "generated-file-scope-01",
+      "category": "no-unwanted-files",
+      "scenario": "Default file-mode savepoint.",
+      "must": [
+        "writes only the selected savepoint artifact and needed details",
+        "does not edit application code",
+        "does not create commits, stashes, or branches"
+      ]
+    },
+    {
+      "id": "least-permission-01",
+      "category": "least-permission",
+      "scenario": "Skill frontmatter and runtime instructions are loaded.",
+      "must": [
+        "default SKILL.md does not grant broad allowed-tools",
+        "disable-model-invocation is not set for normal natural-language routing",
+        "session rotation and PTY control stay outside the skill"
+      ]
+    }
+  ]
+}

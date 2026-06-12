@@ -1,45 +1,80 @@
 ---
 name: savepoint
-description: "Use when explicitly creating/updating/loading/inspecting/resuming coding-session savepoints: /savepoint save; /savepoint load; /savepoint text; .savepoint/SAVEPOINT.md; text/copy-paste; Korean: 세이브포인트 만들어줘; 세이브포인트 로드해줘; 세이브포인트 읽어줘; 세이브포인트 이어서 해줘. Not for SQL SAVEPOINT, ordinary summaries, docs, code changes, /new, /status, PTY, or session rotation."
+description: "Create or load a recoverable coding-session checkpoint at .savepoint/SAVEPOINT.md so a fresh agent can resume from current repo/Git state. Use for context reset, session transfer, 세이브포인트 만들어줘, 세이브포인트 로드해줘, 세이브포인트 읽어줘, 세이브포인트 이어서 해줘. Not for SQL SAVEPOINT, ordinary summaries, code edits, /status, /new, or app features named savepoint."
+argument-hint: "[save|load|text] [next-session focus]"
 ---
 
 # Savepoint
 
-Preserve coding-session state for continuation without prior chat context.
+Use this skill to preserve or load coding-session state without relying on prior chat context.
 
-## Prompts
+Default behavior:
 
-- `/savepoint save`: create or refresh `.savepoint/SAVEPOINT.md`.
-- `/savepoint load`: load and verify an existing Savepoint.
-- `/savepoint text`: response-only copy-paste handoff.
+```text
+/savepoint        -> create or refresh `.savepoint/SAVEPOINT.md`
+/savepoint save   -> same as default
+/savepoint load   -> verify an existing savepoint and report whether continuation is safe
+/savepoint text   -> response-only copy-paste handoff; no file recovery guarantee
+```
 
-Native slash-command support depends on the client. If slash prompts are not passed through, use `$savepoint` natural-language requests.
-
-## Choose
-
-- **Savepoint**: default recoverable file checkpoint for generic requests, `SAVEPOINT.md`, repo/Git state, validation, safe resume, or recovery by another coding agent. Generate `.savepoint/SAVEPOINT.md` with the installed renderer, include `## Resume Prompt`, and exactly one `SAVEPOINT_V1` block with `SAVEPOINT_MODE: file`.
-- **Text path**: response-only text for explicit `/savepoint text`, `복붙용`, `텍스트`, `파일 없이`, `붙여넣을`, `copy-paste`, `text`, `no-file`, `no files`, `in-response`, or `in the response` requests. Do not claim recovery, disk/Git verification, `SAVEPOINT.md`, or `RESUME_READY: yes`. Omit markers unless requested; then use `SAVEPOINT_MODE: text`.
+Native slash-command support depends on the client. If slash prompts are not passed through, use `$savepoint` natural language requests.
 
 ## Rules
 
-- Normal use: do not read references, `scripts/*.py`, or `evals/*.json`; run the renderer and validator as commands and inspect their outputs.
-- Stay in artifact scope: do not run `/new`, `/status`, control PTYs, rotate sessions, choose thresholds, or edit application code while creating.
-- Use extra focus text only to narrow the next action. Redact secrets. Do not paste transcripts, full diffs, long logs, shell history, or duplicated PRDs/plans/ADRs/issues/commits.
+- Stay in savepoint scope. Do not edit application code.
+- Do not run `/new`, `/status`, PTY/session rotation, threshold policy, or background process control.
+- Do not read references, `scripts/*.py`, or `evals/*.json` during normal use.
+- Prefer current files, Git state, and durable state files over chat memory.
+- Do not paste transcripts, full diffs, long logs, shell history, PRDs, ADRs, issues, or commits.
+- Reference existing artifacts by path, URL, branch, or commit.
+- Redact API keys, tokens, cookies, credentials, private keys, passwords, `.env` values, and PII as `<redacted>`.
+- File savepoints must end with exactly one `SAVEPOINT_V1` marker block.
+- Keep top-level `SAVEPOINT.md` compact. Use generated `details/*.md` only when needed for recovery.
 
-## Create
+## Create / Save
 
-1. For `/savepoint text`, include only goal, state, next action, blockers/risks, and relevant paths or links.
-2. For Savepoints, inspect and record cwd, Git root, branch, short HEAD, status, diff stat, name-status, staged stat, staged name-status, latest commit, relevant instruction files, and relevant durable state files.
-3. Run the installed renderer: `python3 <savepoint-skill-dir>/scripts/render_savepoint.py --input <input.json> --assert-no-active-commands --scan-redaction --run-savepoint-validation`; inside this repository, root wrapper `python3 scripts/render_savepoint.py --input <input.json> --assert-no-active-commands --scan-redaction --run-savepoint-validation` also works. Then inspect only the generated `.savepoint/SAVEPOINT.md`.
-4. Renderer input minimum fields: `goal`, `current_state`, `next_action`; for ready Savepoints, also record passing `project_validation`. Do not read renderer source to discover input shape.
-5. Renderer exit code `2` can still mean a not-ready `SAVEPOINT.md` was written. Inspect the file, report blockers, and do not continue unless `RESUME_READY: yes`.
-6. For adopted generated default savepoints, later create/update requests refresh `.savepoint/SAVEPOINT.md` in place unless the user asks to preserve history.
-7. Validate with `python3 <savepoint-skill-dir>/scripts/validate_savepoint.py .savepoint/SAVEPOINT.md`; inside this repository, root wrapper `python3 scripts/validate_savepoint.py .savepoint/SAVEPOINT.md` also works. Fix errors before setting `RESUME_READY: yes`.
+1. Use the provided focus text, if any, only to narrow the next action.
+2. Capture repo state: cwd, Git root, branch, short HEAD, `git status --short`, diff stat, name-status, staged stat, staged name-status, latest commit, instruction files, and durable state files.
+3. Write compact input JSON with at least `goal`, `current_state`, `next_action`, `files_to_inspect_first`, `blockers`, and `validation.project.status`.
+4. Use project validation status exactly as one of `passed`, `failed-expected`, `failed-blocking`, `not-run-justified`, or `not-run-unknown`. For `failed-expected` or `not-run-justified`, include a reason and next validation command.
+5. Run:
+
+```bash
+python3 <savepoint-skill-dir>/scripts/savepoint.py save --input .savepoint/input.json --output .savepoint/SAVEPOINT.md --assert-no-active-commands --scan-redaction --validate
+```
+
+Inside this repository, `python3 scripts/savepoint.py save ...` also works.
+
+6. For refresh, append `--force` only when the existing file is the generated, untracked, valid default artifact `.savepoint/SAVEPOINT.md` and the user did not ask to preserve history; otherwise preserve or ask.
+7. Inspect only the generated `.savepoint/SAVEPOINT.md`.
+8. Report exact path, `RESUME_READY`, blockers if any, and the first next action.
+
+Renderer exit code `2` can still mean a not-ready `SAVEPOINT.md` was written. Inspect the file, report blockers, and do not continue unless `RESUME_READY: yes`.
 
 ## Load / Resume
 
-1. Verify cwd, Git root, branch, short HEAD, status, and diff before trusting a savepoint.
-2. Read applicable instructions and the selected savepoint: user path first, then `.savepoint/SAVEPOINT.md`.
-3. Compare claims with the working tree; disk state wins, and drift must be reported before edits.
-4. Continue only when the user requested continuation and `RESUME_READY` is `yes`; otherwise stop after the report.
-5. Cleanup only adopted, generated, untracked artifacts. For inspect-only requests, do not clean up by default.
+1. Read the selected savepoint: user path first, then `.savepoint/SAVEPOINT.md`.
+2. Verify cwd, Git root, branch, short HEAD, status, and diff against current disk state.
+3. Disk state wins over savepoint text. Report drift before edits.
+4. Continue only when the user requested continuation and `RESUME_READY` is `yes`, with no blocking drift or missing required file.
+5. For inspect-only requests, do not clean up by default.
+
+## Text Mode
+
+Use text mode only when the user explicitly asks for copy-paste, text-only, `no-file`, `no files`, `in-response`, or `in the response`.
+
+Run:
+
+```bash
+python3 <savepoint-skill-dir>/scripts/savepoint.py text --input .savepoint/input.json
+```
+
+Text mode must not claim `.savepoint/SAVEPOINT.md` was written, repo recovery is guaranteed, or `RESUME_READY: yes`.
+
+## Advanced Cases
+
+Read `references/contract.md` only when marker semantics, cleanup, stale savepoints, detail spillover, overwrite adoption, or safe-resume edge cases are unclear.
+
+Read `references/safety.md` only when secret redaction or secret-like paths are involved.
+
+Read `references/template.md` only when the renderer is unavailable and a manual artifact is unavoidable.

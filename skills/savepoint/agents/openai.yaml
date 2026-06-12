@@ -1,4 +1,7 @@
 interface:
   display_name: "Savepoint"
-  short_description: "Create, load, or text-export coding-session savepoints"
-  default_prompt: "Use $savepoint for /savepoint save, /savepoint load, or /savepoint text: create .savepoint/SAVEPOINT.md with Git/disk state, load and verify an existing Savepoint, or produce a response-only copy-paste text handoff."
+  short_description: "Recoverable coding-session checkpoint"
+  default_prompt: "Use $savepoint to create, load, verify, or text copy-paste .savepoint/SAVEPOINT.md with repo/Git state, redaction, validation posture, and a resume prompt."
+
+policy:
+  allow_implicit_invocation: true
