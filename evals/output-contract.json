@@ -44,6 +44,18 @@
       ]
     },
     {
+      "id": "resume-ready-failed-expected-01",
+      "category": "resume-ready-semantics",
+      "scenario": "Project validation failed in a known expected way, with command evidence, reason, and next validation command.",
+      "must": [
+        "Project validation is recorded as failed-expected",
+        "failed command, result, and summary evidence are recorded",
+        "expected failure reason is recorded",
+        "next validation command is recorded",
+        "RESUME_READY yes is allowed when other hard blockers are absent"
+      ]
+    },
+    {
       "id": "resume-ready-failed-blocking-01",
       "category": "resume-ready-semantics",
       "scenario": "Project validation failed in an unexplained or blocking way.",

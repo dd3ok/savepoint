@@ -36,4 +36,4 @@ For each case:
 - `SKILL.md` frontmatter parses as valid YAML.
 - File artifacts have a final marker block that is present and honest; text notes omit it by default.
 - `VALIDATION_RECORDED: yes` means savepoint artifact validation and project validation posture are recorded.
-- `RESUME_READY: yes` can coexist with `not-run-justified` or `failed-expected` project validation when reason and next validation command are recorded.
+- `RESUME_READY: yes` can coexist with `not-run-justified` when reason and next validation command are recorded, or with `failed-expected` when failed command evidence, reason, and next validation command are recorded.

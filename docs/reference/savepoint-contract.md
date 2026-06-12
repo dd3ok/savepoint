@@ -193,7 +193,7 @@ Field meanings:
 - `DETAILS_READY`: `yes` for file detail spillover artifacts, `not-needed` when there are no generated details, otherwise `no`.
 - `PROMPT_READY`: `yes` when file `SAVEPOINT.md` contains an embedded `## Resume Prompt`, or a text response provides a transfer note with a usable next-step prompt.
 - `DISK_RECORDED`: `yes` only when the required repo snapshot was recorded.
-- `VALIDATION_RECORDED`: `yes` when savepoint artifact validation and project validation posture are recorded, including passed, expected failed, or intentionally skipped project validation with reason and next command.
+- `VALIDATION_RECORDED`: `yes` when savepoint artifact validation and project validation posture are recorded, including passed validation, expected failed validation with failed command/result/summary evidence plus explicit reason and next command, or intentionally skipped validation with reason and next command.
 - `REDACTION_CHECKED`: `yes` only after checking generated artifacts or text output for secrets.
 - `RESUME_READY`: `yes` only when the safe resume checklist passes.
 - `BLOCKERS`: `none` or a short reason preventing safe continuation.
@@ -227,7 +227,7 @@ When file artifacts are written, attempt the bundled savepoint validator (`scrip
 Project validation posture uses these statuses:
 
 - `passed`: project validation passed; `RESUME_READY: yes` is allowed.
-- `failed-expected`: project validation failed in a known, documented way; `RESUME_READY: yes` is allowed only with reason and next validation command.
+- `failed-expected`: project validation failed in a known, documented way; `RESUME_READY: yes` is allowed only with failed command/result/summary evidence, explicit reason, and next validation command.
 - `not-run-justified`: project validation was not run for a stated reason; `RESUME_READY: yes` is allowed only with reason and next validation command.
 - `failed-blocking`: project validation failed in a blocking or unexplained way; `RESUME_READY: no`.
 - `not-run-unknown`: project validation was not run without enough reason or next command; `RESUME_READY: no`.

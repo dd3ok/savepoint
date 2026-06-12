@@ -116,6 +116,7 @@ PROJECT_VALIDATION_STATUS_ORDER = [
 ]
 PROJECT_VALIDATION_NEXT_REQUIRED = {"failed-expected", "not-run-justified"}
 VALIDATION_FAILURE_RE = re.compile(r"\b(fail|fails|failed|failing|failure|error|errors|not-run|not run|skipped)\b")
+NEGATED_FAILURE_RE = re.compile(r"\b(no|zero|0)\s+(failures?|errors?)\b")
 
 
 def validate_savepoint(path: Path, allow_example_paths: bool = False) -> list[str]:
@@ -248,35 +249,66 @@ def validate_validation_status(path: Path, text: str) -> list[str]:
             errors.append(
                 f"{path}: Project validation status {status} requires a next validation command"
             )
+        if status == "failed-expected" and not project_validation_command_evidence_present(text):
+            errors.append(
+                f"{path}: Project validation status failed-expected requires command evidence"
+            )
     return errors
 
 
 def passed_validation_has_failure_terms(text: str) -> bool:
-    value = field_value_or_block(text, "- Project validation:").lower().replace("_", "-")
+    value = project_validation_value(text).lower().replace("_", "-")
     if "passed" not in value:
         return False
-    return bool(VALIDATION_FAILURE_RE.search(value))
+    return contains_blocking_failure(value)
+
+
+def contains_blocking_failure(text: str) -> bool:
+    return bool(VALIDATION_FAILURE_RE.search(NEGATED_FAILURE_RE.sub("", text.lower())))
+
+
+def project_validation_value(text: str) -> str:
+    value = field_value_or_block(text, "- Project validation:")
+    lines = [re.sub(r"^\s*-\s*", "", line.strip()) for line in value.splitlines()]
+    return "\n".join(line for line in lines if line).strip()
+
+
+def project_validation_body(text: str, status: str) -> str:
+    value = project_validation_value(text)
+    return re.sub(rf"(?is)^\s*`?{re.escape(status)}`?\s*[:\-]?\s*", "", value, count=1).strip()
+
+
+def project_validation_command_evidence_present(text: str) -> bool:
+    value = NEGATED_FAILURE_RE.sub("", project_validation_body(text, "failed-expected").lower())
+    return bool(
+        re.search(
+            r"\b(fail|fails|failed|failing|failure|error|errors)\b\s*:\s*`[^`]+`\s+-\s*\S",
+            value,
+        )
+    )
 
 
 def project_validation_reason_present(text: str, status: str) -> bool:
-    value = field_value_or_block(text, "- Project validation:")
-    normalized = value.lower().replace("_", "-")
-    index = normalized.find(status)
-    if index == -1:
-        return False
-    reason = value[index + len(status):].strip(" :-`\n\t")
+    body = project_validation_body(text, status)
+    if status == "failed-expected":
+        match = re.search(r"(?is)(?:^|[;\n])\s*reason\s*:\s*(.+)", body)
+        if not match:
+            return False
+        reason = match.group(1).strip(" :-`\n\t")
+        return not is_placeholder_value(reason, allow_absence=False)
+    reason = body.strip(" :-`\n\t")
     return not is_placeholder_value(reason, allow_absence=False)
 
 
 def project_validation_status(text: str) -> str:
-    value = field_value_or_block(text, "- Project validation:").lower().replace("_", "-")
+    value = project_validation_value(text).lower().replace("_", "-")
     lead = value.strip().splitlines()[0] if value.strip() else ""
     for status in PROJECT_VALIDATION_STATUS_ORDER:
         if re.match(rf"^`?{re.escape(status)}\b", lead):
             return status
-    if re.search(r"\b(pass|passed|ok|success|succeeded)\b", lead) and not VALIDATION_FAILURE_RE.search(lead):
+    if re.search(r"\b(pass|passed|ok|success|succeeded)\b", lead) and not contains_blocking_failure(lead):
         return "passed"
-    if re.search(r"\b(fail|fails|failed|failing|failure|error|errors)\b", lead):
+    if re.search(r"\b(fail|fails|failed|failing|failure|error|errors)\b", NEGATED_FAILURE_RE.sub("", lead)):
         return "failed-blocking"
     if re.search(r"\b(not-run|not run|skipped)\b", lead):
         return "not-run-unknown"

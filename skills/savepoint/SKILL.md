@@ -35,7 +35,7 @@ Native slash-command support depends on the client. If slash prompts are not pas
 
 1. Treat provided focus text, if any, only as next-session focus.
 2. Capture repo/Git state and write compact input JSON with `goal`, `current_state`, `next_action`, `files_to_inspect_first`, and `unresolved_blockers`; start with `python3 <savepoint-skill-dir>/scripts/savepoint.py init-input --output .savepoint/input.json` if blank.
-3. Set `validation.project.status` to one of `passed`, `failed-expected`, `failed-blocking`, `not-run-justified`, or `not-run-unknown`. For `failed-expected` or `not-run-justified`, include a reason and next validation command.
+3. Set `validation.project.status` to one of `passed`, `failed-expected`, `failed-blocking`, `not-run-justified`, or `not-run-unknown`. For `failed-expected`, include failed command/result/summary evidence, an explicit reason, and next validation command. For `not-run-justified`, include a reason and next validation command.
 4. Run:
 
 ```bash

@@ -644,6 +644,27 @@ def test_validation_status_token_matrix_is_consistent() -> None:
         validator.project_validation_status(reason_with_passed) == "failed-expected",
         "validator should parse canonical status before reason text containing passed",
     )
+    for phrase in ["0 errors", "zero errors", "no errors", "0 failures", "zero failures", "no failures"]:
+        commands = [
+            {
+                "command": "npm run lint",
+                "result": "passed",
+                "summary": phrase,
+            }
+        ]
+        require(
+            renderer.project_validation_passed(commands),
+            f"renderer treated negated failure phrase {phrase!r} as blocking",
+        )
+        passed_text = f"- Project validation: passed: `npm run lint` - {phrase}\n"
+        require(
+            not validator.passed_validation_has_failure_terms(passed_text),
+            f"validator treated negated failure phrase {phrase!r} as blocking",
+        )
+        require(
+            validator.project_validation_status(passed_text) == "passed",
+            f"validator did not classify negated failure phrase {phrase!r} as passed",
+        )
 
 
 def test_renderer_rejects_removed_project_validation_input() -> None:
@@ -913,11 +934,100 @@ def test_renderer_failed_expected_project_validation_can_resume_ready() -> None:
         )
         require(result.returncode == 0, result.stderr or result.stdout)
         text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
-        require("Project validation: failed-expected" in text, "expected failure status missing")
+        require("failed-expected" in text, "expected failure status missing")
+        require("reason: known failing auth edge case is the next task" in text, "expected failure reason missing")
         require("RESUME_READY: yes" in text, "expected project validation failure should allow resume-ready")
         require("validation-failed-blocking" not in text, "expected failure must not be marked blocking")
         validation = run([sys.executable, str(VALIDATOR), str(repo / ".savepoint" / "SAVEPOINT.md")], repo)
         require(validation.returncode == 0, validation.stderr or validation.stdout)
+
+
+def test_renderer_failed_expected_without_command_fields_stays_unsafe() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = repo / "savepoint-input.json"
+        input_path.write_text(
+            """{
+  "goal": "finish expected failure evidence",
+  "current_state": "expected project failure is documented but no command evidence was recorded",
+  "next_action": "record the exact failing command before continuing",
+  "validation": {
+    "project": {
+      "status": "failed-expected",
+      "reason": "known failing auth edge case is the next task",
+      "commands": [],
+      "next_validation": "python -m pytest tests/auth"
+    }
+  }
+}
+""",
+            encoding="utf-8",
+        )
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "expected failure without command evidence should stay unsafe")
+        text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
+        require("validation-command-missing" in text, "missing command evidence blocker missing")
+        require("RESUME_READY: no" in text, "expected failure without command evidence must block resume-ready")
+        require("VALIDATION_RECORDED: no" in text, "missing command evidence should not count as validation recorded")
+        validation = run([sys.executable, str(VALIDATOR), str(repo / ".savepoint" / "SAVEPOINT.md")], repo)
+        require(validation.returncode == 0, validation.stderr or validation.stdout)
+
+
+def test_renderer_failed_expected_with_passed_command_stays_unsafe() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = repo / "savepoint-input.json"
+        input_path.write_text(
+            """{
+  "goal": "finish expected failure evidence",
+  "current_state": "expected project failure is documented with a non-failing command",
+  "next_action": "record the exact failing command before continuing",
+  "validation": {
+    "project": {
+      "status": "failed-expected",
+      "reason": "known failing auth edge case is the next task",
+      "commands": [
+        {
+          "command": "python -m pytest tests/auth",
+          "result": "passed",
+          "summary": "0 errors"
+        }
+      ],
+      "next_validation": "python -m pytest tests/auth"
+    }
+  }
+}
+""",
+            encoding="utf-8",
+        )
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "expected failure with passed command evidence should stay unsafe")
+        text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
+        require("validation-failed-evidence-missing" in text, "missing failed evidence blocker missing")
+        require("RESUME_READY: no" in text, "passed command cannot satisfy expected failure evidence")
+        require("VALIDATION_RECORDED: no" in text, "passed command should not count as failed-expected validation recorded")
 
 
 def test_renderer_not_run_justified_without_next_validation_stays_unsafe() -> None:
@@ -1471,7 +1581,7 @@ def test_compact_validator_accepts_failed_expected_project_validation() -> None:
         repo = make_repo(Path(tmp))
         output = write_compact_resume_ready_savepoint(
             repo,
-            project_validation="failed-expected: known failing auth edge case is the next task",
+            project_validation="failed-expected: failed: `python -m pytest tests/auth` - auth edge case failed; reason: known failing auth edge case is the next task",
             skipped_checks="python -m pytest tests/auth",
         )
         validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
@@ -1509,12 +1619,38 @@ def test_compact_validator_rejects_expected_failure_without_next_validation() ->
         repo = make_repo(Path(tmp))
         output = write_compact_resume_ready_savepoint(
             repo,
-            project_validation="failed-expected: known failing auth edge case is the next task",
+            project_validation="failed-expected: failed: `python -m pytest tests/auth` - auth edge case failed; reason: known failing auth edge case is the next task",
             skipped_checks="none",
         )
         validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
         require(validation.returncode != 0, "compact validator accepted expected failure without next validation")
         require("next validation" in validation.stderr, "missing next validation error not reported")
+
+
+def test_compact_validator_rejects_expected_failure_without_command_evidence() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = write_compact_resume_ready_savepoint(
+            repo,
+            project_validation="failed-expected: `python -m pytest tests/auth` - known failing auth edge case; reason: known failing auth edge case is the next task",
+            skipped_checks="python -m pytest tests/auth",
+        )
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode != 0, "compact validator accepted expected failure without result evidence")
+        require("command evidence" in validation.stderr, "missing result evidence error not reported")
+
+
+def test_compact_validator_rejects_expected_failure_with_passed_command_evidence() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = write_compact_resume_ready_savepoint(
+            repo,
+            project_validation="failed-expected: passed: `python -m pytest tests/auth` - 0 errors; reason: known failing auth edge case is the next task",
+            skipped_checks="python -m pytest tests/auth",
+        )
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode != 0, "compact validator accepted passed command as expected failure evidence")
+        require("command evidence" in validation.stderr, "passed command evidence error not reported")
 
 
 def test_compact_validator_rejects_not_run_justified_without_reason() -> None:
@@ -1535,7 +1671,7 @@ def test_compact_validator_rejects_expected_failure_without_reason() -> None:
         repo = make_repo(Path(tmp))
         output = write_compact_resume_ready_savepoint(
             repo,
-            project_validation="failed-expected",
+            project_validation="failed-expected: failed: `python -m pytest tests/auth` - known failing auth edge case is the next task",
             skipped_checks="python -m pytest tests/auth",
         )
         validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
@@ -1561,7 +1697,7 @@ def test_compact_validator_status_parsing_is_hash_seed_stable() -> None:
         repo = make_repo(Path(tmp))
         output = write_compact_resume_ready_savepoint(
             repo,
-            project_validation="failed-expected: known failure; previous lint passed",
+            project_validation="failed-expected: failed: `python -m pytest tests/auth` - known failure; reason: known failure; previous lint passed",
             skipped_checks="python -m pytest tests/auth",
         )
         for seed in ["0", "3", "42"]:
@@ -1777,6 +1913,8 @@ def main() -> int:
         test_renderer_structured_passed_validation_with_failing_text_stays_unsafe,
         test_renderer_not_run_justified_project_validation_can_resume_ready,
         test_renderer_failed_expected_project_validation_can_resume_ready,
+        test_renderer_failed_expected_without_command_fields_stays_unsafe,
+        test_renderer_failed_expected_with_passed_command_stays_unsafe,
         test_renderer_not_run_justified_without_next_validation_stays_unsafe,
         test_renderer_failed_blocking_project_validation_stays_unsafe,
         test_renderer_missing_next_action_stays_unsafe,
@@ -1799,6 +1937,8 @@ def main() -> int:
         test_compact_validator_rejects_not_run_unknown_project_validation,
         test_compact_validator_rejects_failed_blocking_project_validation,
         test_compact_validator_rejects_expected_failure_without_next_validation,
+        test_compact_validator_rejects_expected_failure_without_command_evidence,
+        test_compact_validator_rejects_expected_failure_with_passed_command_evidence,
         test_compact_validator_rejects_not_run_justified_without_reason,
         test_compact_validator_rejects_expected_failure_without_reason,
         test_compact_validator_rejects_passed_validation_with_failure_text,

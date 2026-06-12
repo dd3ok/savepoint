@@ -37,6 +37,8 @@ PROJECT_VALIDATION_STATUSES = {
 PROJECT_VALIDATION_NEXT_REQUIRED = {"failed-expected", "not-run-justified"}
 CLEAR_BLOCKER_VALUES = {"none", "no", "not-needed", "not needed"}
 VALIDATION_FAILURE_RE = re.compile(r"\b(fail|fails|failed|failing|failure|error|errors|not-run|not run|skipped)\b")
+EXPECTED_FAILURE_RE = re.compile(r"\b(fail|fails|failed|failing|failure|error|errors)\b")
+NEGATED_FAILURE_RE = re.compile(r"\b(no|zero|0)\s+(failures?|errors?)\b")
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -151,13 +153,35 @@ def project_validation_passed(value: Any) -> bool:
         result = clean_text(item.get("result"), fallback="").lower()
         summary = clean_text(item.get("summary"), fallback="").lower()
         combined = f"{result} {summary}"
-        passed = bool(re.search(r"\b(pass|passed|ok|success|succeeded)\b", combined)) and not VALIDATION_FAILURE_RE.search(combined)
+        passed = bool(re.search(r"\b(pass|passed|ok|success|succeeded)\b", combined)) and not contains_blocking_failure(combined)
         if passed:
             saw_valid_entry = True
             continue
         if not passed:
             return False
     return saw_valid_entry
+
+
+def contains_blocking_failure(text: str) -> bool:
+    return bool(VALIDATION_FAILURE_RE.search(NEGATED_FAILURE_RE.sub("", text.lower())))
+
+
+def contains_expected_failure_evidence(text: str) -> bool:
+    return bool(EXPECTED_FAILURE_RE.search(NEGATED_FAILURE_RE.sub("", text.lower())))
+
+
+def project_validation_failed_expected(value: Any) -> bool:
+    if not isinstance(value, list):
+        return False
+    saw_failure_entry = False
+    for item in value:
+        if not project_validation_command_complete(item):
+            return False
+        result = clean_text(item.get("result"), fallback="").lower()
+        summary = clean_text(item.get("summary"), fallback="").lower()
+        if contains_expected_failure_evidence(f"{result} {summary}"):
+            saw_failure_entry = True
+    return saw_failure_entry
 
 
 def normalize_project_validation_status(value: Any) -> str:
@@ -191,6 +215,7 @@ def project_validation_posture(data: dict[str, Any]) -> dict[str, Any]:
             "next_validation": next_validation,
             "source": "validation.project",
             "commands_complete": project_validation_commands_complete(raw_commands),
+            "commands_expected_failure": project_validation_failed_expected(raw_commands),
         }
 
     return {
@@ -200,6 +225,7 @@ def project_validation_posture(data: dict[str, Any]) -> dict[str, Any]:
         "next_validation": "",
         "source": "validation.project",
         "commands_complete": False,
+        "commands_expected_failure": False,
     }
 
 
@@ -210,6 +236,11 @@ def project_validation_entries(data: dict[str, Any]) -> list[str]:
     reason = posture["reason"]
     if status == "passed":
         return commands
+    if status == "failed-expected" and commands:
+        entries = "; ".join(commands)
+        if reason:
+            entries = f"{entries}; reason: {reason}"
+        return [f"{status}: {entries}"]
     if commands:
         return [f"{status}: {entry}" for entry in commands]
     if reason:
@@ -226,7 +257,13 @@ def project_validation_recorded(posture: dict[str, Any]) -> bool:
     if status == "failed-blocking":
         return bool(posture["commands"] or posture["reason"])
     if status == "failed-expected":
-        return bool(posture["reason"] and posture["next_validation"])
+        return bool(
+            posture["commands"]
+            and posture.get("commands_complete")
+            and posture.get("commands_expected_failure")
+            and posture["reason"]
+            and posture["next_validation"]
+        )
     if status == "not-run-justified":
         return bool(posture["reason"] and posture["next_validation"])
     return False
@@ -364,7 +401,16 @@ def blockers_for(data: dict[str, Any], args: argparse.Namespace, redaction_ok: b
         blockers.append("validation-not-run-unknown")
     elif posture["status"] == "failed-blocking":
         blockers.append("validation-failed-blocking")
-    elif posture["status"] in PROJECT_VALIDATION_NEXT_REQUIRED:
+    elif posture["status"] == "failed-expected":
+        if not posture.get("commands_complete"):
+            blockers.append("validation-command-missing")
+        elif not posture.get("commands_expected_failure"):
+            blockers.append("validation-failed-evidence-missing")
+        if not posture["reason"]:
+            blockers.append("validation-reason-missing")
+        if not posture["next_validation"]:
+            blockers.append("validation-next-command-missing")
+    elif posture["status"] == "not-run-justified":
         if not posture["reason"]:
             blockers.append("validation-reason-missing")
         if not posture["next_validation"]:

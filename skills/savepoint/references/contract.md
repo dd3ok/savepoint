@@ -28,7 +28,7 @@ Hard blockers:
 Project validation statuses:
 
 - `passed`: resume-ready is allowed.
-- `failed-expected`: resume-ready is allowed when the failure is documented with a reason and next validation command.
+- `failed-expected`: resume-ready is allowed when the failed command/result/summary, reason, and next validation command are recorded.
 - `not-run-justified`: resume-ready is allowed when the skip reason and next validation command are recorded.
 - `failed-blocking`: resume-ready is not allowed.
 - `not-run-unknown`: resume-ready is not allowed.
