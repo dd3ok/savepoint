@@ -1,12 +1,10 @@
 ---
 name: savepoint
-description: "Create or load a recoverable coding-session checkpoint at .savepoint/SAVEPOINT.md so a fresh agent can resume from current repo/Git state. Use for context reset, session transfer, 세이브포인트 만들어줘, 세이브포인트 로드해줘, 세이브포인트 읽어줘, 세이브포인트 이어서 해줘. Not for SQL SAVEPOINT, ordinary summaries, direct code/docs edits without checkpoint intent, /status, /new, PTY/session control, session rotation, or app features named savepoint."
+description: "Recoverable coding-session checkpoint at .savepoint/SAVEPOINT.md for context reset/session transfer. Use for 세이브포인트 만들어줘, 세이브포인트 로드해줘, 세이브포인트 읽어줘, 세이브포인트 이어서 해줘. Not for SQL SAVEPOINT, ordinary summaries, direct code/docs edits without checkpoint intent, /status, /new, PTY/session control, session rotation, or app features named savepoint."
 argument-hint: "[save|load|text] [next-session focus]"
 ---
 
 # Savepoint
-
-Create/load a recoverable repo/Git checkpoint without prior chat context.
 
 Modes:
 - default or `save`: create or refresh `.savepoint/SAVEPOINT.md`
@@ -30,11 +28,10 @@ If slash prompts are unavailable, treat natural-language `$savepoint` requests t
 ## Create / Save
 
 1. Treat any focus text only as next-session focus.
-2. Capture repo/Git state in compact input JSON with `goal`, `current_state`, `next_action`, `files_to_inspect_first`, and `unresolved_blockers`; if blank, start with `python3 <savepoint-skill-dir>/scripts/savepoint.py init-input --output .savepoint/input.json`.
-3. Set `validation.project.status` to `passed`, `failed-expected`, `failed-blocking`, `not-run-justified`, or `not-run-unknown`. `failed-expected` needs failed command/result/summary evidence, reason, and next validation command. `not-run-justified` needs reason and next validation command.
+2. Capture repo/Git state in compact input JSON with `goal`, `current_state`, `next_action`, `files_to_inspect_first`, and `unresolved_blockers`; if blank, run `python3 <savepoint-skill-dir>/scripts/savepoint.py init-input --output .savepoint/input.json`.
+3. Set `validation.project.status` to `passed`, `failed-expected`, `failed-blocking`, `not-run-justified`, or `not-run-unknown`. `failed-expected` needs failed command/result/summary, reason, next validation; `not-run-justified` needs reason and next validation.
 4. Run `python3 <savepoint-skill-dir>/scripts/savepoint.py save --input .savepoint/input.json --output .savepoint/SAVEPOINT.md --assert-no-active-commands --scan-redaction --validate`; in this repo, `python3 scripts/savepoint.py save ...` also works.
-5. Inspect only the generated `.savepoint/SAVEPOINT.md`.
-6. Report exact path, `RESUME_READY`, blockers if any, and the first next action.
+5. Inspect only generated `.savepoint/SAVEPOINT.md`; report exact path, `RESUME_READY`, blockers if any, and the first next action.
 
 Exit code `2` may still write a not-ready `SAVEPOINT.md`; inspect it, report blockers, and do not continue unless `RESUME_READY: yes`.
 
@@ -56,6 +53,6 @@ Text mode must not claim `.savepoint/SAVEPOINT.md` was written, recovery is guar
 
 ## Advanced Cases
 
-Read references only when normal CLI use is insufficient: `references/contract.md` for marker/safe-resume/cleanup/staleness/detail/overwrite edge cases, `references/safety.md` for secret-like paths, and `references/template.md` when the renderer is unavailable.
+Read references only when normal CLI use is insufficient: `references/contract.md` for marker/resume/cleanup/stale/detail/overwrite, `references/safety.md` for secrets, `references/template.md` for renderer fallback.
 
-For refresh, append `--force` only when the existing file is the generated, untracked, valid default artifact `.savepoint/SAVEPOINT.md` and the user did not ask to preserve history; otherwise preserve or ask.
+For refresh, append `--force` only when the existing file is the generated, untracked, valid default artifact `.savepoint/SAVEPOINT.md` and history need not be preserved; otherwise preserve or ask.

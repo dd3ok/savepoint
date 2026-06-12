@@ -314,8 +314,8 @@ class Validator:
             if phrase not in skill_text:
                 self.fail(f"SKILL.md missing required policy: {phrase}")
         skill_line_count = len(skill_text.splitlines())
-        if skill_line_count > 65:
-            self.fail(f"SKILL.md should stay concise at <=65 lines, got {skill_line_count}")
+        if skill_line_count > 60:
+            self.fail(f"SKILL.md should stay concise at <=60 lines, got {skill_line_count}")
         for phrase in [
             "direct flags such as",
             "do not combine direct flags",
