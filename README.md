@@ -2,6 +2,8 @@
 
 Savepoint creates or verifies a recoverable coding-session checkpoint so a fresh agent can continue from current repo/Git state without prior chat context.
 
+Savepoint is not a lightweight conversation summary. It is a recoverable repo/Git checkpoint; use `/savepoint text` or an ordinary summary when file recovery is unnecessary.
+
 ## 30-second usage
 
 ```text
@@ -46,17 +48,7 @@ If a client does not pass custom slash prompts through, use the natural-language
 - Future conflicts are impossible.
 - Repo recovery from text mode.
 
-## Runtime command
-
-The public entrypoint is:
-
-```bash
-python3 scripts/savepoint.py save --input .savepoint/input.json --output .savepoint/SAVEPOINT.md --assert-no-active-commands --scan-redaction --validate
-python3 scripts/savepoint.py init-input --output .savepoint/input.json
-python3 scripts/savepoint.py validate .savepoint/SAVEPOINT.md
-python3 scripts/savepoint.py inspect .savepoint/SAVEPOINT.md --json
-python3 scripts/savepoint.py text --input .savepoint/input.json
-```
+## Minimal CLI workflow
 
 The portable skill entrypoint is `skills/savepoint/scripts/savepoint.py`; repository-local commands use `scripts/savepoint.py`.
 
@@ -71,42 +63,7 @@ python3 scripts/savepoint.py save --input .savepoint/input.json --output .savepo
 python3 scripts/savepoint.py inspect .savepoint/SAVEPOINT.md --json
 ```
 
-For a short savepoint without editing JSON:
-
-```bash
-python3 scripts/savepoint.py save \
-  --output .savepoint/SAVEPOINT.md \
-  --assert-no-active-commands --scan-redaction --validate \
-  --goal "finish the focused fix" \
-  --current-state "implementation is done" \
-  --next-action "run the final validation suite" \
-  --project-status passed \
-  --validation-command "python3 scripts/check-savepoint-renderer.py" \
-  --validation-result passed \
-  --validation-summary "focused renderer checks passed"
-```
-
-With `--scan-redaction`, the input JSON is scanned before rendering. Do not put raw secrets in `.savepoint/input.json`. Add `--delete-input-on-success` to remove `.savepoint/input.json` only after a resume-ready save succeeds.
-
-Existing automation should call `scripts/savepoint.py`. Update old root-wrapper calls as:
-
-| Old call | Current call |
-|---|---|
-| `scripts/render_savepoint.py --input ...` | `scripts/savepoint.py save --input ...` |
-| `scripts/validate_savepoint.py ...` | `scripts/savepoint.py validate ...` |
-
-Use `validation.project` for project validation input. Replace old top-level input keys as:
-
-| Old key | Current field |
-|---|---|
-| `project_validation` | `validation.project.commands` plus `validation.project.status` |
-| `skipped_checks_next_validation` | `validation.project.next_validation` |
-| `smallest_next_step` | `next_action` |
-| `blockers` | `unresolved_blockers` |
-
-For `failed-expected` or `not-run-justified`, include the reason and next validation command.
-
-Use the listed English `validation.project.status` values. Validation command `result` should use canonical English values such as `passed` or `failed`; summaries and reasons may be any language.
+Use `validation.project.status` values `passed`, `failed-expected`, `failed-blocking`, `not-run-justified`, or `not-run-unknown`. With `--scan-redaction`, the input JSON is scanned before rendering; do not put raw secrets in `.savepoint/input.json`.
 
 ## Install
 
@@ -123,13 +80,6 @@ python3 scripts/install.py --target codex --scope repo --apply --add-gitignore
 The helper defaults to dry-run. It writes files only with `--apply`. With repo-scope install, `--add-gitignore` appends `.savepoint/`.
 
 On Windows, prefer the install helper or a normal Git clone/worktree. Archive extraction tools can mishandle symlinks.
-
-Typical skill locations:
-
-- Codex user skill: `$HOME/.agents/skills/savepoint/`
-- Codex repo skill: `<repo>/.agents/skills/savepoint/`
-- Claude user skill: `$HOME/.claude/skills/savepoint/`
-- Claude project skill: `<repo>/.claude/skills/savepoint/`
 
 ## Runtime boundary
 
@@ -149,27 +99,14 @@ Examples, evals, maintainer docs, and repository validation scripts are not norm
 - `examples/text-note/`: response-only `/savepoint text` note.
 - `examples/unsafe-savepoint/`: intentionally unsafe `RESUME_READY: no` artifact.
 
-## Maintainer validation
+## Maintainer docs
 
 Use `scripts/savepoint.py validate .savepoint/SAVEPOINT.md` for generated artifacts.
 
-Use `scripts/validate-repo.py` only for maintaining this repository. It checks packaging, examples, trigger evals, and marker/schema contracts.
-
-Before committing repository changes, run:
-
-```bash
-python3 scripts/check-frontmatter.py
-python3 scripts/check-marker-block.py
-python3 scripts/check-marker-semantics.py
-python3 scripts/validate-examples.py
-python3 scripts/check-output-contract.py
-python3 scripts/validate-repo.py
-python3 scripts/check-savepoint-renderer.py
-python3 scripts/check-install-helper.py
-python3 scripts/savepoint.py validate --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
-python3 -m compileall -q skills/savepoint/scripts scripts
-git diff --check
-```
+- Repository change validation: `AGENTS.md`.
+- Marker and safe-resume semantics: `docs/reference/savepoint-contract.md`.
+- Compact packaging guidance: `docs/reference/context-packaging.md`.
+- Manual artifact fallback: `docs/reference/savepoint-template.md`.
 
 ## Orchestrators
 

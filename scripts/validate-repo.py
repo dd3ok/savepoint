@@ -284,15 +284,14 @@ class Validator:
                 self.fail(f"root wrapper should not exist: scripts/{removed_wrapper}")
 
         required_skill_phrases = [
-            "Default behavior",
-            "/savepoint        -> create or refresh `.savepoint/SAVEPOINT.md`",
-            "/savepoint save",
-            "/savepoint load",
-            "/savepoint text",
+            "Modes:",
+            "default or `save`: create or refresh `.savepoint/SAVEPOINT.md`",
+            "`load`: verify an existing savepoint and report whether continuation is safe",
+            "`text`: response-only copy-paste handoff; no file recovery guarantee",
             ".savepoint/SAVEPOINT.md",
             "SAVEPOINT_V1",
             "RESUME_READY: yes",
-            "Do not read references, `scripts/*.py`, or `evals/*.json` during normal use.",
+            "Run the bundled CLI; do not inspect implementation source during normal use.",
             "python3 <savepoint-skill-dir>/scripts/savepoint.py save",
             "append `--force` only when",
             "generated, untracked, valid default artifact",
@@ -308,6 +307,15 @@ class Validator:
         for phrase in required_skill_phrases:
             if phrase not in skill_text:
                 self.fail(f"SKILL.md missing required policy: {phrase}")
+        skill_line_count = len(skill_text.splitlines())
+        if not 55 <= skill_line_count <= 65:
+            self.fail(f"SKILL.md should stay concise at 55-65 lines, got {skill_line_count}")
+        for phrase in [
+            "direct flags such as",
+            "do not combine direct flags",
+        ]:
+            if phrase in skill_text:
+                self.fail(f"SKILL.md should not include CLI shortcut detail: {phrase}")
 
         contract_text = self.read(REFERENCE_DIR / "savepoint-contract.md")
         for phrase in [
@@ -383,9 +391,9 @@ class Validator:
             "Savepoint",
             ".savepoint/SAVEPOINT.md",
             "scripts/savepoint.py",
-            "scripts/check-output-contract.py",
-            "scripts/validate-repo.py",
-            "python3 -m compileall",
+            "AGENTS.md",
+            "docs/reference/savepoint-contract.md",
+            "Savepoint is not a lightweight conversation summary.",
         ]:
             if phrase not in readme_text:
                 self.fail(f"README.md missing entry: {phrase}")
@@ -399,12 +407,26 @@ class Validator:
             "Savepoint",
             ".savepoint/SAVEPOINT.md",
             "scripts/savepoint.py",
-            "scripts/check-output-contract.py",
-            "scripts/validate-repo.py",
-            "python3 -m compileall",
+            "AGENTS.md",
+            "docs/reference/savepoint-contract.md",
+            "Savepoint는 가벼운 대화 요약이 아닙니다.",
         ]:
             if phrase not in readme_ko_text:
                 self.fail(f"README.ko.md missing entry: {phrase}")
+        for phrase in [
+            "Old call",
+            "Old key",
+            "Before committing repository changes, run:",
+        ]:
+            if phrase in readme_text:
+                self.fail(f"README.md should not carry maintainer/migration detail: {phrase}")
+        for phrase in [
+            "이전 호출",
+            "이전 key",
+            "커밋 전에는 다음을 실행합니다.",
+        ]:
+            if phrase in readme_ko_text:
+                self.fail(f"README.ko.md should not carry maintainer/migration detail: {phrase}")
 
     def validate_agent_metadata(self) -> None:
         path = SKILL_DIR / "agents" / "openai.yaml"

@@ -6,24 +6,20 @@ argument-hint: "[save|load|text] [next-session focus]"
 
 # Savepoint
 
-Use this skill to preserve or load coding-session state without relying on prior chat context.
+Create or load a recoverable repo/Git checkpoint without relying on prior chat context.
 
-Default behavior:
+Modes:
+- default or `save`: create or refresh `.savepoint/SAVEPOINT.md`
+- `load`: verify an existing savepoint and report whether continuation is safe
+- `text`: response-only copy-paste handoff; no file recovery guarantee
 
-```text
-/savepoint        -> create or refresh `.savepoint/SAVEPOINT.md`
-/savepoint save   -> same as default
-/savepoint load   -> verify an existing savepoint and report whether continuation is safe
-/savepoint text   -> response-only copy-paste handoff; no file recovery guarantee
-```
-
-Native slash-command support depends on the client. If slash prompts are not passed through, use `$savepoint` natural language requests.
+If slash prompts are unavailable, treat natural-language `$savepoint` requests the same way.
 
 ## Rules
 
-- Stay in savepoint scope. Do not edit application code.
+- During save/load verification, stay in savepoint scope and do not edit application code.
 - Do not run `/new`, `/status`, PTY/session rotation, threshold policy, or background process control.
-- Do not read references, `scripts/*.py`, or `evals/*.json` during normal use.
+- Run the bundled CLI; do not inspect implementation source during normal use.
 - Prefer current files, Git state, and durable state files over chat memory.
 - Do not paste transcripts, full diffs, long logs, shell history, PRDs, ADRs, issues, or commits.
 - Reference existing artifacts by path, URL, branch, or commit.
@@ -36,16 +32,7 @@ Native slash-command support depends on the client. If slash prompts are not pas
 1. Treat provided focus text, if any, only as next-session focus.
 2. Capture repo/Git state and write compact input JSON with `goal`, `current_state`, `next_action`, `files_to_inspect_first`, and `unresolved_blockers`; start with `python3 <savepoint-skill-dir>/scripts/savepoint.py init-input --output .savepoint/input.json` if blank.
 3. Set `validation.project.status` to one of `passed`, `failed-expected`, `failed-blocking`, `not-run-justified`, or `not-run-unknown`. For `failed-expected`, include failed command/result/summary evidence, an explicit reason, and next validation command. For `not-run-justified`, include a reason and next validation command.
-4. Run:
-
-```bash
-python3 <savepoint-skill-dir>/scripts/savepoint.py save --input .savepoint/input.json --output .savepoint/SAVEPOINT.md --assert-no-active-commands --scan-redaction --validate
-```
-
-Inside this repository, `python3 scripts/savepoint.py save ...` also works.
-
-For simple savepoints, direct flags such as `--goal`, `--current-state`, `--next-action`, and `--project-status` may replace `--input`; do not combine direct flags with `--input`. Add `--delete-input-on-success` only when `.savepoint/input.json` should be removed after a resume-ready save.
-
+4. Run `python3 <savepoint-skill-dir>/scripts/savepoint.py save --input .savepoint/input.json --output .savepoint/SAVEPOINT.md --assert-no-active-commands --scan-redaction --validate`. Inside this repository, `python3 scripts/savepoint.py save ...` also works.
 5. Inspect only the generated `.savepoint/SAVEPOINT.md`.
 6. Report exact path, `RESUME_READY`, blockers if any, and the first next action.
 
@@ -63,11 +50,7 @@ For simple savepoints, direct flags such as `--goal`, `--current-state`, `--next
 
 Use text mode only when the user explicitly asks for copy-paste, text-only, `no-file`, `no files`, `in-response`, or `in the response`.
 
-Run:
-
-```bash
-python3 <savepoint-skill-dir>/scripts/savepoint.py text --input .savepoint/input.json
-```
+Run `python3 <savepoint-skill-dir>/scripts/savepoint.py text --input .savepoint/input.json`.
 
 Text mode must not claim `.savepoint/SAVEPOINT.md` was written, repo recovery is guaranteed, or `RESUME_READY: yes`.
 
