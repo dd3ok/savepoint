@@ -247,7 +247,15 @@ class Validator:
         lower_description = description.lower()
         if data.get("argument-hint") != "[save|load|text] [next-session focus]":
             self.fail("SKILL.md argument-hint must describe save/load/text and optional focus")
-        for term in ["context reset", "session transfer", "sql", "ordinary summaries", "/new", "/status"]:
+        for term in [
+            "context reset",
+            "session transfer",
+            "sql",
+            "ordinary summaries",
+            "direct code/docs edits without checkpoint intent",
+            "/new",
+            "/status",
+        ]:
             if term not in lower_description:
                 self.fail(f"frontmatter description must include boundary term: {term}")
         for phrase in KOREAN_INVOCATION_PHRASES:

@@ -1,6 +1,6 @@
 ---
 name: savepoint
-description: "Create or load a recoverable coding-session checkpoint at .savepoint/SAVEPOINT.md so a fresh agent can resume from current repo/Git state. Use for context reset, session transfer, 세이브포인트 만들어줘, 세이브포인트 로드해줘, 세이브포인트 읽어줘, 세이브포인트 이어서 해줘. Not for SQL SAVEPOINT, ordinary summaries, code edits, /status, /new, or app features named savepoint."
+description: "Create or load a recoverable coding-session checkpoint at .savepoint/SAVEPOINT.md so a fresh agent can resume from current repo/Git state. Use for context reset, session transfer, 세이브포인트 만들어줘, 세이브포인트 로드해줘, 세이브포인트 읽어줘, 세이브포인트 이어서 해줘. Not for SQL SAVEPOINT, ordinary summaries, direct code/docs edits without checkpoint intent, /status, /new, or app features named savepoint."
 argument-hint: "[save|load|text] [next-session focus]"
 ---
 
@@ -35,7 +35,7 @@ Native slash-command support depends on the client. If slash prompts are not pas
 
 1. Use the provided focus text, if any, only to narrow the next action.
 2. Capture repo state: cwd, Git root, branch, short HEAD, `git status --short`, diff stat, name-status, staged stat, staged name-status, latest commit, instruction files, and durable state files.
-3. Write compact input JSON with at least `goal`, `current_state`, `next_action`, `files_to_inspect_first`, `blockers`, and `validation.project.status`.
+3. Write compact input JSON with at least `goal`, `current_state`, `next_action`, `files_to_inspect_first`, `unresolved_blockers`, and `validation.project.status`. If starting from blank, use `python3 <savepoint-skill-dir>/scripts/savepoint.py init-input --output .savepoint/input.json`; its default project validation status is `not-run-unknown`.
 4. Use project validation status exactly as one of `passed`, `failed-expected`, `failed-blocking`, `not-run-justified`, or `not-run-unknown`. For `failed-expected` or `not-run-justified`, include a reason and next validation command.
 5. Run:
 

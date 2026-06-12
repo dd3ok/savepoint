@@ -35,6 +35,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help=argparse.SUPPRESS,
     )
 
+    init_input = subcommands.add_parser("init-input", help="Write a sample semantic input JSON file.")
+    init_input.add_argument(
+        "--output",
+        type=Path,
+        default=Path(".savepoint") / "input.json",
+        help="Input JSON path to write.",
+    )
+    init_input.add_argument("--force", action="store_true", help="Overwrite an existing input file.")
+
     validate = subcommands.add_parser("validate", help="Validate SAVEPOINT.md artifacts.")
     validate.add_argument(
         "--allow-example-paths",
@@ -78,19 +87,96 @@ def run_validate(args: argparse.Namespace) -> int:
 
 def run_inspect(args: argparse.Namespace) -> int:
     if not args.savepoint.exists():
-        print(f"error: file does not exist: {args.savepoint}", file=sys.stderr)
-        return 1
-    text = args.savepoint.read_text(encoding="utf-8")
+        if args.json:
+            print(json.dumps(inspect_payload(args.savepoint, {}, [f"file does not exist: {args.savepoint}"], []), ensure_ascii=True, indent=2, sort_keys=True))
+        else:
+            print(f"error: file does not exist: {args.savepoint}", file=sys.stderr)
+        return 2
+    try:
+        text = args.savepoint.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        if args.json:
+            print(json.dumps(inspect_payload(args.savepoint, {}, [f"failed to read file: {exc}"], []), ensure_ascii=True, indent=2, sort_keys=True))
+        else:
+            print(f"error: failed to read file: {exc}", file=sys.stderr)
+        return 2
     values, errors = extract_marker_values(args.savepoint, text)
+    if not values and any("found 0" in error for error in errors):
+        if args.json:
+            print(json.dumps(inspect_payload(args.savepoint, values, errors, []), ensure_ascii=True, indent=2, sort_keys=True))
+        else:
+            for error in errors:
+                print(f"error: {error}", file=sys.stderr)
+        return 2
+    validation_errors = [] if errors else validate_savepoint.validate_savepoint(args.savepoint)
+    exit_code = 0 if not errors and not validation_errors else 1
+    if args.json:
+        print(json.dumps(inspect_payload(args.savepoint, values, errors, validation_errors), ensure_ascii=True, indent=2, sort_keys=True))
+        return exit_code
     if errors:
         for error in errors:
             print(f"error: {error}", file=sys.stderr)
-        return 1
-    if args.json:
-        print(json.dumps(values, ensure_ascii=True, indent=2, sort_keys=True))
-        return 0
+    if validation_errors:
+        for error in validation_errors:
+            print(f"error: {error}", file=sys.stderr)
+    if exit_code != 0:
+        return exit_code
     for key, value in values.items():
         print(f"{key}: {value}")
+    return 0
+
+
+def inspect_payload(path: Path, values: dict[str, str], marker_errors: list[str], validation_errors: list[str]) -> dict[str, object]:
+    blocker_text = values.get("BLOCKERS", "")
+    blockers = [] if blocker_text in {"", "none"} else [item for item in blocker_text.split(",") if item]
+    errors = [*marker_errors, *validation_errors]
+    marker_valid = bool(values) and not marker_errors
+    savepoint_valid = marker_valid and not validation_errors
+    return {
+        **values,
+        "path": str(path),
+        "mode": values.get("SAVEPOINT_MODE"),
+        "resume_ready": savepoint_valid and values.get("RESUME_READY") == "yes",
+        "blockers": blockers or (["marker-invalid"] if marker_errors else []),
+        "marker_valid": marker_valid,
+        "savepoint_valid": savepoint_valid,
+        "details_ready": values.get("DETAILS_READY"),
+        "validation_recorded": values.get("VALIDATION_RECORDED") == "yes",
+        "redaction_checked": values.get("REDACTION_CHECKED") == "yes",
+        "errors": errors,
+    }
+
+
+def run_init_input(args: argparse.Namespace) -> int:
+    output = args.output if args.output.is_absolute() else Path.cwd() / args.output
+    if output.exists() and not args.force:
+        print(f"error: output already exists: {output}\nRe-run with --force to overwrite.", file=sys.stderr)
+        return 1
+    sample = {
+        "goal": "",
+        "current_state": "",
+        "next_action": "",
+        "focus": "",
+        "unresolved_blockers": "none",
+        "files_to_inspect_first": [],
+        "decisions": [],
+        "risks": [],
+        "validation": {
+            "project": {
+                "status": "not-run-unknown",
+                "reason": "",
+                "commands": [],
+                "next_command": "",
+            }
+        },
+    }
+    try:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(sample, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+    except OSError as exc:
+        print(f"error: failed to write input JSON: {exc}", file=sys.stderr)
+        return 1
+    print(f"wrote: {output}")
     return 0
 
 
@@ -118,6 +204,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     if args.command == "save":
         return render_savepoint.main(render_save_argv(args))
+    if args.command == "init-input":
+        return run_init_input(args)
     if args.command == "validate":
         return run_validate(args)
     if args.command == "inspect":

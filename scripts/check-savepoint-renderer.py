@@ -750,6 +750,48 @@ def test_renderer_unresolved_blocker_stays_unsafe() -> None:
         require(validation.returncode == 0, validation.stderr or validation.stdout)
 
 
+def test_renderer_blockers_alias_stays_unsafe() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = repo / "savepoint-input.json"
+        input_path.write_text(
+            """{
+  "goal": "finish blocker alias handling",
+  "current_state": "renderer should not drop intuitive blocker input",
+  "next_action": "report blocker before continuing",
+  "blockers": "needs user approval",
+  "project_validation": [
+    {
+      "command": "python scripts/check-savepoint-renderer.py",
+      "result": "passed",
+      "summary": "blocker alias fixture validation recorded"
+    }
+  ]
+}
+""",
+            encoding="utf-8",
+        )
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "blockers alias should keep output unsafe")
+        text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
+        require("unresolved-blockers-recorded" in text, "blockers alias marker missing")
+        require("needs user approval" in text, "blockers alias should be recorded in recovery notes")
+        require("RESUME_READY: no" in text, "blockers alias must block resume-ready")
+        validation = run([sys.executable, str(VALIDATOR), str(repo / ".savepoint" / "SAVEPOINT.md")], repo)
+        require(validation.returncode == 0, validation.stderr or validation.stdout)
+
+
 def test_renderer_keeps_savepoint_unsafe_without_active_command_assertion() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo_with_modified_app(Path(tmp))
@@ -893,6 +935,103 @@ def test_savepoint_cli_save_validate_and_inspect() -> None:
         parsed = json.loads(inspected.stdout)
         require(parsed["RESUME_READY"] == "yes", "inspect JSON should report resume-ready")
         require(parsed["SAVEPOINT_MODE"] == "file", "inspect JSON should report file mode")
+
+
+def test_savepoint_cli_init_input_defaults_to_unknown_validation() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        output = repo / ".savepoint" / "input.json"
+        result = run([sys.executable, str(SAVEPOINT_CLI), "init-input", "--output", str(output)], repo)
+        require(result.returncode == 0, result.stderr or result.stdout)
+        require(output.exists(), "init-input did not write sample input")
+        data = json.loads(output.read_text(encoding="utf-8"))
+        project = data["validation"]["project"]
+        require(project["status"] == "not-run-unknown", "init-input should default to honest unknown validation")
+        require(project["reason"] == "", "init-input should not prefill a justification")
+        require(project["next_command"] == "", "init-input should not prefill next validation")
+        require(not (repo / ".savepoint" / "SAVEPOINT.md").exists(), "init-input should not write SAVEPOINT.md")
+
+
+def test_savepoint_cli_inspect_json_reports_invalid_marker() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        output.parent.mkdir()
+        output.write_text(
+            """# Invalid Savepoint
+
+## Markers
+
+```text
+SAVEPOINT_V1
+SAVEPOINT_MODE: file
+SAVEPOINT_PATH: C:/tmp/SAVEPOINT.md
+END_SAVEPOINT_V1
+```
+""",
+            encoding="utf-8",
+        )
+        result = run([sys.executable, str(SAVEPOINT_CLI), "inspect", str(output), "--json"], repo)
+        require(result.returncode == 1, "invalid marker should return inspect exit code 1")
+        parsed = json.loads(result.stdout)
+        require(parsed["marker_valid"] is False, "invalid marker JSON should set marker_valid=false")
+        require(parsed["resume_ready"] is False, "invalid marker JSON should not be resume-ready")
+        require("errors" in parsed and parsed["errors"], "invalid marker JSON should include errors")
+
+
+def test_savepoint_cli_inspect_json_requires_valid_savepoint_for_resume_ready() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        output.parent.mkdir()
+        output.write_text(
+            f"""# Incomplete Savepoint
+
+## Markers
+
+```text
+SAVEPOINT_V1
+SAVEPOINT_PATH: {output}
+SAVEPOINT_MODE: file
+DETAILS_READY: not-needed
+PROMPT_READY: yes
+DISK_RECORDED: yes
+VALIDATION_RECORDED: yes
+REDACTION_CHECKED: yes
+RESUME_READY: yes
+BLOCKERS: none
+END_SAVEPOINT_V1
+```
+""",
+            encoding="utf-8",
+        )
+        result = run([sys.executable, str(SAVEPOINT_CLI), "inspect", str(output), "--json"], repo)
+        require(result.returncode == 1, "invalid savepoint body should return inspect exit code 1")
+        parsed = json.loads(result.stdout)
+        require(parsed["marker_valid"] is True, "valid marker should remain marker_valid=true")
+        require(parsed["savepoint_valid"] is False, "invalid savepoint body should set savepoint_valid=false")
+        require(parsed["resume_ready"] is False, "invalid savepoint body should not be resume-ready")
+
+
+def test_savepoint_cli_inspect_missing_or_not_savepoint_returns_2() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        missing = repo / ".savepoint" / "SAVEPOINT.md"
+        missing_result = run([sys.executable, str(SAVEPOINT_CLI), "inspect", str(missing), "--json"], repo)
+        require(missing_result.returncode == 2, "missing file should return inspect exit code 2")
+
+        note = repo / "note.md"
+        note.write_text("# Not a savepoint\n", encoding="utf-8")
+        note_result = run([sys.executable, str(SAVEPOINT_CLI), "inspect", str(note), "--json"], repo)
+        require(note_result.returncode == 2, "non-savepoint file should return inspect exit code 2")
+
+        invalid_utf8 = repo / "invalid-savepoint.md"
+        invalid_utf8.write_bytes(b"\xff\xfe\xff")
+        invalid_result = run([sys.executable, str(SAVEPOINT_CLI), "inspect", str(invalid_utf8), "--json"], repo)
+        require(invalid_result.returncode == 2, "unreadable UTF-8 file should return inspect exit code 2")
+        parsed = json.loads(invalid_result.stdout)
+        require(parsed["marker_valid"] is False, "unreadable UTF-8 file should not be marker-valid")
+        require(parsed["errors"], "unreadable UTF-8 JSON should include errors")
 
 
 def test_root_savepoint_cli_forwards_to_portable_cli() -> None:
@@ -1311,11 +1450,16 @@ def main() -> int:
         test_renderer_failed_blocking_project_validation_stays_unsafe,
         test_renderer_missing_next_action_stays_unsafe,
         test_renderer_unresolved_blocker_stays_unsafe,
+        test_renderer_blockers_alias_stays_unsafe,
         test_renderer_keeps_savepoint_unsafe_without_active_command_assertion,
         test_renderer_secret_scan_blocks_resume_ready,
         test_renderer_redacts_secret_even_when_scan_flag_is_omitted,
         test_root_renderer_forwards_to_portable_renderer,
         test_savepoint_cli_save_validate_and_inspect,
+        test_savepoint_cli_init_input_defaults_to_unknown_validation,
+        test_savepoint_cli_inspect_json_reports_invalid_marker,
+        test_savepoint_cli_inspect_json_requires_valid_savepoint_for_resume_ready,
+        test_savepoint_cli_inspect_missing_or_not_savepoint_returns_2,
         test_root_savepoint_cli_forwards_to_portable_cli,
         test_savepoint_cli_text_mode_does_not_write_recovery_artifact,
         test_validator_accepts_compact_resume_ready_file_without_repetitive_sections,

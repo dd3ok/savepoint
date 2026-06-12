@@ -29,6 +29,7 @@ PROJECT_VALIDATION_STATUSES = {
     "not-run-unknown",
 }
 PROJECT_VALIDATION_NEXT_REQUIRED = {"failed-expected", "not-run-justified"}
+CLEAR_BLOCKER_VALUES = {"none", "no", "not-needed", "not needed"}
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -91,6 +92,15 @@ def list_items(value: Any) -> list[str]:
         return [clean_text(item, fallback="").strip() for item in value if clean_text(item, fallback="").strip()]
     text = clean_text(value, fallback="")
     return [text] if text else []
+
+
+def unresolved_blockers_text(data: dict[str, Any]) -> str:
+    values = [clean_text(data.get(key), fallback="") for key in ("unresolved_blockers", "blockers")]
+    recorded = [value for value in values if value]
+    blocking = [value for value in recorded if value.lower() not in CLEAR_BLOCKER_VALUES]
+    if blocking:
+        return "; ".join(blocking)
+    return "none"
 
 
 def project_validation_command_entries(value: Any) -> list[str]:
@@ -345,8 +355,8 @@ def blockers_for(data: dict[str, Any], args: argparse.Namespace, redaction_ok: b
     for field in REQUIRED_TEXT_FIELDS:
         if clean_text(data.get(field), fallback="") == "":
             blockers.append(f"missing-{field.replace('_', '-')}")
-    unresolved = clean_text(data.get("unresolved_blockers"), fallback="none").lower()
-    if unresolved not in {"none", "no", "not-needed", "not needed"}:
+    unresolved = unresolved_blockers_text(data).lower()
+    if unresolved not in CLEAR_BLOCKER_VALUES:
         blockers.append("unresolved-blockers-recorded")
     if not args.assert_no_active_commands:
         blockers.append("active-commands-not-asserted")
@@ -476,7 +486,7 @@ Relative detail paths resolve from this file.
 - Decisions/rationale: {inline_or_block(list_items(data.get("decisions")), empty="no extra decisions recorded")}
 - Risks/pitfalls: {inline_or_block([*list_items(data.get("risks")), "disk state wins if savepoint claims conflict"])}
 - Failed approaches: {clean_text(data.get("failed_approaches"), fallback="none")}
-- Unresolved questions or approval blockers: {clean_text(data.get("unresolved_blockers"), fallback="none")}
+- Unresolved questions or approval blockers: {unresolved_blockers_text(data)}
 - State-file conflicts: {clean_text(data.get("state_file_conflicts"), fallback="none")}
 
 ## Validation Manifest

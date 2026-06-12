@@ -27,7 +27,7 @@ If a client does not pass custom slash prompts through, use the natural-language
 - A short ordinary summary is enough.
 - The user asks about SQL `SAVEPOINT`.
 - The request is only `/status`, `/new`, compaction policy, PTY control, or session rotation.
-- The user asks for application code changes or a feature named savepoint.
+- The user asks for direct code/docs edits without checkpoint intent, or an app feature named savepoint.
 - Git commit, stash, or branch history is the right tool.
 
 ## What it guarantees
@@ -52,12 +52,15 @@ The public entrypoint is:
 
 ```bash
 python3 scripts/savepoint.py save --input .savepoint/input.json --output .savepoint/SAVEPOINT.md --assert-no-active-commands --scan-redaction --validate
+python3 scripts/savepoint.py init-input --output .savepoint/input.json
 python3 scripts/savepoint.py validate .savepoint/SAVEPOINT.md
 python3 scripts/savepoint.py inspect .savepoint/SAVEPOINT.md --json
 python3 scripts/savepoint.py text --input .savepoint/input.json
 ```
 
 The portable skill entrypoint is `skills/savepoint/scripts/savepoint.py`. Legacy wrappers `scripts/render_savepoint.py` and `scripts/validate_savepoint.py` remain for compatibility.
+
+`inspect --json` exits `0` when the file and marker are valid, `1` when a savepoint-like file is parsed but invalid, and `2` when the file cannot be read or is not a savepoint artifact.
 
 ## Install
 
