@@ -1,6 +1,6 @@
 ---
 name: savepoint
-description: "Create or load a recoverable coding-session checkpoint at .savepoint/SAVEPOINT.md so a fresh agent can resume from current repo/Git state. Use for context reset, session transfer, 세이브포인트 만들어줘, 세이브포인트 로드해줘, 세이브포인트 읽어줘, 세이브포인트 이어서 해줘. Not for SQL SAVEPOINT, ordinary summaries, direct code/docs edits without checkpoint intent, /status, /new, or app features named savepoint."
+description: "Create or load a recoverable coding-session checkpoint at .savepoint/SAVEPOINT.md so a fresh agent can resume from current repo/Git state. Use for context reset, session transfer, 세이브포인트 만들어줘, 세이브포인트 로드해줘, 세이브포인트 읽어줘, 세이브포인트 이어서 해줘. Not for SQL SAVEPOINT, ordinary summaries, direct code/docs edits without checkpoint intent, /status, /new, PTY/session control, session rotation, or app features named savepoint."
 argument-hint: "[save|load|text] [next-session focus]"
 ---
 
@@ -33,11 +33,10 @@ Native slash-command support depends on the client. If slash prompts are not pas
 
 ## Create / Save
 
-1. Use the provided focus text, if any, only to narrow the next action.
-2. Capture repo state: cwd, Git root, branch, short HEAD, `git status --short`, diff stat, name-status, staged stat, staged name-status, latest commit, instruction files, and durable state files.
-3. Write compact input JSON with at least `goal`, `current_state`, `next_action`, `files_to_inspect_first`, `unresolved_blockers`, and `validation.project.status`. If starting from blank, use `python3 <savepoint-skill-dir>/scripts/savepoint.py init-input --output .savepoint/input.json`; its default project validation status is `not-run-unknown`.
-4. Use project validation status exactly as one of `passed`, `failed-expected`, `failed-blocking`, `not-run-justified`, or `not-run-unknown`. For `failed-expected` or `not-run-justified`, include a reason and next validation command.
-5. Run:
+1. Treat provided focus text, if any, only as next-session focus.
+2. Capture repo/Git state and write compact input JSON with `goal`, `current_state`, `next_action`, `files_to_inspect_first`, and `unresolved_blockers`; start with `python3 <savepoint-skill-dir>/scripts/savepoint.py init-input --output .savepoint/input.json` if blank.
+3. Set `validation.project.status` to one of `passed`, `failed-expected`, `failed-blocking`, `not-run-justified`, or `not-run-unknown`. For `failed-expected` or `not-run-justified`, include a reason and next validation command.
+4. Run:
 
 ```bash
 python3 <savepoint-skill-dir>/scripts/savepoint.py save --input .savepoint/input.json --output .savepoint/SAVEPOINT.md --assert-no-active-commands --scan-redaction --validate
@@ -45,11 +44,10 @@ python3 <savepoint-skill-dir>/scripts/savepoint.py save --input .savepoint/input
 
 Inside this repository, `python3 scripts/savepoint.py save ...` also works.
 
-6. For refresh, append `--force` only when the existing file is the generated, untracked, valid default artifact `.savepoint/SAVEPOINT.md` and the user did not ask to preserve history; otherwise preserve or ask.
-7. Inspect only the generated `.savepoint/SAVEPOINT.md`.
-8. Report exact path, `RESUME_READY`, blockers if any, and the first next action.
+5. Inspect only the generated `.savepoint/SAVEPOINT.md`.
+6. Report exact path, `RESUME_READY`, blockers if any, and the first next action.
 
-Renderer exit code `2` can still mean a not-ready `SAVEPOINT.md` was written. Inspect the file, report blockers, and do not continue unless `RESUME_READY: yes`.
+`savepoint.py save` exit code `2` can still mean a not-ready `SAVEPOINT.md` was written. Inspect the file, report blockers, and do not continue unless `RESUME_READY: yes`.
 
 ## Load / Resume
 
@@ -74,6 +72,8 @@ Text mode must not claim `.savepoint/SAVEPOINT.md` was written, repo recovery is
 ## Advanced Cases
 
 Read `references/contract.md` only when marker semantics, cleanup, stale savepoints, detail spillover, overwrite adoption, or safe-resume edge cases are unclear.
+
+For refresh, append `--force` only when the existing file is the generated, untracked, valid default artifact `.savepoint/SAVEPOINT.md` and the user did not ask to preserve history; otherwise preserve or ask.
 
 Read `references/safety.md` only when secret redaction or secret-like paths are involved.
 

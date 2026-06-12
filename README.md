@@ -44,7 +44,7 @@ If a client does not pass custom slash prompts through, use the natural-language
 - The code is correct.
 - The task is complete.
 - Future conflicts are impossible.
-- Text mode can recover repo state.
+- Repo recovery from text mode.
 
 ## Runtime command
 
@@ -118,6 +118,7 @@ python3 scripts/validate-repo.py
 python3 scripts/check-savepoint-renderer.py
 python3 scripts/check-install-helper.py
 python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
+python3 -m compileall -q skills/savepoint/scripts scripts
 git diff --check
 ```
 

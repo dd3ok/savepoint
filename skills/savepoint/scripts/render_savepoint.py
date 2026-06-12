@@ -30,6 +30,8 @@ PROJECT_VALIDATION_STATUSES = {
 }
 PROJECT_VALIDATION_NEXT_REQUIRED = {"failed-expected", "not-run-justified"}
 CLEAR_BLOCKER_VALUES = {"none", "no", "not-needed", "not needed"}
+VALIDATION_FAILURE_RE = re.compile(r"\b(fail|fails|failed|failing|failure|error|errors|not-run|not run|skipped)\b")
+VALIDATION_BLOCKING_FAILURE_RE = re.compile(r"\b(fail|fails|failed|failing|failure|error|errors)\b")
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -117,33 +119,47 @@ def project_validation_command_entries(value: Any) -> list[str]:
     return entries
 
 
+def project_validation_command_complete(item: Any) -> bool:
+    if not isinstance(item, dict):
+        return False
+    return all(
+        clean_text(item.get(field), fallback="") != ""
+        for field in ["command", "result", "summary"]
+    )
+
+
+def project_validation_commands_complete(value: Any) -> bool:
+    if not isinstance(value, list) or not value:
+        return False
+    return all(project_validation_command_complete(item) for item in value)
+
+
 def project_validation_passed(value: Any) -> bool:
     if not isinstance(value, list):
         return False
+    saw_valid_entry = False
     for item in value:
-        if not isinstance(item, dict):
-            continue
+        if not project_validation_command_complete(item):
+            return False
         result = clean_text(item.get("result"), fallback="").lower()
         summary = clean_text(item.get("summary"), fallback="").lower()
         combined = f"{result} {summary}"
-        if re.search(r"\b(pass|passed|ok|success|succeeded)\b", combined) and not re.search(
-            r"\b(fail|failed|error|not-run|not run|skipped)\b",
-            combined,
-        ):
-            return True
-    return False
+        passed = bool(re.search(r"\b(pass|passed|ok|success|succeeded)\b", combined)) and not VALIDATION_FAILURE_RE.search(combined)
+        if passed:
+            saw_valid_entry = True
+            continue
+        if not passed:
+            return False
+    return saw_valid_entry
 
 
 def normalize_project_validation_status(value: Any) -> str:
     status = clean_text(value, fallback="").lower().replace("_", "-")
     if status in PROJECT_VALIDATION_STATUSES:
         return status
-    if re.search(r"\b(pass|passed|ok|success|succeeded)\b", status) and not re.search(
-        r"\b(fail|failed|error|not-run|not run|skipped)\b",
-        status,
-    ):
+    if re.search(r"\b(pass|passed|ok|success|succeeded)\b", status) and not VALIDATION_FAILURE_RE.search(status):
         return "passed"
-    if re.search(r"\b(fail|failed|error)\b", status):
+    if VALIDATION_BLOCKING_FAILURE_RE.search(status):
         return "failed-blocking"
     if re.search(r"\b(not-run|not run|skipped)\b", status):
         return "not-run-unknown"
@@ -155,22 +171,33 @@ def project_validation_posture(data: dict[str, Any]) -> dict[str, Any]:
     project = validation.get("project") if isinstance(validation, dict) else None
     if isinstance(project, dict):
         status = normalize_project_validation_status(project.get("status"))
-        commands = project_validation_command_entries(project.get("commands"))
+        raw_commands = project.get("commands")
+        commands = project_validation_command_entries(raw_commands)
         reason = clean_text(project.get("reason"), fallback="")
         next_validation = clean_text(
             project.get("next_validation", project.get("next_command", project.get("next"))),
             fallback="",
         )
+        if (
+            status == "passed"
+            and commands
+            and project_validation_commands_complete(raw_commands)
+            and not project_validation_passed(raw_commands)
+        ):
+            status = "failed-blocking"
+            reason = reason or clean_text(commands[0], fallback="project validation failed")
         return {
             "status": status,
             "commands": commands,
             "reason": reason,
             "next_validation": next_validation,
             "source": "validation.project",
+            "commands_complete": project_validation_commands_complete(raw_commands),
         }
 
     legacy = data.get("project_validation")
     commands = project_validation_command_entries(legacy)
+    commands_complete = project_validation_commands_complete(legacy)
     next_validation = clean_text(data.get("skipped_checks_next_validation"), fallback="")
     if not commands:
         return {
@@ -179,6 +206,7 @@ def project_validation_posture(data: dict[str, Any]) -> dict[str, Any]:
             "reason": "",
             "next_validation": next_validation,
             "source": "legacy",
+            "commands_complete": False,
         }
     if project_validation_passed(legacy):
         return {
@@ -187,6 +215,7 @@ def project_validation_posture(data: dict[str, Any]) -> dict[str, Any]:
             "reason": "",
             "next_validation": next_validation,
             "source": "legacy",
+            "commands_complete": commands_complete,
         }
 
     combined = " ".join(commands).lower()
@@ -198,6 +227,7 @@ def project_validation_posture(data: dict[str, Any]) -> dict[str, Any]:
             "reason": reason,
             "next_validation": next_validation,
             "source": "legacy",
+            "commands_complete": commands_complete,
         }
     return {
         "status": "failed-blocking",
@@ -205,6 +235,7 @@ def project_validation_posture(data: dict[str, Any]) -> dict[str, Any]:
         "reason": clean_text(commands[0], fallback="project validation failed"),
         "next_validation": next_validation,
         "source": "legacy",
+        "commands_complete": commands_complete,
     }
 
 
@@ -227,7 +258,7 @@ def project_validation_entries(data: dict[str, Any]) -> list[str]:
 def project_validation_recorded(posture: dict[str, Any]) -> bool:
     status = posture["status"]
     if status == "passed":
-        return bool(posture["commands"])
+        return bool(posture["commands"]) and bool(posture.get("commands_complete"))
     if status == "failed-blocking":
         return bool(posture["commands"] or posture["reason"])
     if status == "failed-expected":
@@ -374,7 +405,7 @@ def blockers_for(data: dict[str, Any], args: argparse.Namespace, redaction_ok: b
             blockers.append("validation-reason-missing")
         if not posture["next_validation"]:
             blockers.append("validation-next-command-missing")
-    elif posture["status"] == "passed" and not posture["commands"]:
+    elif posture["status"] == "passed" and not posture.get("commands_complete"):
         blockers.append("validation-command-missing")
     if not args.run_savepoint_validation:
         blockers.append("savepoint-validation-not-run")

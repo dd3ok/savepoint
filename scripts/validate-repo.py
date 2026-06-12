@@ -253,6 +253,8 @@ class Validator:
             "sql",
             "ordinary summaries",
             "direct code/docs edits without checkpoint intent",
+            "pty/session control",
+            "session rotation",
             "/new",
             "/status",
         ]:
@@ -340,6 +342,11 @@ class Validator:
         ]:
             if phrase not in template_text:
                 self.fail(f"savepoint-template.md missing phrase: {phrase}")
+        skill_template_text = self.read(SKILL_REFERENCE_DIR / "template.md")
+        marker_index = skill_template_text.find("END_SAVEPOINT_V1")
+        closing_index = skill_template_text.rfind("```\n````")
+        if marker_index == -1 or closing_index == -1 or closing_index < marker_index:
+            self.fail("skills/savepoint/references/template.md must keep the SAVEPOINT_V1 marker inside the copyable template fence")
         context_text = self.read(REFERENCE_DIR / "context-packaging.md")
         for phrase in [
             "Budget guidance is advisory, not a validation rule.",
@@ -375,6 +382,7 @@ class Validator:
             ".savepoint/SAVEPOINT.md",
             "scripts/savepoint.py",
             "scripts/validate-repo.py",
+            "python3 -m compileall",
         ]:
             if phrase not in readme_text:
                 self.fail(f"README.md missing entry: {phrase}")
@@ -389,6 +397,7 @@ class Validator:
             ".savepoint/SAVEPOINT.md",
             "scripts/savepoint.py",
             "scripts/validate-repo.py",
+            "python3 -m compileall",
         ]:
             if phrase not in readme_ko_text:
                 self.fail(f"README.ko.md missing entry: {phrase}")
@@ -400,10 +409,11 @@ class Validator:
             'display_name: "Savepoint"',
             "short_description:",
             "default_prompt:",
-            "allow_implicit_invocation: true",
         ]:
             if phrase not in text:
                 self.fail(f"agents/openai.yaml missing phrase: {phrase}")
+        if "allow_implicit_invocation:" in text and "allow_implicit_invocation: true" not in text:
+            self.fail("agents/openai.yaml allow_implicit_invocation must be true when present")
         match = re.search(r'(?m)^\s*default_prompt:\s*"([^"]+)"\s*$', text)
         if not match:
             self.fail("agents/openai.yaml default_prompt must be a quoted single-line string")

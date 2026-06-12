@@ -58,7 +58,7 @@ Use only when `savepoint.py save` is unavailable.
 ## Resume Prompt
 ```text
 Read this savepoint, verify cwd/Git state/status/diff, read listed instruction/state files, and compare all claims with disk state. Disk state wins. Report drift first, then continue only if the user requested continuation and RESUME_READY is yes.
-````
+```
 
 ## Markers
 ```text
@@ -74,4 +74,4 @@ RESUME_READY: yes|no
 BLOCKERS: none|<short reason>
 END_SAVEPOINT_V1
 ```
-```
+````

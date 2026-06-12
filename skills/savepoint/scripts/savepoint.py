@@ -10,7 +10,16 @@ from pathlib import Path
 
 import render_savepoint
 import validate_savepoint
-from render_savepoint import clean_text, next_action_text, read_input, redact_secret_patterns
+from render_savepoint import (
+    clean_text,
+    inline_or_block,
+    list_items,
+    next_action_text,
+    project_validation_entries,
+    read_input,
+    redact_secret_patterns,
+    unresolved_blockers_text,
+)
 from savepoint_contract import extract_marker_values
 
 
@@ -86,11 +95,11 @@ def run_validate(args: argparse.Namespace) -> int:
 
 
 def run_inspect(args: argparse.Namespace) -> int:
-    if not args.savepoint.exists():
+    if not args.savepoint.is_file():
         if args.json:
-            print(json.dumps(inspect_payload(args.savepoint, {}, [f"file does not exist: {args.savepoint}"], []), ensure_ascii=True, indent=2, sort_keys=True))
+            print(json.dumps(inspect_payload(args.savepoint, {}, [f"file does not exist or is not a file: {args.savepoint}"], []), ensure_ascii=True, indent=2, sort_keys=True))
         else:
-            print(f"error: file does not exist: {args.savepoint}", file=sys.stderr)
+            print(f"error: file does not exist or is not a file: {args.savepoint}", file=sys.stderr)
         return 2
     try:
         text = args.savepoint.read_text(encoding="utf-8")
@@ -103,7 +112,7 @@ def run_inspect(args: argparse.Namespace) -> int:
     values, errors = extract_marker_values(args.savepoint, text)
     if not values and any("found 0" in error for error in errors):
         if args.json:
-            print(json.dumps(inspect_payload(args.savepoint, values, errors, []), ensure_ascii=True, indent=2, sort_keys=True))
+            print(json.dumps(inspect_payload(args.savepoint, values, errors, [], text=text), ensure_ascii=True, indent=2, sort_keys=True))
         else:
             for error in errors:
                 print(f"error: {error}", file=sys.stderr)
@@ -111,7 +120,7 @@ def run_inspect(args: argparse.Namespace) -> int:
     validation_errors = [] if errors else validate_savepoint.validate_savepoint(args.savepoint)
     exit_code = 0 if not errors and not validation_errors else 1
     if args.json:
-        print(json.dumps(inspect_payload(args.savepoint, values, errors, validation_errors), ensure_ascii=True, indent=2, sort_keys=True))
+        print(json.dumps(inspect_payload(args.savepoint, values, errors, validation_errors, text=text), ensure_ascii=True, indent=2, sort_keys=True))
         return exit_code
     if errors:
         for error in errors:
@@ -126,12 +135,21 @@ def run_inspect(args: argparse.Namespace) -> int:
     return 0
 
 
-def inspect_payload(path: Path, values: dict[str, str], marker_errors: list[str], validation_errors: list[str]) -> dict[str, object]:
+def inspect_payload(
+    path: Path,
+    values: dict[str, str],
+    marker_errors: list[str],
+    validation_errors: list[str],
+    *,
+    text: str = "",
+) -> dict[str, object]:
     blocker_text = values.get("BLOCKERS", "")
     blockers = [] if blocker_text in {"", "none"} else [item for item in blocker_text.split(",") if item]
     errors = [*marker_errors, *validation_errors]
     marker_valid = bool(values) and not marker_errors
     savepoint_valid = marker_valid and not validation_errors
+    project_status = validate_savepoint.project_validation_status(text) if text and marker_valid else "unknown"
+    next_command = validate_savepoint.field_value_or_block(text, "- Skipped checks / next validation:") if text and marker_valid else ""
     return {
         **values,
         "path": str(path),
@@ -141,6 +159,11 @@ def inspect_payload(path: Path, values: dict[str, str], marker_errors: list[str]
         "marker_valid": marker_valid,
         "savepoint_valid": savepoint_valid,
         "details_ready": values.get("DETAILS_READY"),
+        "savepoint_validation": "passed" if savepoint_valid else "failed",
+        "project_validation": {
+            "status": project_status,
+            "next_command": next_command,
+        },
         "validation_recorded": values.get("VALIDATION_RECORDED") == "yes",
         "redaction_checked": values.get("REDACTION_CHECKED") == "yes",
         "errors": errors,
@@ -190,6 +213,11 @@ def run_text(args: argparse.Namespace) -> int:
 Goal: {clean_text(data.get("goal"))}
 Current state: {clean_text(data.get("current_state"))}
 Next action: {next_action_text(data)}
+Blockers: {unresolved_blockers_text(data)}
+Risks: {inline_or_block(list_items(data.get("risks")), empty="none")}
+Files to inspect first: {inline_or_block(list_items(data.get("files_to_inspect_first")), empty="none")}
+Relevant artifacts: {inline_or_block(list_items(data.get("relevant_artifacts", data.get("artifacts"))), empty="none")}
+Validation: {inline_or_block(project_validation_entries(data), empty="not-run-unknown: no project validation reason or next validation recorded")}
 
 No file was written.
 Repo recovery is not guaranteed.

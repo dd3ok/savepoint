@@ -58,6 +58,14 @@ def load_contract_helper():
     return module
 
 
+def load_validator_helper():
+    spec = importlib.util.spec_from_file_location("validate_savepoint_under_test", VALIDATOR)
+    require(spec is not None and spec.loader is not None, "could not load validator module")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def git(repo: Path, *args: str) -> None:
     result = run(["git", *args], repo)
     require(result.returncode == 0, result.stderr or result.stdout)
@@ -588,6 +596,213 @@ def test_renderer_failed_project_validation_stays_unsafe() -> None:
         require(validation.returncode == 0, validation.stderr or validation.stdout)
 
 
+def test_validation_status_token_matrix_is_consistent() -> None:
+    renderer = load_render_helper()
+    validator = load_validator_helper()
+    blocking_tokens = ["fail", "fails", "failed", "failing", "failure", "error", "errors"]
+    for token in blocking_tokens:
+        require(
+            renderer.normalize_project_validation_status(f"tests are {token}") == "failed-blocking",
+            f"renderer did not classify {token!r} as failed-blocking",
+        )
+        validator_text = f"- Project validation: tests are {token}\n"
+        require(
+            validator.project_validation_status(validator_text) == "failed-blocking",
+            f"validator did not classify {token!r} as failed-blocking",
+        )
+        passed_text = f"- Project validation: passed: `npm test` - tests are {token}\n"
+        require(
+            validator.passed_validation_has_failure_terms(passed_text),
+            f"validator did not detect failure token {token!r} under passed status",
+        )
+    for token in ["not-run", "not run", "skipped"]:
+        require(
+            renderer.normalize_project_validation_status(token) == "not-run-unknown",
+            f"renderer did not classify {token!r} as not-run-unknown",
+        )
+        require(
+            validator.project_validation_status(f"- Project validation: {token}\n") == "not-run-unknown",
+            f"validator did not classify {token!r} as not-run-unknown",
+        )
+    reason_with_passed = "- Project validation: failed-expected: known failure; previous lint passed\n"
+    require(
+        validator.project_validation_status(reason_with_passed) == "failed-expected",
+        "validator should parse canonical status before reason text containing passed",
+    )
+
+
+def test_renderer_legacy_mixed_pass_fail_stays_unsafe() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = repo / "savepoint-input.json"
+        input_path.write_text(
+            """{
+  "goal": "finish mixed legacy validation handling",
+  "current_state": "legacy validation has both passing and failing commands",
+  "next_action": "report the failing validation before continuing",
+  "project_validation": [
+    {
+      "command": "npm run lint",
+      "result": "passed",
+      "summary": "lint passed"
+    },
+    {
+      "command": "npm test",
+      "result": "failed",
+      "summary": "auth tests failed"
+    }
+  ]
+}
+""",
+            encoding="utf-8",
+        )
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "mixed pass/fail legacy validation should keep output unsafe")
+        text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
+        require("validation-failed-blocking" in text, "mixed validation blocker missing")
+        require("RESUME_READY: no" in text, "mixed validation must block resume-ready")
+        validation = run([sys.executable, str(VALIDATOR), str(repo / ".savepoint" / "SAVEPOINT.md")], repo)
+        require(validation.returncode == 0, validation.stderr or validation.stdout)
+
+
+def test_renderer_passed_project_validation_requires_complete_command_fields() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = repo / "savepoint-input.json"
+        input_path.write_text(
+            """{
+  "goal": "finish complete validation command enforcement",
+  "current_state": "structured validation is marked passed but omits command details",
+  "next_action": "record the exact validation command before continuing",
+  "validation": {
+    "project": {
+      "status": "passed",
+      "commands": [
+        {
+          "result": "passed"
+        }
+      ]
+    }
+  }
+}
+""",
+            encoding="utf-8",
+        )
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "passed validation without command fields should stay unsafe")
+        text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
+        require("validation-command-missing" in text, "incomplete passed validation blocker missing")
+        require("RESUME_READY: no" in text, "incomplete passed validation must block resume-ready")
+
+
+def test_renderer_structured_passed_validation_with_failure_text_stays_unsafe() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = repo / "savepoint-input.json"
+        input_path.write_text(
+            """{
+  "goal": "finish structured validation consistency",
+  "current_state": "structured validation status says passed but summary records failure",
+  "next_action": "report validation failure before continuing",
+  "validation": {
+    "project": {
+      "status": "passed",
+      "commands": [
+        {
+          "command": "npm test",
+          "result": "passed",
+          "summary": "auth tests failed"
+        }
+      ]
+    }
+  }
+}
+""",
+            encoding="utf-8",
+        )
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "passed validation with failure text should stay unsafe")
+        text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
+        require("validation-failed-blocking" in text, "structured pass/fail contradiction blocker missing")
+        require("RESUME_READY: no" in text, "structured pass/fail contradiction must block resume-ready")
+
+
+def test_renderer_structured_passed_validation_with_failing_text_stays_unsafe() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        input_path = repo / "savepoint-input.json"
+        input_path.write_text(
+            """{
+  "goal": "finish structured validation consistency",
+  "current_state": "structured validation status says passed but summary records failing tests",
+  "next_action": "report validation failure before continuing",
+  "validation": {
+    "project": {
+      "status": "passed",
+      "commands": [
+        {
+          "command": "npm test",
+          "result": "passed",
+          "summary": "auth tests are failing"
+        }
+      ]
+    }
+  }
+}
+""",
+            encoding="utf-8",
+        )
+        result = run(
+            [
+                sys.executable,
+                str(RENDER_HELPER),
+                "--input",
+                str(input_path),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--run-savepoint-validation",
+            ],
+            repo,
+        )
+        require(result.returncode == 2, "passed validation with failing text should stay unsafe")
+        text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
+        require("validation-failed-blocking" in text, "structured passed/failing contradiction blocker missing")
+        require("RESUME_READY: no" in text, "structured passed/failing contradiction must block resume-ready")
+
+
 def test_renderer_not_run_justified_project_validation_can_resume_ready() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo_with_modified_app(Path(tmp))
@@ -935,6 +1150,9 @@ def test_savepoint_cli_save_validate_and_inspect() -> None:
         parsed = json.loads(inspected.stdout)
         require(parsed["RESUME_READY"] == "yes", "inspect JSON should report resume-ready")
         require(parsed["SAVEPOINT_MODE"] == "file", "inspect JSON should report file mode")
+        require(parsed["savepoint_validation"] == "passed", "inspect JSON should include savepoint validation status")
+        require(parsed["project_validation"]["status"] == "passed", "inspect JSON should include project validation status")
+        require("next_command" in parsed["project_validation"], "inspect JSON should include project validation next command")
 
 
 def test_savepoint_cli_init_input_defaults_to_unknown_validation() -> None:
@@ -1034,6 +1252,17 @@ def test_savepoint_cli_inspect_missing_or_not_savepoint_returns_2() -> None:
         require(parsed["errors"], "unreadable UTF-8 JSON should include errors")
 
 
+def test_savepoint_cli_validate_directory_returns_error() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        directory = repo / ".savepoint"
+        directory.mkdir()
+        result = run([sys.executable, str(SAVEPOINT_CLI), "validate", str(directory)], repo)
+        require(result.returncode != 0, "validate should reject directory paths")
+        require("not a file" in result.stderr, "validate directory error should name non-file path")
+        require("Traceback" not in result.stderr, "validate directory error should not print traceback")
+
+
 def test_root_savepoint_cli_forwards_to_portable_cli() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo_with_modified_app(Path(tmp))
@@ -1066,6 +1295,10 @@ def test_savepoint_cli_text_mode_does_not_write_recovery_artifact() -> None:
         require(result.returncode == 0, result.stderr or result.stdout)
         require("No file was written." in result.stdout, "text mode should say no file was written")
         require("Repo recovery is not guaranteed." in result.stdout, "text mode should avoid recovery guarantees")
+        require("Blockers:" in result.stdout, "text mode should include blockers")
+        require("Risks:" in result.stdout, "text mode should include risks")
+        require("Files to inspect first:" in result.stdout, "text mode should include first files")
+        require("Validation:" in result.stdout, "text mode should include validation posture")
         require("SAVEPOINT_V1" not in result.stdout, "text mode should not emit machine marker by default")
         require("RESUME_READY: yes" not in result.stdout, "text mode must not claim resume-ready")
         require(not (repo / ".savepoint" / "SAVEPOINT.md").exists(), "text mode wrote a recovery artifact")
@@ -1250,6 +1483,66 @@ def test_compact_validator_rejects_expected_failure_without_next_validation() ->
         validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
         require(validation.returncode != 0, "compact validator accepted expected failure without next validation")
         require("next validation" in validation.stderr, "missing next validation error not reported")
+
+
+def test_compact_validator_rejects_not_run_justified_without_reason() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = write_compact_resume_ready_savepoint(
+            repo,
+            project_validation="not-run-justified",
+            skipped_checks="python scripts/check-savepoint-renderer.py",
+        )
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode != 0, "compact validator accepted justified not-run without reason")
+        require("requires a reason" in validation.stderr, "missing reason error not reported")
+
+
+def test_compact_validator_rejects_expected_failure_without_reason() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = write_compact_resume_ready_savepoint(
+            repo,
+            project_validation="failed-expected",
+            skipped_checks="python -m pytest tests/auth",
+        )
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode != 0, "compact validator accepted expected failure without reason")
+        require("requires a reason" in validation.stderr, "missing expected-failure reason error not reported")
+
+
+def test_compact_validator_rejects_passed_validation_with_failure_text() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = write_compact_resume_ready_savepoint(
+            repo,
+            project_validation="passed: `npm test` - auth tests failed",
+            skipped_checks="none",
+        )
+        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
+        require(validation.returncode != 0, "compact validator accepted passed validation with failure text")
+        require("cannot include failure terms" in validation.stderr, "passed validation failure-text error not reported")
+
+
+def test_compact_validator_status_parsing_is_hash_seed_stable() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        output = write_compact_resume_ready_savepoint(
+            repo,
+            project_validation="failed-expected: known failure; previous lint passed",
+            skipped_checks="python -m pytest tests/auth",
+        )
+        for seed in ["0", "3", "42"]:
+            env = {**os.environ, "PYTHONHASHSEED": seed}
+            validation = subprocess.run(
+                [sys.executable, str(VALIDATOR), str(output)],
+                cwd=repo,
+                text=True,
+                capture_output=True,
+                check=False,
+                env=env,
+            )
+            require(validation.returncode == 0, f"validator status parsing changed under PYTHONHASHSEED={seed}: {validation.stderr or validation.stdout}")
 
 
 def test_compact_validator_still_requires_disk_snapshot_fields() -> None:
@@ -1444,6 +1737,11 @@ def main() -> int:
         test_renderer_minimal_json_without_project_validation_stays_unsafe,
         test_renderer_exit_code_uses_marker_not_body_resume_ready_text,
         test_renderer_failed_project_validation_stays_unsafe,
+        test_validation_status_token_matrix_is_consistent,
+        test_renderer_legacy_mixed_pass_fail_stays_unsafe,
+        test_renderer_passed_project_validation_requires_complete_command_fields,
+        test_renderer_structured_passed_validation_with_failure_text_stays_unsafe,
+        test_renderer_structured_passed_validation_with_failing_text_stays_unsafe,
         test_renderer_not_run_justified_project_validation_can_resume_ready,
         test_renderer_failed_expected_project_validation_can_resume_ready,
         test_renderer_not_run_justified_without_next_validation_stays_unsafe,
@@ -1460,6 +1758,7 @@ def main() -> int:
         test_savepoint_cli_inspect_json_reports_invalid_marker,
         test_savepoint_cli_inspect_json_requires_valid_savepoint_for_resume_ready,
         test_savepoint_cli_inspect_missing_or_not_savepoint_returns_2,
+        test_savepoint_cli_validate_directory_returns_error,
         test_root_savepoint_cli_forwards_to_portable_cli,
         test_savepoint_cli_text_mode_does_not_write_recovery_artifact,
         test_validator_accepts_compact_resume_ready_file_without_repetitive_sections,
@@ -1468,6 +1767,10 @@ def main() -> int:
         test_compact_validator_rejects_not_run_unknown_project_validation,
         test_compact_validator_rejects_failed_blocking_project_validation,
         test_compact_validator_rejects_expected_failure_without_next_validation,
+        test_compact_validator_rejects_not_run_justified_without_reason,
+        test_compact_validator_rejects_expected_failure_without_reason,
+        test_compact_validator_rejects_passed_validation_with_failure_text,
+        test_compact_validator_status_parsing_is_hash_seed_stable,
         test_compact_validator_still_requires_disk_snapshot_fields,
         test_compact_validator_rejects_skipped_none_without_project_pass,
         test_compact_validator_requires_redaction_evidence,

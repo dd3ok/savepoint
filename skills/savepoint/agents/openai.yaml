@@ -1,7 +1,4 @@
 interface:
   display_name: "Savepoint"
   short_description: "Recoverable coding-session checkpoint"
-  default_prompt: "Use $savepoint to create, load, verify, or text copy-paste .savepoint/SAVEPOINT.md with repo/Git state, redaction, validation posture, and a resume prompt."
-
-policy:
-  allow_implicit_invocation: true
+  default_prompt: "Use $savepoint to create or load .savepoint/SAVEPOINT.md, verify repo/Git resume safety, or produce a text-only copy-paste handoff without file recovery."

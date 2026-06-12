@@ -107,7 +107,15 @@ PROJECT_VALIDATION_STATUSES = {
     "not-run-justified",
     "not-run-unknown",
 }
+PROJECT_VALIDATION_STATUS_ORDER = [
+    "failed-expected",
+    "failed-blocking",
+    "not-run-justified",
+    "not-run-unknown",
+    "passed",
+]
 PROJECT_VALIDATION_NEXT_REQUIRED = {"failed-expected", "not-run-justified"}
+VALIDATION_FAILURE_RE = re.compile(r"\b(fail|fails|failed|failing|failure|error|errors|not-run|not run|skipped)\b")
 
 
 def validate_savepoint(path: Path, allow_example_paths: bool = False) -> list[str]:
@@ -231,26 +239,46 @@ def validate_validation_status(path: Path, text: str) -> list[str]:
         errors.append(f"{path}: RESUME_READY=yes cannot use Project validation status not-run-unknown")
     elif status == "failed-blocking":
         errors.append(f"{path}: RESUME_READY=yes cannot use Project validation status failed-blocking")
-    elif status in PROJECT_VALIDATION_NEXT_REQUIRED and skipped_absent:
-        errors.append(
-            f"{path}: Project validation status {status} requires a next validation command"
-        )
+    elif status == "passed" and passed_validation_has_failure_terms(text):
+        errors.append(f"{path}: Project validation status passed cannot include failure terms")
+    elif status in PROJECT_VALIDATION_NEXT_REQUIRED:
+        if not project_validation_reason_present(text, status):
+            errors.append(f"{path}: Project validation status {status} requires a reason")
+        if skipped_absent:
+            errors.append(
+                f"{path}: Project validation status {status} requires a next validation command"
+            )
     return errors
+
+
+def passed_validation_has_failure_terms(text: str) -> bool:
+    value = field_value_or_block(text, "- Project validation:").lower().replace("_", "-")
+    if "passed" not in value:
+        return False
+    return bool(VALIDATION_FAILURE_RE.search(value))
+
+
+def project_validation_reason_present(text: str, status: str) -> bool:
+    value = field_value_or_block(text, "- Project validation:")
+    normalized = value.lower().replace("_", "-")
+    index = normalized.find(status)
+    if index == -1:
+        return False
+    reason = value[index + len(status):].strip(" :-`\n\t")
+    return not is_placeholder_value(reason, allow_absence=False)
 
 
 def project_validation_status(text: str) -> str:
     value = field_value_or_block(text, "- Project validation:").lower().replace("_", "-")
-    for status in PROJECT_VALIDATION_STATUSES:
-        if status in value:
+    lead = value.strip().splitlines()[0] if value.strip() else ""
+    for status in PROJECT_VALIDATION_STATUS_ORDER:
+        if re.match(rf"^`?{re.escape(status)}\b", lead):
             return status
-    if re.search(r"\b(pass|passed|ok|success|succeeded)\b", value) and not re.search(
-        r"\b(fail|failed|error|not-run|not run|skipped)\b",
-        value,
-    ):
+    if re.search(r"\b(pass|passed|ok|success|succeeded)\b", lead) and not VALIDATION_FAILURE_RE.search(lead):
         return "passed"
-    if re.search(r"\b(fail|failed|error)\b", value):
+    if re.search(r"\b(fail|fails|failed|failing|failure|error|errors)\b", lead):
         return "failed-blocking"
-    if re.search(r"\b(not-run|not run|skipped)\b", value):
+    if re.search(r"\b(not-run|not run|skipped)\b", lead):
         return "not-run-unknown"
     return "not-run-unknown"
 
@@ -332,8 +360,8 @@ def main(argv: list[str] | None = None) -> int:
 
     errors: list[str] = []
     for path in args.savepoints:
-        if not path.exists():
-            errors.append(f"{path}: file does not exist")
+        if not path.is_file():
+            errors.append(f"{path}: file does not exist or is not a file")
             continue
         errors.extend(validate_savepoint(path, allow_example_paths=args.allow_example_paths))
 
