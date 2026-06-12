@@ -35,8 +35,8 @@ def validate_contract(path: Path) -> list[str]:
     errors: list[str] = []
     try:
         data = json.loads(path.read_text(encoding="utf-8-sig"))
-    except FileNotFoundError:
-        return [f"{path}: file does not exist"]
+    except OSError as exc:
+        return [f"{path}: failed to read file: {exc}"]
     except json.JSONDecodeError as exc:
         return [f"{path}: invalid JSON: {exc}"]
 

@@ -209,13 +209,15 @@ def write_direct_input(args: argparse.Namespace) -> Path:
 
 
 def is_under_savepoint_dir(path: Path) -> bool:
-    base = (Path.cwd() / ".savepoint").resolve()
-    absolute = path if path.is_absolute() else Path.cwd() / path
     try:
-        absolute.resolve().relative_to(base)
-    except ValueError:
+        base = (Path.cwd() / ".savepoint").resolve()
+        absolute = path if path.is_absolute() else Path.cwd() / path
+        absolute.parent.resolve().relative_to(base)
+        resolved = absolute.resolve()
+        resolved.relative_to(base)
+        return resolved.is_file()
+    except (ValueError, OSError, RuntimeError):
         return False
-    return True
 
 
 def delete_input_on_success(args: argparse.Namespace, exit_code: int) -> None:

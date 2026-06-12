@@ -19,6 +19,7 @@ RENDER_HELPER = ROOT / "skills" / "savepoint" / "scripts" / "render_savepoint.py
 SAVEPOINT_CLI = ROOT / "skills" / "savepoint" / "scripts" / "savepoint.py"
 ROOT_SAVEPOINT_CLI = ROOT / "scripts" / "savepoint.py"
 VALIDATOR = ROOT / "skills" / "savepoint" / "scripts" / "validate_savepoint.py"
+OUTPUT_CONTRACT_CHECKER = ROOT / "scripts" / "check-output-contract.py"
 HELPER_SCRIPT_DIR = RENDER_HELPER.parent
 if str(HELPER_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(HELPER_SCRIPT_DIR))
@@ -60,6 +61,14 @@ def load_contract_helper():
 def load_validator_helper():
     spec = importlib.util.spec_from_file_location("validate_savepoint_under_test", VALIDATOR)
     require(spec is not None and spec.loader is not None, "could not load validator module")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_savepoint_helper():
+    spec = importlib.util.spec_from_file_location("savepoint_under_test", SAVEPOINT_CLI)
+    require(spec is not None and spec.loader is not None, "could not load savepoint CLI module")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -1482,6 +1491,98 @@ def test_savepoint_cli_does_not_delete_input_outside_savepoint_dir() -> None:
         require(input_path.exists(), "input outside .savepoint should not be deleted")
 
 
+def test_savepoint_cli_does_not_delete_outside_symlink_to_savepoint_input() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo_with_modified_app(Path(tmp))
+        original_input = semantic_input(repo)
+        target = repo / ".savepoint" / "input.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(original_input.read_text(encoding="utf-8"), encoding="utf-8")
+        original_input.unlink()
+        outside = repo / "outside-input.json"
+        try:
+            outside.symlink_to(target)
+        except OSError as exc:
+            print(f"skip: test_savepoint_cli_does_not_delete_outside_symlink_to_savepoint_input ({exc})")
+            return
+        output = repo / ".savepoint" / "SAVEPOINT.md"
+        result = run(
+            [
+                sys.executable,
+                str(SAVEPOINT_CLI),
+                "save",
+                "--input",
+                str(outside),
+                "--output",
+                str(output),
+                "--assert-no-active-commands",
+                "--scan-redaction",
+                "--validate",
+                "--delete-input-on-success",
+            ],
+            repo,
+        )
+        require(result.returncode == 0, result.stderr or result.stdout)
+        require(output.exists(), "savepoint CLI did not write SAVEPOINT.md")
+        require(outside.exists() or outside.is_symlink(), "input symlink outside .savepoint should not be deleted")
+
+
+def test_delete_input_on_success_requires_path_itself_under_savepoint_dir() -> None:
+    helper = load_savepoint_helper()
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        (repo / ".savepoint").mkdir()
+        original_cwd = Path.cwd()
+
+        class OutsideParent:
+            def resolve(self):
+                return repo.resolve()
+
+        class OutsideAlias:
+            parent = OutsideParent()
+
+            def is_absolute(self):
+                return True
+
+            def resolve(self):
+                return (repo / ".savepoint" / "input.json").resolve()
+
+        try:
+            os.chdir(repo)
+            allowed = helper.is_under_savepoint_dir(OutsideAlias())
+        finally:
+            os.chdir(original_cwd)
+        require(allowed is False, "path itself must be under .savepoint before deletion is allowed")
+
+
+def test_delete_input_on_success_handles_path_resolution_error() -> None:
+    helper = load_savepoint_helper()
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = make_repo(Path(tmp))
+        (repo / ".savepoint").mkdir()
+        original_cwd = Path.cwd()
+
+        class RaisingParent:
+            def resolve(self):
+                raise OSError("blocked")
+
+        class RaisingPath:
+            parent = RaisingParent()
+
+            def is_absolute(self):
+                return True
+
+            def resolve(self):
+                raise OSError("blocked")
+
+        try:
+            os.chdir(repo)
+            allowed = helper.is_under_savepoint_dir(RaisingPath())
+        finally:
+            os.chdir(original_cwd)
+        require(allowed is False, "path resolution errors should deny deletion without traceback")
+
+
 def test_savepoint_cli_keeps_input_when_save_is_not_resume_ready() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo_with_modified_app(Path(tmp))
@@ -2155,6 +2256,17 @@ def test_find_git_root_handles_empty_output() -> None:
     require(helper.find_git_root(ROOT) is None, "empty git root output should not crash")
 
 
+def test_output_contract_checker_rejects_directory_path_without_traceback() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp) / "contract-dir"
+        directory.mkdir()
+        result = run([sys.executable, str(OUTPUT_CONTRACT_CHECKER), "--path", str(directory)], ROOT)
+        combined = f"{result.stdout}\n{result.stderr}"
+        require(result.returncode == 1, "output contract checker should reject directory path")
+        require("failed to read file" in result.stderr, "directory path should produce clean read error")
+        require("Traceback" not in combined, "directory path should not produce traceback")
+
+
 def test_refuses_directory_output() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo(Path(tmp))
@@ -2266,6 +2378,9 @@ def main() -> int:
         test_savepoint_cli_save_validate_and_inspect,
         test_savepoint_cli_deletes_input_on_success_only_under_savepoint_dir,
         test_savepoint_cli_does_not_delete_input_outside_savepoint_dir,
+        test_savepoint_cli_does_not_delete_outside_symlink_to_savepoint_input,
+        test_delete_input_on_success_requires_path_itself_under_savepoint_dir,
+        test_delete_input_on_success_handles_path_resolution_error,
         test_savepoint_cli_keeps_input_when_save_is_not_resume_ready,
         test_savepoint_cli_direct_flags_can_render_passed_savepoint,
         test_savepoint_cli_direct_flags_can_render_not_run_justified_savepoint,
@@ -2298,6 +2413,7 @@ def main() -> int:
         test_renderer_revalidates_final_rewrite_before_success,
         test_run_command_handles_oserror,
         test_find_git_root_handles_empty_output,
+        test_output_contract_checker_rejects_directory_path_without_traceback,
         test_refuses_directory_output,
         test_refuses_savepoint_named_directory_output,
         test_refuses_non_savepoint_output_name,
