@@ -149,7 +149,7 @@ def inspect_payload(
     marker_valid = bool(values) and not marker_errors
     savepoint_valid = marker_valid and not validation_errors
     project_status = validate_savepoint.project_validation_status(text) if text and marker_valid else "unknown"
-    next_command = validate_savepoint.field_value_or_block(text, "- Skipped checks / next validation:") if text and marker_valid else ""
+    next_validation = validate_savepoint.field_value_or_block(text, "- Skipped checks / next validation:") if text and marker_valid else ""
     return {
         **values,
         "path": str(path),
@@ -160,9 +160,11 @@ def inspect_payload(
         "savepoint_valid": savepoint_valid,
         "details_ready": values.get("DETAILS_READY"),
         "savepoint_validation": "passed" if savepoint_valid else "failed",
-        "project_validation": {
-            "status": project_status,
-            "next_command": next_command,
+        "validation": {
+            "project": {
+                "status": project_status,
+                "next_validation": next_validation,
+            }
         },
         "validation_recorded": values.get("VALIDATION_RECORDED") == "yes",
         "redaction_checked": values.get("REDACTION_CHECKED") == "yes",
@@ -189,7 +191,7 @@ def run_init_input(args: argparse.Namespace) -> int:
                 "status": "not-run-unknown",
                 "reason": "",
                 "commands": [],
-                "next_command": "",
+                "next_validation": "",
             }
         },
     }

@@ -69,7 +69,7 @@
 
 ## Validation Manifest
 
-- Savepoint validation: `python3 scripts/validate_savepoint.py .savepoint/SAVEPOINT.md` passed.
+- Savepoint validation: `python3 scripts/savepoint.py validate .savepoint/SAVEPOINT.md` passed.
 - Project validation: failed-expected: `npm test -- tests/billing/invoice.integration.test.ts` failed on timestamp formatting; see `details/validation.md`.
 - Skipped checks / next validation: full suite not run while focused integration test is red; next focused integration test.
 - Secret redaction check: manual artifact scan

@@ -2,7 +2,7 @@
 """Validate generated SAVEPOINT.md artifacts.
 
 Usage:
-  python3 scripts/validate_savepoint.py SAVEPOINT.md [more/SAVEPOINT.md ...]
+  python3 scripts/savepoint.py validate SAVEPOINT.md [more/SAVEPOINT.md ...]
 """
 
 from __future__ import annotations

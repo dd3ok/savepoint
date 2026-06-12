@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Maintainer-only checks for savepoint repository packaging and examples.
 
-Use the portable `validate_savepoint.py` for generated SAVEPOINT.md artifacts.
+Use `scripts/savepoint.py validate` for generated SAVEPOINT.md artifacts.
 This script guards repository metadata, examples, trigger evals, marker schema,
 and maintainer assets without freezing routine README/SKILL prose.
 """
@@ -279,7 +279,9 @@ class Validator:
         self.require_exists(SKILL_DIR / "scripts" / "savepoint_contract.py")
         self.require_exists(SKILL_DIR / "scripts" / "validate_savepoint.py")
         self.require_exists(ROOT / "scripts" / "savepoint.py")
-        self.require_exists(ROOT / "scripts" / "render_savepoint.py")
+        for removed_wrapper in ["render_savepoint.py", "validate_savepoint.py"]:
+            if (ROOT / "scripts" / removed_wrapper).exists():
+                self.fail(f"root wrapper should not exist: scripts/{removed_wrapper}")
 
         required_skill_phrases = [
             "Default behavior",

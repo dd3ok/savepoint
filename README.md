@@ -58,7 +58,7 @@ python3 scripts/savepoint.py inspect .savepoint/SAVEPOINT.md --json
 python3 scripts/savepoint.py text --input .savepoint/input.json
 ```
 
-The portable skill entrypoint is `skills/savepoint/scripts/savepoint.py`. Legacy wrappers `scripts/render_savepoint.py` and `scripts/validate_savepoint.py` remain for compatibility.
+The portable skill entrypoint is `skills/savepoint/scripts/savepoint.py`; repository-local commands use `scripts/savepoint.py`.
 
 `inspect --json` exits `0` when the file and marker are valid, `1` when a savepoint-like file is parsed but invalid, and `2` when the file cannot be read or is not a savepoint artifact.
 
@@ -117,7 +117,7 @@ python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
 python3 scripts/check-savepoint-renderer.py
 python3 scripts/check-install-helper.py
-python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
+python3 scripts/savepoint.py validate --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
 python3 -m compileall -q skills/savepoint/scripts scripts
 git diff --check
 ```

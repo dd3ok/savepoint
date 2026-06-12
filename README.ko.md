@@ -58,7 +58,7 @@ python3 scripts/savepoint.py inspect .savepoint/SAVEPOINT.md --json
 python3 scripts/savepoint.py text --input .savepoint/input.json
 ```
 
-portable skill entrypoint는 `skills/savepoint/scripts/savepoint.py`입니다. 기존 `scripts/render_savepoint.py`, `scripts/validate_savepoint.py` wrapper는 호환성을 위해 유지합니다.
+portable skill entrypoint는 `skills/savepoint/scripts/savepoint.py`입니다. repository-local 명령은 `scripts/savepoint.py`를 사용합니다.
 
 `inspect --json`은 파일과 marker가 valid이면 `0`, savepoint-like 파일을 읽었지만 invalid이면 `1`, 파일을 읽을 수 없거나 savepoint artifact가 아니면 `2`로 종료합니다.
 
@@ -110,7 +110,7 @@ python3 scripts/validate-examples.py
 python3 scripts/validate-repo.py
 python3 scripts/check-savepoint-renderer.py
 python3 scripts/check-install-helper.py
-python3 scripts/validate_savepoint.py --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
+python3 scripts/savepoint.py validate --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
 python3 -m compileall -q skills/savepoint/scripts scripts
 git diff --check
 ```

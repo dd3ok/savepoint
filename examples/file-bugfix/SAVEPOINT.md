@@ -65,7 +65,7 @@
 
 ## Validation Manifest
 
-- Savepoint validation: `python3 scripts/validate_savepoint.py .savepoint/SAVEPOINT.md` passed.
+- Savepoint validation: `python3 scripts/savepoint.py validate .savepoint/SAVEPOINT.md` passed.
 - Project validation: `npm run lint` passed; `npm test -- tests/auth/session.test.ts` passed.
 - Skipped checks / next validation: none; rerun focused test if editing auth/session behavior.
 - Secret redaction check: manual artifact scan

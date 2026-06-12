@@ -21,6 +21,12 @@ REQUIRED_TEXT_FIELDS = [
     "next_action",
 ]
 MAX_VALUE_CHARS = 600
+UNSUPPORTED_INPUT_KEYS = {
+    "project_validation": "validation.project",
+    "skipped_checks_next_validation": "validation.project.next_validation",
+    "smallest_next_step": "next_action",
+    "blockers": "unresolved_blockers",
+}
 PROJECT_VALIDATION_STATUSES = {
     "passed",
     "failed-expected",
@@ -31,7 +37,6 @@ PROJECT_VALIDATION_STATUSES = {
 PROJECT_VALIDATION_NEXT_REQUIRED = {"failed-expected", "not-run-justified"}
 CLEAR_BLOCKER_VALUES = {"none", "no", "not-needed", "not needed"}
 VALIDATION_FAILURE_RE = re.compile(r"\b(fail|fails|failed|failing|failure|error|errors|not-run|not run|skipped)\b")
-VALIDATION_BLOCKING_FAILURE_RE = re.compile(r"\b(fail|fails|failed|failing|failure|error|errors)\b")
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -57,7 +62,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--run-savepoint-validation",
         action="store_true",
-        help="Run validate_savepoint.py after writing the final artifact.",
+        help="Run bundled savepoint validation after writing the final artifact.",
     )
     return parser.parse_args(argv)
 
@@ -69,6 +74,10 @@ def read_input(path: Path) -> tuple[dict[str, Any] | None, str | None]:
         return None, f"failed to read input JSON: {exc}"
     if not isinstance(data, dict):
         return None, "input JSON must be an object"
+    unsupported = [key for key in UNSUPPORTED_INPUT_KEYS if key in data]
+    if unsupported:
+        details = ", ".join(f"{key} (use {UNSUPPORTED_INPUT_KEYS[key]})" for key in unsupported)
+        return None, f"unsupported input key: {details}"
     return data, None
 
 
@@ -97,11 +106,9 @@ def list_items(value: Any) -> list[str]:
 
 
 def unresolved_blockers_text(data: dict[str, Any]) -> str:
-    values = [clean_text(data.get(key), fallback="") for key in ("unresolved_blockers", "blockers")]
-    recorded = [value for value in values if value]
-    blocking = [value for value in recorded if value.lower() not in CLEAR_BLOCKER_VALUES]
-    if blocking:
-        return "; ".join(blocking)
+    value = clean_text(data.get("unresolved_blockers"), fallback="")
+    if value and value.lower() not in CLEAR_BLOCKER_VALUES:
+        return value
     return "none"
 
 
@@ -154,15 +161,9 @@ def project_validation_passed(value: Any) -> bool:
 
 
 def normalize_project_validation_status(value: Any) -> str:
-    status = clean_text(value, fallback="").lower().replace("_", "-")
+    status = clean_text(value, fallback="").lower()
     if status in PROJECT_VALIDATION_STATUSES:
         return status
-    if re.search(r"\b(pass|passed|ok|success|succeeded)\b", status) and not VALIDATION_FAILURE_RE.search(status):
-        return "passed"
-    if VALIDATION_BLOCKING_FAILURE_RE.search(status):
-        return "failed-blocking"
-    if re.search(r"\b(not-run|not run|skipped)\b", status):
-        return "not-run-unknown"
     return "not-run-unknown"
 
 
@@ -174,10 +175,7 @@ def project_validation_posture(data: dict[str, Any]) -> dict[str, Any]:
         raw_commands = project.get("commands")
         commands = project_validation_command_entries(raw_commands)
         reason = clean_text(project.get("reason"), fallback="")
-        next_validation = clean_text(
-            project.get("next_validation", project.get("next_command", project.get("next"))),
-            fallback="",
-        )
+        next_validation = clean_text(project.get("next_validation"), fallback="")
         if (
             status == "passed"
             and commands
@@ -195,47 +193,13 @@ def project_validation_posture(data: dict[str, Any]) -> dict[str, Any]:
             "commands_complete": project_validation_commands_complete(raw_commands),
         }
 
-    legacy = data.get("project_validation")
-    commands = project_validation_command_entries(legacy)
-    commands_complete = project_validation_commands_complete(legacy)
-    next_validation = clean_text(data.get("skipped_checks_next_validation"), fallback="")
-    if not commands:
-        return {
-            "status": "not-run-unknown",
-            "commands": [],
-            "reason": "",
-            "next_validation": next_validation,
-            "source": "legacy",
-            "commands_complete": False,
-        }
-    if project_validation_passed(legacy):
-        return {
-            "status": "passed",
-            "commands": commands,
-            "reason": "",
-            "next_validation": next_validation,
-            "source": "legacy",
-            "commands_complete": commands_complete,
-        }
-
-    combined = " ".join(commands).lower()
-    if re.search(r"\b(not-run|not run|skipped)\b", combined):
-        reason = clean_text(commands[0], fallback="")
-        return {
-            "status": "not-run-justified" if reason and next_validation else "not-run-unknown",
-            "commands": commands,
-            "reason": reason,
-            "next_validation": next_validation,
-            "source": "legacy",
-            "commands_complete": commands_complete,
-        }
     return {
-        "status": "failed-blocking",
-        "commands": commands,
-        "reason": clean_text(commands[0], fallback="project validation failed"),
-        "next_validation": next_validation,
-        "source": "legacy",
-        "commands_complete": commands_complete,
+        "status": "not-run-unknown",
+        "commands": [],
+        "reason": "",
+        "next_validation": "",
+        "source": "validation.project",
+        "commands_complete": False,
     }
 
 
@@ -276,7 +240,7 @@ def observable_completion(data: dict[str, Any]) -> str:
 
 
 def next_action_text(data: dict[str, Any]) -> str:
-    return clean_text(data.get("smallest_next_step"), fallback=clean_text(data.get("next_action")))
+    return clean_text(data.get("next_action"))
 
 
 def git_status_lines(cwd: Path) -> list[str]:
@@ -456,7 +420,7 @@ def build_savepoint(
     durable_files = list_items(data.get("durable_state_files_checked"))
     files_first = list_items(data.get("files_to_inspect_first")) or first_paths(changes)
     skipped = clean_text(
-        project_posture["next_validation"] or data.get("skipped_checks_next_validation"),
+        project_posture["next_validation"],
         fallback="no skipped checks; rerun recorded project validation if state changes",
     )
     expected_drift = clean_text(data.get("expected_drift"), fallback="none")

@@ -55,7 +55,7 @@ Required list labels checked by the validator must begin at column 0.
 Multi-line values may continue on indented lines under the label.
 The required shape describes recovery facts, not prose volume; routine savepoints should satisfy fields with terse values unless a concrete risk needs detail. Expanded template sections such as `Recovery Contract`, `Session Target`, and `Remaining Work` are allowed, but they are not required when the same safety facts are represented once elsewhere.
 
-For token-efficient finalized artifacts, `scripts/render_savepoint.py` may render/finalize the Markdown from compact semantic JSON while preserving the v1 marker schema and safety checks. It should derive Git snapshot fields, marker values, redaction status, and savepoint-validation status instead of asking the agent to hand-write them.
+For token-efficient finalized artifacts, `scripts/savepoint.py save` may render/finalize the Markdown from compact semantic JSON while preserving the v1 marker schema and safety checks. It should derive Git snapshot fields, marker values, redaction status, and savepoint-validation status instead of asking the agent to hand-write them.
 
 After automatic context compaction, an intentional session reset, or an agent transfer, record recovery uncertainty in existing body fields such as `Expected drift`, `Unknown or unverified`, `Required Reading`, and `Recovery Notes`; do not add marker fields or new modes unless the marker schema is intentionally versioned.
 
@@ -220,7 +220,7 @@ Set `RESUME_READY: yes` only when all are true:
 - the next step is singular, executable, and narrow.
 - `BLOCKERS: none`.
 
-When file artifacts are written, attempt the bundled savepoint validator (`validate_savepoint.py`) after final artifact edits when it is available. If the validator reports errors, correct them and rerun the validator before completion; a failed savepoint validation makes the savepoint unsafe. Do not claim validation passed unless the command actually ran and passed.
+When file artifacts are written, attempt the bundled savepoint validator (`scripts/savepoint.py validate`) after final artifact edits when it is available. If the validator reports errors, correct them and rerun the validator before completion; a failed savepoint validation makes the savepoint unsafe. Do not claim validation passed unless the command actually ran and passed.
 
 `RESUME_READY: yes` means a fresh session can reconstruct state and continue. It does not mean tests pass, code is correct, or the task is complete.
 

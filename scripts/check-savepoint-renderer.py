@@ -17,7 +17,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RENDER_HELPER = ROOT / "skills" / "savepoint" / "scripts" / "render_savepoint.py"
 SAVEPOINT_CLI = ROOT / "skills" / "savepoint" / "scripts" / "savepoint.py"
-ROOT_RENDERER = ROOT / "scripts" / "render_savepoint.py"
 ROOT_SAVEPOINT_CLI = ROOT / "scripts" / "savepoint.py"
 VALIDATOR = ROOT / "skills" / "savepoint" / "scripts" / "validate_savepoint.py"
 HELPER_SCRIPT_DIR = RENDER_HELPER.parent
@@ -99,20 +98,22 @@ def semantic_input(repo: Path) -> Path:
   "goal": "finish deterministic savepoint rendering",
   "current_state": "renderer input has enough semantic fields for a recoverable savepoint",
   "next_action": "run the focused validation commands",
-  "done_when": "savepoint validation and project validation are both recorded",
-  "out_of_scope": "marker schema changes",
-  "smallest_next_step": "run python scripts/check-savepoint-renderer.py",
   "decisions": ["keep SAVEPOINT_V1 marker fields and order unchanged"],
   "risks": ["disk state can drift after the snapshot is captured"],
   "failed_approaches": "none",
   "unresolved_blockers": "none",
-  "project_validation": [
-    {
-      "command": "python scripts/check-savepoint-renderer.py",
-      "result": "passed",
-      "summary": "renderer fixture validation recorded"
+  "validation": {
+    "project": {
+      "status": "passed",
+      "commands": [
+        {
+          "command": "python scripts/check-savepoint-renderer.py",
+          "result": "passed",
+          "summary": "renderer fixture validation recorded"
+        }
+      ]
     }
-  ],
+  },
   "observable_completion": "check-savepoint-renderer exits 0",
   "inspected_without_change": ["README.md"],
   "files_to_inspect_first": ["app.py"]
@@ -133,13 +134,18 @@ def minimal_semantic_input(
 ) -> Path:
     path = repo / "minimal-savepoint-input.json"
     project_validation = "" if not include_project_validation else """,
-  "project_validation": [
-    {
-      "command": "python scripts/check-savepoint-renderer.py",
-      "result": "%s",
-      "summary": "minimal renderer fixture validation recorded"
+  "validation": {
+    "project": {
+      "status": "%s",
+      "commands": [
+        {
+          "command": "python scripts/check-savepoint-renderer.py",
+          "result": "%s",
+          "summary": "minimal renderer fixture validation recorded"
+        }
+      ]
     }
-  ]""" % validation_result
+  }""" % (validation_result, validation_result)
     next_action = "" if not include_next_action else """,
   "next_action": "run the focused minimal renderer check\""""
     blocker_line = "" if unresolved_blockers is None else f""",
@@ -316,7 +322,7 @@ def test_renderer_writes_resume_ready_savepoint_from_json_input() -> None:
         text = output.read_text(encoding="utf-8")
         require("Generated deterministic final savepoint." in text, "renderer origin note missing")
         require("<agent-fill>" not in text, "renderer should not leave placeholders")
-        require("- Next action: run python scripts/check-savepoint-renderer.py" in text, "smallest next step should drive rendered next action")
+        require("- Next action: run the focused validation commands" in text, "next_action should drive rendered next action")
         require("- Changed:" in text and "app.py - modified" in text, "changed file was not derived")
         require("- Created: none" in text, "renderer-generated files should not be listed as created work")
         require("- Inspected without change: README.md" in text, "semantic inspected file missing")
@@ -428,7 +434,7 @@ def test_renderer_accepts_minimal_ready_json_input() -> None:
         text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
         require("RESUME_READY: yes" in text, "minimal ready input should render resume-ready")
         require("BLOCKERS: none" in text, "minimal ready input should have no blockers")
-        for forbidden in ["missing-done-when", "missing-out-of-scope", "missing-smallest-next-step", "not recorded"]:
+        for forbidden in ["missing-done-when", "missing-out-of-scope", "not recorded"]:
             require(forbidden not in text, f"minimal input should not emit removed optional placeholder {forbidden}")
         require("disk state wins" in text, "minimal input must retain disk-state-wins safety language")
         require("minimal-savepoint-input.json - untracked" not in text, "minimal input file should not be listed as created work")
@@ -450,13 +456,18 @@ def test_renderer_records_recovery_uncertainty_inputs() -> None:
   ],
   "expected_drift": "validation is from before session reset; rerun focused check if files changed",
   "unknown_unverified": "nested CLAUDE.md for app.py was not read after compaction",
-  "project_validation": [
-    {
-      "command": "python scripts/check-savepoint-renderer.py",
-      "result": "passed",
-      "summary": "uncertainty renderer fixture validation recorded"
+  "validation": {
+    "project": {
+      "status": "passed",
+      "commands": [
+        {
+          "command": "python scripts/check-savepoint-renderer.py",
+          "result": "passed",
+          "summary": "uncertainty renderer fixture validation recorded"
+        }
+      ]
     }
-  ]
+  }
 }
 """,
             encoding="utf-8",
@@ -545,7 +556,6 @@ def test_renderer_minimal_json_without_project_validation_stays_unsafe() -> None
         require("validation-not-run-unknown" in text, "unknown project validation blocker missing")
         require("missing-done-when" not in text, "removed optional done_when should not block readiness")
         require("missing-out-of-scope" not in text, "removed optional out_of_scope should not block readiness")
-        require("missing-smallest-next-step" not in text, "removed optional smallest_next_step should not block readiness")
         validation = run([sys.executable, str(VALIDATOR), str(repo / ".savepoint" / "SAVEPOINT.md")], repo)
         require(validation.returncode == 0, validation.stderr or validation.stdout)
 
@@ -575,7 +585,7 @@ def test_renderer_exit_code_uses_marker_not_body_resume_ready_text() -> None:
 def test_renderer_failed_project_validation_stays_unsafe() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo_with_modified_app(Path(tmp))
-        input_path = minimal_semantic_input(repo, validation_result="failed")
+        input_path = minimal_semantic_input(repo, validation_result="failed-blocking")
         result = run(
             [
                 sys.executable,
@@ -599,11 +609,16 @@ def test_renderer_failed_project_validation_stays_unsafe() -> None:
 def test_validation_status_token_matrix_is_consistent() -> None:
     renderer = load_render_helper()
     validator = load_validator_helper()
+    for status in ["passed", "failed-expected", "failed-blocking", "not-run-justified", "not-run-unknown"]:
+        require(
+            renderer.normalize_project_validation_status(status) == status,
+            f"renderer did not accept exact status {status!r}",
+        )
     blocking_tokens = ["fail", "fails", "failed", "failing", "failure", "error", "errors"]
     for token in blocking_tokens:
         require(
-            renderer.normalize_project_validation_status(f"tests are {token}") == "failed-blocking",
-            f"renderer did not classify {token!r} as failed-blocking",
+            renderer.normalize_project_validation_status(f"tests are {token}") == "not-run-unknown",
+            f"renderer should not upgrade free-form status {token!r}",
         )
         validator_text = f"- Project validation: tests are {token}\n"
         require(
@@ -631,15 +646,15 @@ def test_validation_status_token_matrix_is_consistent() -> None:
     )
 
 
-def test_renderer_legacy_mixed_pass_fail_stays_unsafe() -> None:
+def test_renderer_rejects_removed_project_validation_input() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo_with_modified_app(Path(tmp))
         input_path = repo / "savepoint-input.json"
         input_path.write_text(
             """{
-  "goal": "finish mixed legacy validation handling",
-  "current_state": "legacy validation has both passing and failing commands",
-  "next_action": "report the failing validation before continuing",
+  "goal": "finish canonical validation handling",
+  "current_state": "top-level project_validation is no longer a supported input shape",
+  "next_action": "rewrite input to validation.project before continuing",
   "project_validation": [
     {
       "command": "npm run lint",
@@ -668,12 +683,53 @@ def test_renderer_legacy_mixed_pass_fail_stays_unsafe() -> None:
             ],
             repo,
         )
-        require(result.returncode == 2, "mixed pass/fail legacy validation should keep output unsafe")
-        text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
-        require("validation-failed-blocking" in text, "mixed validation blocker missing")
-        require("RESUME_READY: no" in text, "mixed validation must block resume-ready")
-        validation = run([sys.executable, str(VALIDATOR), str(repo / ".savepoint" / "SAVEPOINT.md")], repo)
-        require(validation.returncode == 0, validation.stderr or validation.stdout)
+        require(result.returncode == 1, "removed project_validation input should be rejected before render")
+        require("unsupported input key: project_validation" in result.stderr, "removed project_validation error missing")
+        require(not (repo / ".savepoint" / "SAVEPOINT.md").exists(), "removed project_validation input should not write an artifact")
+
+
+def test_renderer_rejects_removed_input_aliases() -> None:
+    for key, value in [
+        ("smallest_next_step", "run an old next-step alias"),
+        ("skipped_checks_next_validation", "run an old validation alias"),
+    ]:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = make_repo_with_modified_app(Path(tmp))
+            input_path = repo / "savepoint-input.json"
+            data = {
+                "goal": "reject removed aliases",
+                "current_state": "canonical input shape is required",
+                "next_action": "rewrite input before rendering",
+                "validation": {
+                    "project": {
+                        "status": "passed",
+                        "commands": [
+                            {
+                                "command": "python scripts/check-savepoint-renderer.py",
+                                "result": "passed",
+                                "summary": "canonical validation recorded",
+                            }
+                        ],
+                    }
+                },
+                key: value,
+            }
+            input_path.write_text(json.dumps(data, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+            result = run(
+                [
+                    sys.executable,
+                    str(RENDER_HELPER),
+                    "--input",
+                    str(input_path),
+                    "--assert-no-active-commands",
+                    "--scan-redaction",
+                    "--run-savepoint-validation",
+                ],
+                repo,
+            )
+            require(result.returncode == 1, f"{key} should be rejected before render")
+            require(f"unsupported input key: {key}" in result.stderr, f"{key} error missing")
+            require(not (repo / ".savepoint" / "SAVEPOINT.md").exists(), f"{key} should not write an artifact")
 
 
 def test_renderer_passed_project_validation_requires_complete_command_fields() -> None:
@@ -965,7 +1021,7 @@ def test_renderer_unresolved_blocker_stays_unsafe() -> None:
         require(validation.returncode == 0, validation.stderr or validation.stdout)
 
 
-def test_renderer_blockers_alias_stays_unsafe() -> None:
+def test_renderer_rejects_removed_blockers_alias() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo_with_modified_app(Path(tmp))
         input_path = repo / "savepoint-input.json"
@@ -975,13 +1031,18 @@ def test_renderer_blockers_alias_stays_unsafe() -> None:
   "current_state": "renderer should not drop intuitive blocker input",
   "next_action": "report blocker before continuing",
   "blockers": "needs user approval",
-  "project_validation": [
-    {
-      "command": "python scripts/check-savepoint-renderer.py",
-      "result": "passed",
-      "summary": "blocker alias fixture validation recorded"
+  "validation": {
+    "project": {
+      "status": "passed",
+      "commands": [
+        {
+          "command": "python scripts/check-savepoint-renderer.py",
+          "result": "passed",
+          "summary": "blocker alias fixture validation recorded"
+        }
+      ]
     }
-  ]
+  }
 }
 """,
             encoding="utf-8",
@@ -998,13 +1059,9 @@ def test_renderer_blockers_alias_stays_unsafe() -> None:
             ],
             repo,
         )
-        require(result.returncode == 2, "blockers alias should keep output unsafe")
-        text = (repo / ".savepoint" / "SAVEPOINT.md").read_text(encoding="utf-8")
-        require("unresolved-blockers-recorded" in text, "blockers alias marker missing")
-        require("needs user approval" in text, "blockers alias should be recorded in recovery notes")
-        require("RESUME_READY: no" in text, "blockers alias must block resume-ready")
-        validation = run([sys.executable, str(VALIDATOR), str(repo / ".savepoint" / "SAVEPOINT.md")], repo)
-        require(validation.returncode == 0, validation.stderr or validation.stdout)
+        require(result.returncode == 1, "blockers alias should be rejected before render")
+        require("unsupported input key: blockers" in result.stderr, "blockers alias error missing")
+        require(not (repo / ".savepoint" / "SAVEPOINT.md").exists(), "removed blockers alias should not write an artifact")
 
 
 def test_renderer_keeps_savepoint_unsafe_without_active_command_assertion() -> None:
@@ -1094,31 +1151,6 @@ def test_renderer_redacts_secret_even_when_scan_flag_is_omitted() -> None:
         require("RESUME_READY: no" in text, "omitted scan flag should block resume-ready")
 
 
-def test_root_renderer_forwards_to_portable_renderer() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        repo = make_repo_with_modified_app(Path(tmp))
-        input_path = semantic_input(repo)
-        output = repo / "custom" / "SAVEPOINT.md"
-        result = run(
-            [
-                sys.executable,
-                str(ROOT_RENDERER),
-                "--input",
-                str(input_path),
-                "--output",
-                str(output),
-                "--assert-no-active-commands",
-                "--scan-redaction",
-                "--run-savepoint-validation",
-            ],
-            repo,
-        )
-        require(result.returncode == 0, result.stderr or result.stdout)
-        require(output.exists(), "root renderer did not write requested output")
-        validation = run([sys.executable, str(VALIDATOR), str(output)], repo)
-        require(validation.returncode == 0, validation.stderr or validation.stdout)
-
-
 def test_savepoint_cli_save_validate_and_inspect() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = make_repo_with_modified_app(Path(tmp))
@@ -1151,8 +1183,8 @@ def test_savepoint_cli_save_validate_and_inspect() -> None:
         require(parsed["RESUME_READY"] == "yes", "inspect JSON should report resume-ready")
         require(parsed["SAVEPOINT_MODE"] == "file", "inspect JSON should report file mode")
         require(parsed["savepoint_validation"] == "passed", "inspect JSON should include savepoint validation status")
-        require(parsed["project_validation"]["status"] == "passed", "inspect JSON should include project validation status")
-        require("next_command" in parsed["project_validation"], "inspect JSON should include project validation next command")
+        require(parsed["validation"]["project"]["status"] == "passed", "inspect JSON should include project validation status")
+        require("next_validation" in parsed["validation"]["project"], "inspect JSON should include project validation next command")
 
 
 def test_savepoint_cli_init_input_defaults_to_unknown_validation() -> None:
@@ -1166,7 +1198,7 @@ def test_savepoint_cli_init_input_defaults_to_unknown_validation() -> None:
         project = data["validation"]["project"]
         require(project["status"] == "not-run-unknown", "init-input should default to honest unknown validation")
         require(project["reason"] == "", "init-input should not prefill a justification")
-        require(project["next_command"] == "", "init-input should not prefill next validation")
+        require(project["next_validation"] == "", "init-input should not prefill next validation")
         require(not (repo / ".savepoint" / "SAVEPOINT.md").exists(), "init-input should not write SAVEPOINT.md")
 
 
@@ -1372,7 +1404,7 @@ Relative detail paths resolve from this file.
 
 ## Validation Manifest
 
-- Savepoint validation: passed: python scripts/validate_savepoint.py .savepoint/SAVEPOINT.md
+- Savepoint validation: passed: python scripts/savepoint.py validate .savepoint/SAVEPOINT.md
 - Project validation: {project_validation}
 - Skipped checks / next validation: {skipped_checks}
 - Secret redaction check: {redaction_check}
@@ -1738,7 +1770,8 @@ def main() -> int:
         test_renderer_exit_code_uses_marker_not_body_resume_ready_text,
         test_renderer_failed_project_validation_stays_unsafe,
         test_validation_status_token_matrix_is_consistent,
-        test_renderer_legacy_mixed_pass_fail_stays_unsafe,
+        test_renderer_rejects_removed_project_validation_input,
+        test_renderer_rejects_removed_input_aliases,
         test_renderer_passed_project_validation_requires_complete_command_fields,
         test_renderer_structured_passed_validation_with_failure_text_stays_unsafe,
         test_renderer_structured_passed_validation_with_failing_text_stays_unsafe,
@@ -1748,11 +1781,10 @@ def main() -> int:
         test_renderer_failed_blocking_project_validation_stays_unsafe,
         test_renderer_missing_next_action_stays_unsafe,
         test_renderer_unresolved_blocker_stays_unsafe,
-        test_renderer_blockers_alias_stays_unsafe,
+        test_renderer_rejects_removed_blockers_alias,
         test_renderer_keeps_savepoint_unsafe_without_active_command_assertion,
         test_renderer_secret_scan_blocks_resume_ready,
         test_renderer_redacts_secret_even_when_scan_flag_is_omitted,
-        test_root_renderer_forwards_to_portable_renderer,
         test_savepoint_cli_save_validate_and_inspect,
         test_savepoint_cli_init_input_defaults_to_unknown_validation,
         test_savepoint_cli_inspect_json_reports_invalid_marker,
