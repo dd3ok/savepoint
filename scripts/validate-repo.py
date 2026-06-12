@@ -264,8 +264,8 @@ class Validator:
             if phrase not in description:
                 self.fail(f"frontmatter description must include Korean invocation phrase: {phrase}")
         body = "\n".join(lines[end + 1 :])
-        if not body.strip().startswith("# Savepoint"):
-            self.fail("SKILL.md body should start with '# Savepoint'")
+        if not body.strip().startswith("Modes:"):
+            self.fail("SKILL.md body should start with mode definitions")
 
     def validate_references(self) -> None:
         skill_text = self.read(SKILL_DIR / "SKILL.md")
@@ -314,8 +314,8 @@ class Validator:
             if phrase not in skill_text:
                 self.fail(f"SKILL.md missing required policy: {phrase}")
         skill_line_count = len(skill_text.splitlines())
-        if skill_line_count > 60:
-            self.fail(f"SKILL.md should stay concise at <=60 lines, got {skill_line_count}")
+        if skill_line_count > 55:
+            self.fail(f"SKILL.md should stay concise at <=55 lines, got {skill_line_count}")
         for phrase in [
             "direct flags such as",
             "do not combine direct flags",
