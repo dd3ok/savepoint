@@ -1,6 +1,8 @@
 # Savepoint
 
-Savepoint는 이전 대화 컨텍스트에 의존하지 않고 새 코딩 에이전트가 현재 repo/Git 상태에서 이어갈 수 있게 `.savepoint/SAVEPOINT.md`를 생성하거나 검증하는 skill입니다.
+컨텍스트 압축, reset, handoff 이후 이어받기 위한 repo/Git savepoint artifact입니다.
+
+Savepoint는 이전 대화 컨텍스트에 의존하지 않고 새 코딩 에이전트가 현재 repo/Git 상태에서 이어갈 수 있게 `.savepoint/SAVEPOINT.md`를 생성하거나 검증하는 skill입니다. 일반 요약이 놓치기 쉬운 repo snapshot, validation 상태, redaction 상태, resume prompt를 기록합니다.
 
 Savepoint는 가벼운 대화 요약이 아닙니다. 복구 가능한 repo/Git checkpoint입니다. 파일 복구가 필요 없으면 `/savepoint text`나 일반 요약을 사용하세요.
 
@@ -17,12 +19,47 @@ Savepoint는 가벼운 대화 요약이 아닙니다. 복구 가능한 repo/Git 
 
 [English README](README.md)
 
+## 설치
+
+이 repository clone 안에서 먼저 dry-run으로 확인합니다.
+
+```bash
+# Claude user install
+python3 scripts/install.py --target claude --scope user
+
+# Codex repo install
+python3 scripts/install.py --target codex --scope repo --repo-root /path/to/target-repo --add-gitignore
+```
+
+대상을 확인한 뒤 적용합니다.
+
+```bash
+python3 scripts/install.py --target claude --scope user --apply
+python3 scripts/install.py --target codex --scope repo --repo-root /path/to/target-repo --apply --add-gitignore
+```
+
+helper는 기본 dry-run입니다. 기존 destination이 있으면 실패하고, 실제로 쓰려면 `--apply`가 필요합니다. repo-scope install에서 `--add-gitignore`를 주면 `.savepoint/`를 추가합니다.
+
+이 repository에서 quick check:
+
+```bash
+python3 scripts/savepoint.py validate --allow-example-paths examples/file-bugfix/SAVEPOINT.md
+```
+
+Windows에서는 install helper나 일반 Git clone/worktree를 권장합니다. 일부 archive extraction 도구는 symlink를 제대로 처리하지 못할 수 있습니다.
+
 ## 언제 쓰나
 
 - context window가 차거나 자동 compaction이 예상될 때
 - 코딩 에이전트 세션을 reset하거나 다른 세션으로 넘기기 전
 - multi-file refactor 중 검증 가능한 재개 지점이 필요할 때
 - Codex, Claude, Gemini, 외부 orchestrator 사이에 repo 상태를 넘길 때
+
+## handoff 선택 기준
+
+- repo 복구가 필요 없으면 일반 요약을 사용합니다.
+- 파일 복구 없이 복붙용 note만 필요하면 `/savepoint text`를 사용합니다.
+- 다음 에이전트가 disk/Git 상태를 확인하고 이어가야 하면 `/savepoint`를 사용합니다.
 
 ## 쓰지 않을 때
 
@@ -39,6 +76,25 @@ Savepoint는 가벼운 대화 요약이 아닙니다. 복구 가능한 repo/Git 
 - `REDACTION_CHECKED: yes` 전에 generated artifact를 pattern-based secret-like scan으로 검사합니다.
 - bundled validator가 marker shape와 safe-resume 필드를 검사합니다.
 - load 시 현재 disk state가 savepoint text보다 우선합니다.
+
+## load report 예시
+
+일반적인 `/savepoint load` 보고는 새 에이전트가 안전하게 이어갈 수 있는지 답합니다.
+
+```text
+Loaded: .savepoint/SAVEPOINT.md
+Git root: matches
+Branch: feature/auth matches
+HEAD: matches
+Working tree drift: none
+Required files: present
+Detail artifacts: none needed
+Redaction: checked
+Savepoint validation: passed
+Project validation: passed
+RESUME_READY: yes
+Next action: run npm test -- tests/auth/session.test.ts
+```
 
 ## 보장하지 않는 것
 
@@ -65,22 +121,6 @@ python3 scripts/savepoint.py inspect .savepoint/SAVEPOINT.md --json
 
 `validation.project.status`는 `passed`, `failed-expected`, `failed-blocking`, `not-run-justified`, `not-run-unknown` 중 하나를 사용합니다. `--scan-redaction`을 쓰면 입력 JSON을 렌더 전에 스캔합니다. `.savepoint/input.json`에 raw secret을 넣지 마세요.
 
-## 설치
-
-추천 명령:
-
-```bash
-# Claude user install
-python3 scripts/install.py --target claude --scope user --apply
-
-# Codex repo install
-python3 scripts/install.py --target codex --scope repo --apply --add-gitignore
-```
-
-helper는 기본 dry-run입니다. 실제로 쓰려면 `--apply`가 필요합니다. repo-scope install에서 `--add-gitignore`를 주면 `.savepoint/`를 추가합니다.
-
-Windows에서는 install helper나 일반 Git clone/worktree를 권장합니다. 일부 archive extraction 도구는 symlink를 제대로 처리하지 못할 수 있습니다.
-
 ## Runtime boundary
 
 일반 create/load에서는 다음만 사용합니다.
@@ -94,8 +134,10 @@ examples, evals, maintainer docs, repository validation scripts는 일반 agent 
 
 ## Examples
 
+- `examples/README.md`: scenario index
 - `examples/file-bugfix/`: 작은 file savepoint
 - `examples/file-architecture/`: `details/*.md` spillover가 있는 savepoint
+- `examples/load-report/`: sample load reports
 - `examples/text-note/`: response-only `/savepoint text` 예시
 - `examples/unsafe-savepoint/`: 의도적으로 unsafe한 `RESUME_READY: no` artifact
 

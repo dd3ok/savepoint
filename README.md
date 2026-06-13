@@ -1,6 +1,8 @@
 # Savepoint
 
-Savepoint creates or verifies a recoverable coding-session checkpoint so a fresh agent can continue from current repo/Git state without prior chat context.
+A repo/Git savepoint artifact for coding-agent handoff after compaction, reset, or transfer.
+
+Savepoint creates or verifies `.savepoint/SAVEPOINT.md` so a fresh agent can continue from current repo/Git state without prior chat context. It records the repo snapshot, validation posture, redaction status, and resume prompt that a plain summary can miss.
 
 Savepoint is not a lightweight conversation summary. It is a recoverable repo/Git checkpoint; use `/savepoint text` or an ordinary summary when file recovery is unnecessary.
 
@@ -17,12 +19,47 @@ If a client does not pass custom slash prompts through, use the natural-language
 
 [Korean README](README.ko.md)
 
+## Install
+
+From a clone of this repository, preview first:
+
+```bash
+# Claude user install
+python3 scripts/install.py --target claude --scope user
+
+# Codex repo install
+python3 scripts/install.py --target codex --scope repo --repo-root /path/to/target-repo --add-gitignore
+```
+
+Apply after reviewing the destination:
+
+```bash
+python3 scripts/install.py --target claude --scope user --apply
+python3 scripts/install.py --target codex --scope repo --repo-root /path/to/target-repo --apply --add-gitignore
+```
+
+The helper defaults to dry-run, refuses existing destinations, and writes files only with `--apply`. With repo-scope install, `--add-gitignore` appends `.savepoint/`.
+
+Quick check from this repository:
+
+```bash
+python3 scripts/savepoint.py validate --allow-example-paths examples/file-bugfix/SAVEPOINT.md
+```
+
+On Windows, prefer the install helper or a normal Git clone/worktree. Archive extraction tools can mishandle symlinks.
+
 ## When to use
 
 - The context window is full or likely to compact.
 - You are about to reset or transfer a coding-agent session.
 - A multi-file refactor needs a verifiable resume point.
 - Codex, Claude, Gemini, or an external orchestrator must hand off repo state.
+
+## Choosing a handoff
+
+- Use an ordinary summary when no repo recovery is needed.
+- Use `/savepoint text` for a copy-paste note without file recovery.
+- Use `/savepoint` when the next agent must verify disk/Git state before continuing.
 
 ## When not to use
 
@@ -39,6 +76,25 @@ If a client does not pass custom slash prompts through, use the natural-language
 - Generated artifacts receive pattern-based secret-like scans before `REDACTION_CHECKED: yes`.
 - The bundled validator checks marker shape and safe-resume fields.
 - On load, current disk state wins over savepoint text.
+
+## Example load report
+
+A typical `/savepoint load` report answers whether a fresh agent can continue safely:
+
+```text
+Loaded: .savepoint/SAVEPOINT.md
+Git root: matches
+Branch: feature/auth matches
+HEAD: matches
+Working tree drift: none
+Required files: present
+Detail artifacts: none needed
+Redaction: checked
+Savepoint validation: passed
+Project validation: passed
+RESUME_READY: yes
+Next action: run npm test -- tests/auth/session.test.ts
+```
 
 ## What it does not guarantee
 
@@ -65,22 +121,6 @@ python3 scripts/savepoint.py inspect .savepoint/SAVEPOINT.md --json
 
 Use `validation.project.status` values `passed`, `failed-expected`, `failed-blocking`, `not-run-justified`, or `not-run-unknown`. With `--scan-redaction`, the input JSON is scanned before rendering; do not put raw secrets in `.savepoint/input.json`.
 
-## Install
-
-Recommended commands:
-
-```bash
-# Claude user install
-python3 scripts/install.py --target claude --scope user --apply
-
-# Codex repo install
-python3 scripts/install.py --target codex --scope repo --apply --add-gitignore
-```
-
-The helper defaults to dry-run. It writes files only with `--apply`. With repo-scope install, `--add-gitignore` appends `.savepoint/`.
-
-On Windows, prefer the install helper or a normal Git clone/worktree. Archive extraction tools can mishandle symlinks.
-
 ## Runtime boundary
 
 Normal create/load should use only:
@@ -94,8 +134,10 @@ Examples, evals, maintainer docs, and repository validation scripts are not norm
 
 ## Examples
 
+- `examples/README.md`: scenario index.
 - `examples/file-bugfix/`: small file savepoint.
 - `examples/file-architecture/`: savepoint with focused `details/*.md` spillover.
+- `examples/load-report/`: sample load reports.
 - `examples/text-note/`: response-only `/savepoint text` note.
 - `examples/unsafe-savepoint/`: intentionally unsafe `RESUME_READY: no` artifact.
 
