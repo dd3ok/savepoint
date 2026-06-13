@@ -21,7 +21,7 @@ Savepoint는 가벼운 대화 요약이 아닙니다. 복구 가능한 repo/Git 
 
 ## 설치
 
-먼저 dry-run으로 확인합니다.
+이 repository clone 안에서 먼저 dry-run으로 확인합니다.
 
 ```bash
 # Claude user install
@@ -40,7 +40,7 @@ python3 scripts/install.py --target codex --scope repo --repo-root /path/to/targ
 
 helper는 기본 dry-run입니다. 기존 destination이 있으면 실패하고, 실제로 쓰려면 `--apply`가 필요합니다. repo-scope install에서 `--add-gitignore`를 주면 `.savepoint/`를 추가합니다.
 
-repo-local quick check:
+이 repository에서 quick check:
 
 ```bash
 python3 scripts/savepoint.py validate --allow-example-paths examples/file-bugfix/SAVEPOINT.md
@@ -88,6 +88,7 @@ Branch: feature/auth matches
 HEAD: matches
 Working tree drift: none
 Required files: present
+Detail artifacts: none needed
 Redaction: checked
 Savepoint validation: passed
 Project validation: passed

@@ -9,6 +9,7 @@ Branch: feature/auth matches
 HEAD: expected a1b2c3d, found d4e5f6a
 Working tree drift: unexpected dirty file src/auth/token.ts
 Required files: present
+Detail artifacts: not read; drift blocks continuation
 Redaction: checked
 Savepoint validation: passed
 Project validation drift: recorded result was for the previous HEAD

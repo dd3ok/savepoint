@@ -21,7 +21,7 @@ If a client does not pass custom slash prompts through, use the natural-language
 
 ## Install
 
-Preview first:
+From a clone of this repository, preview first:
 
 ```bash
 # Claude user install
@@ -40,7 +40,7 @@ python3 scripts/install.py --target codex --scope repo --repo-root /path/to/targ
 
 The helper defaults to dry-run, refuses existing destinations, and writes files only with `--apply`. With repo-scope install, `--add-gitignore` appends `.savepoint/`.
 
-Quick repository check:
+Quick check from this repository:
 
 ```bash
 python3 scripts/savepoint.py validate --allow-example-paths examples/file-bugfix/SAVEPOINT.md
@@ -88,6 +88,7 @@ Branch: feature/auth matches
 HEAD: matches
 Working tree drift: none
 Required files: present
+Detail artifacts: none needed
 Redaction: checked
 Savepoint validation: passed
 Project validation: passed
