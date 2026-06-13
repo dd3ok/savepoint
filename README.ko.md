@@ -2,6 +2,8 @@
 
 Savepoint는 이전 대화 컨텍스트에 의존하지 않고 새 코딩 에이전트가 현재 repo/Git 상태에서 이어갈 수 있게 `.savepoint/SAVEPOINT.md`를 생성하거나 검증하는 skill입니다.
 
+Savepoint는 가벼운 대화 요약이 아닙니다. 복구 가능한 repo/Git checkpoint입니다. 파일 복구가 필요 없으면 `/savepoint text`나 일반 요약을 사용하세요.
+
 ## 30초 사용법
 
 ```text
@@ -34,7 +36,7 @@ Savepoint는 이전 대화 컨텍스트에 의존하지 않고 새 코딩 에이
 
 - file mode는 `.savepoint/SAVEPOINT.md`를 씁니다.
 - artifact는 repo/Git snapshot, `## Resume Prompt`, 마지막 `SAVEPOINT_V1` marker block을 포함합니다.
-- `REDACTION_CHECKED: yes` 전에 생성된 artifact의 secret-like 값을 스캔합니다.
+- `REDACTION_CHECKED: yes` 전에 generated artifact를 pattern-based secret-like scan으로 검사합니다.
 - bundled validator가 marker shape와 safe-resume 필드를 검사합니다.
 - load 시 현재 disk state가 savepoint text보다 우선합니다.
 
@@ -46,17 +48,7 @@ Savepoint는 이전 대화 컨텍스트에 의존하지 않고 새 코딩 에이
 - 미래 충돌 없음
 - text mode만으로 repo 상태를 복구할 수 있음
 
-## Runtime command
-
-public entrypoint는 다음입니다.
-
-```bash
-python3 scripts/savepoint.py save --input .savepoint/input.json --output .savepoint/SAVEPOINT.md --assert-no-active-commands --scan-redaction --validate
-python3 scripts/savepoint.py init-input --output .savepoint/input.json
-python3 scripts/savepoint.py validate .savepoint/SAVEPOINT.md
-python3 scripts/savepoint.py inspect .savepoint/SAVEPOINT.md --json
-python3 scripts/savepoint.py text --input .savepoint/input.json
-```
+## 최소 CLI 흐름
 
 portable skill entrypoint는 `skills/savepoint/scripts/savepoint.py`입니다. repository-local 명령은 `scripts/savepoint.py`를 사용합니다.
 
@@ -71,42 +63,7 @@ python3 scripts/savepoint.py save --input .savepoint/input.json --output .savepo
 python3 scripts/savepoint.py inspect .savepoint/SAVEPOINT.md --json
 ```
 
-짧은 savepoint를 JSON 편집 없이 만들 때:
-
-```bash
-python3 scripts/savepoint.py save \
-  --output .savepoint/SAVEPOINT.md \
-  --assert-no-active-commands --scan-redaction --validate \
-  --goal "focused fix 마무리" \
-  --current-state "구현은 끝난 상태" \
-  --next-action "최종 검증 suite 실행" \
-  --project-status passed \
-  --validation-command "python3 scripts/check-savepoint-renderer.py" \
-  --validation-result passed \
-  --validation-summary "focused renderer checks passed"
-```
-
-`--scan-redaction`을 쓰면 입력 JSON을 렌더 전에 먼저 스캔합니다. `.savepoint/input.json`에 raw secret을 넣지 마세요. `--delete-input-on-success`를 추가하면 resume-ready save가 성공했을 때만 `.savepoint/input.json`을 삭제합니다.
-
-기존 자동화도 `scripts/savepoint.py`를 호출하게 바꿉니다.
-
-| 이전 호출 | 현재 호출 |
-|---|---|
-| `scripts/render_savepoint.py --input ...` | `scripts/savepoint.py save --input ...` |
-| `scripts/validate_savepoint.py ...` | `scripts/savepoint.py validate ...` |
-
-프로젝트 검증 입력은 `validation.project`를 사용합니다.
-
-| 이전 key | 현재 field |
-|---|---|
-| `project_validation` | `validation.project.commands`와 `validation.project.status` |
-| `skipped_checks_next_validation` | `validation.project.next_validation` |
-| `smallest_next_step` | `next_action` |
-| `blockers` | `unresolved_blockers` |
-
-`failed-expected` 또는 `not-run-justified`를 쓰면 사유와 다음 검증 명령을 함께 기록합니다.
-
-`validation.project.status`는 문서에 나열된 영어 값을 사용합니다. 검증 명령 `result`는 `passed` 또는 `failed`처럼 canonical English 값을 쓰고, summary와 reason은 한국어도 괜찮습니다.
+`validation.project.status`는 `passed`, `failed-expected`, `failed-blocking`, `not-run-justified`, `not-run-unknown` 중 하나를 사용합니다. `--scan-redaction`을 쓰면 입력 JSON을 렌더 전에 스캔합니다. `.savepoint/input.json`에 raw secret을 넣지 마세요.
 
 ## 설치
 
@@ -142,24 +99,11 @@ examples, evals, maintainer docs, repository validation scripts는 일반 agent 
 - `examples/text-note/`: response-only `/savepoint text` 예시
 - `examples/unsafe-savepoint/`: 의도적으로 unsafe한 `RESUME_READY: no` artifact
 
-## Maintainer validation
+## Maintainer docs
 
 생성된 artifact는 `scripts/savepoint.py validate .savepoint/SAVEPOINT.md`로 검증합니다.
 
-`scripts/validate-repo.py`는 이 저장소를 유지보수할 때만 사용합니다. packaging, examples, trigger evals, marker/schema contracts를 검사합니다.
-
-커밋 전에는 다음을 실행합니다.
-
-```bash
-python3 scripts/check-frontmatter.py
-python3 scripts/check-marker-block.py
-python3 scripts/check-marker-semantics.py
-python3 scripts/validate-examples.py
-python3 scripts/check-output-contract.py
-python3 scripts/validate-repo.py
-python3 scripts/check-savepoint-renderer.py
-python3 scripts/check-install-helper.py
-python3 scripts/savepoint.py validate --allow-example-paths examples/SAVEPOINT.filled.example.md examples/file-bugfix/SAVEPOINT.md examples/file-architecture/SAVEPOINT.md examples/unsafe-savepoint/SAVEPOINT.md
-python3 -m compileall -q skills/savepoint/scripts scripts
-git diff --check
-```
+- repository 변경 검증: `AGENTS.md`
+- marker와 safe-resume semantics: `docs/reference/savepoint-contract.md`
+- compact packaging 기준: `docs/reference/context-packaging.md`
+- 수동 artifact fallback: `docs/reference/savepoint-template.md`
